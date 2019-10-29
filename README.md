@@ -1,2 +1,2 @@
 # collaborative-robotic-sanding
-Collaborative Robotic Sanding Application
+The CRS (Collaborative Robotic Sanding) Application buit in ROS2 dashing
