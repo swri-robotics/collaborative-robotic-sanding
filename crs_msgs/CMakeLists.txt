@@ -15,7 +15,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-set(INTERFACE_DEPS
+set(MSG_DEPS
   sensor_msgs
   std_msgs
 )
@@ -30,14 +30,14 @@ find_package(builtin_interfaces REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 
-set(INTERFACE_FILES
+set(MSG_FILES
   srv/LoadPart.srv
   srv/LocalizeToPart.srv
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
-  ${INTERFACE_FILES}
-  DEPENDENCIES ${INTERFACE_DEPS}
+  ${MSG_FILES}
+  DEPENDENCIES ${MSG_DEPS}
 )
 
 if(BUILD_TESTING)
@@ -51,4 +51,5 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+ament_export_dependencies(rosidl_default_runtime)
 ament_package()
