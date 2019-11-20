@@ -1,3 +1,4 @@
 string path_to_part
 ---
 bool success
+string error

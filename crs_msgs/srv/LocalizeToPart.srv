@@ -1,3 +1,5 @@
 sensor_msgs/PointCloud2[] point_clouds
 ---
+bool success
+string error
 geometry_msgs/TransformStamped[] transforms

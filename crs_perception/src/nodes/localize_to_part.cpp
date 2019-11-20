@@ -4,6 +4,7 @@
 #include <pcl/registration/icp.h>
 #include <pcl/conversions.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <crs_msgs/srv/load_part.hpp>
@@ -25,6 +26,8 @@ namespace crs_perception
       // parameters
       this->get_parameter_or("mesh_num_samples", mesh_num_samples_, 100000);
       this->get_parameter_or("leaf_size", leaf_size_, 0.01);
+      this->get_parameter_or("camera_frame", camera_frame_, std::string("/camera"));
+      this->get_parameter_or("part_frame", part_frame_, std::string("/part"));
 
       // services
       this->create_service<crs_msgs::srv::LoadPart>(
@@ -45,6 +48,8 @@ namespace crs_perception
     // parameters
     int mesh_num_samples_;
     double leaf_size_;
+    std::string camera_frame_;
+    std::string part_frame_;
 
     bool part_loaded_;
 
@@ -91,10 +96,28 @@ namespace crs_perception
           // todo(ayoungs): use convergence and fitness score?
           // std::cout << "has converged:" << icp.hasConverged() << " score: " <<
           // icp.getFitnessScore() << std::endl;
+
           geometry_msgs::msg::TransformStamped transform;
-          icp.getFinalTransformation();
+          transform.header.stamp = ros_point_cloud2.header.stamp;
+          transform.header.frame_id = camera_frame_;
+          transform.child_frame_id = part_frame_;
+
+          // todo(ayoungs): look for EigenToTf for 4x4; it may already exist
+          Eigen::Matrix4d tm = icp.getFinalTransformation().cast<double>();
+          tf2::Transform tf2_transform(tf2::Matrix3x3(tm(0,0), tm(0,1), tm(0,2),
+                                                      tm(1,0), tm(1,1), tm(1,2),
+                                                      tm(2,0), tm(2,1), tm(2,2)),
+                                       tf2::Vector3(tm(0,3), tm(1,3), tm(2,3)));
+          transform.transform = tf2::toMsg(tf2_transform);
+          
           response->transforms.push_back(transform);
+          response->success = true;
         }
+      }
+      else
+      {
+        response->success = true;
+        response->error = "Missing part. Please load a part first.";
       }
     }
   };
