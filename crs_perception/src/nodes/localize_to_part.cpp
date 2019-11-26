@@ -24,19 +24,19 @@ namespace crs_perception
       part_point_cloud_ = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
 
       // parameters
-      this->get_parameter_or("mesh_num_samples", mesh_num_samples_, 100000);
-      this->get_parameter_or("leaf_size", leaf_size_, 0.01);
-      this->get_parameter_or("camera_frame", camera_frame_, std::string("/camera"));
-      this->get_parameter_or("part_frame", part_frame_, std::string("/part"));
+      mesh_num_samples_ = this->declare_parameter("mesh_num_samples", 100000);
+      leaf_size_ = this->declare_parameter("leaf_size", 1.0);
+      camera_frame_ = this->declare_parameter("camera_frame", "/camera");
+      part_frame_ = this->declare_parameter("part_frame", "/part");
 
       // services
-      this->create_service<crs_msgs::srv::LoadPart>(
+      load_part_service_ = this->create_service<crs_msgs::srv::LoadPart>(
         "load_part", 
         std::bind(&LocalizeToPart::handleLoadPart, this,
                   std::placeholders::_1,
                   std::placeholders::_2,
                   std::placeholders::_3));
-      this->create_service<crs_msgs::srv::LocalizeToPart>(
+      localize_to_part_service_ = this->create_service<crs_msgs::srv::LocalizeToPart>(
         "localize_to_part", 
         std::bind(&LocalizeToPart::handleLocalizeToPart, this,
                   std::placeholders::_1,
@@ -51,6 +51,10 @@ namespace crs_perception
     std::string camera_frame_;
     std::string part_frame_;
 
+    // services
+    rclcpp::Service<crs_msgs::srv::LoadPart>::SharedPtr load_part_service_;
+    rclcpp::Service<crs_msgs::srv::LocalizeToPart>::SharedPtr localize_to_part_service_;
+
     bool part_loaded_;
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr part_point_cloud_;
@@ -61,6 +65,7 @@ namespace crs_perception
       const std::shared_ptr<crs_msgs::srv::LoadPart::Response> response)
     {
       (void)request_header;
+      RCLCPP_INFO(get_logger(), "Loading part from %s", request->path_to_part.c_str());
 
       // todo(ayoungs): handle error for bad file
       // todo(ayoungs): make sure part gets loaded correctly after multiple loads
@@ -69,6 +74,8 @@ namespace crs_perception
 
       part_loaded_ = true;
       response->success = true;
+
+      // todo(ayoungs): should this publish the pointcloud so that other nodes know the original pose or is it assumed to use the same origin as the CAD file?
     }
 
     void handleLocalizeToPart(
@@ -79,15 +86,13 @@ namespace crs_perception
       (void)request_header;
       if (part_loaded_)
       {
-        for (auto &ros_point_cloud2: request->point_clouds)
+        for (auto &point_cloud_msg: request->point_clouds)
         {
           pcl::PCLPointCloud2 point_cloud2;
           pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
           pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
 
-          // todo(ayoungs): this seems like a lot of copying
-          pcl_conversions::toPCL(ros_point_cloud2, point_cloud2);
-          pcl::fromPCLPointCloud2(point_cloud2, *point_cloud);
+          pcl::fromROSMsg(point_cloud_msg, *point_cloud);
 
           icp.setInputSource(point_cloud);
           icp.setInputTarget(part_point_cloud_);
@@ -98,7 +103,7 @@ namespace crs_perception
           // icp.getFitnessScore() << std::endl;
 
           geometry_msgs::msg::TransformStamped transform;
-          transform.header.stamp = ros_point_cloud2.header.stamp;
+          transform.header.stamp = point_cloud_msg.header.stamp;
           transform.header.frame_id = camera_frame_;
           transform.child_frame_id = part_frame_;
 
