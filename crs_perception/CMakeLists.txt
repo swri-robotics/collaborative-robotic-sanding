@@ -32,8 +32,6 @@ include_directories(include
   SYSTEM
   ${PCL_INCLUDE_DIRS}
   ${VTK_INCLUDE_DIRS})
-#link_directories(${PCL_LIBRARY_DIRS})
-#add_definitions(${PCL_DEFINITIONS})
 
 add_library(${PROJECT_NAME}
   src/model_to_point_cloud.cpp

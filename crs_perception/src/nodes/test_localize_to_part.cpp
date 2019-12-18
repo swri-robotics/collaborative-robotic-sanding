@@ -15,13 +15,26 @@ int main(int argc, char **argv) {
   rclcpp::init(argc, argv);
   std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("test_localize_to_part");
 
-  pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
-  //if (pcl::io::loadPCDFile<pcl::PointXYZ>("/home/ayoungs/Downloads/737_fc.pcd", *point_cloud) == -1)
-  if (pcl::io::loadPCDFile<pcl::PointXYZ>("/home/ayoungs/workspaces/crs/src/test.pcd", *point_cloud) == -1)
+  // parameters
+  std::vector<std::string> point_cloud_files;
+  std::string part_file;
+  node->get_parameter("point_cloud_files", point_cloud_files);
+  node->get_parameter("part_file", part_file);
+
+  std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> point_clouds;
+
+  for (auto &pcf: point_cloud_files)
   {
-    RCLCPP_ERROR(node->get_logger(), "Couldn't read file test_pcd.pcd");
-    rclcpp::shutdown();
-    return 1;
+    pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
+
+    if (pcl::io::loadPCDFile<pcl::PointXYZ>(pcf, *point_cloud) == -1)
+    {
+      RCLCPP_ERROR(node->get_logger(), "Couldn't read file %s", pcf);
+      rclcpp::shutdown();
+      return 1;
+    }
+
+    point_clouds.push_back(point_cloud);
   }
 
   rclcpp::Client<crs_msgs::srv::LoadPart>::SharedPtr load_part_client = 
@@ -35,7 +48,7 @@ int main(int argc, char **argv) {
   }
 
   auto load_part_request = std::make_shared<crs_msgs::srv::LoadPart::Request>();
-  load_part_request->path_to_part = "/home/ayoungs/Downloads/737_max_IW.obj";
+  load_part_request->path_to_part = part_file;
 
   auto result_future = load_part_client->async_send_request(load_part_request);
   if (rclcpp::spin_until_future_complete(node, result_future) !=
@@ -49,23 +62,15 @@ int main(int argc, char **argv) {
   RCLCPP_INFO(node->get_logger(), "%d", result->success);
 
   //pcl::transformPointcloud
-  std::vector<std::pair<Eigen::Vector3d,
-                        Eigen::Quaterniond> > transforms = 
-  {
+  std::pair<Eigen::Vector3d, Eigen::Quaterniond> transform = 
     std::make_pair<Eigen::Vector3d,
-                   Eigen::Quaterniond>(Eigen::Vector3d(0, 0, 0),
+                   Eigen::Quaterniond>(Eigen::Vector3d(1, 10, 3),
                                        Eigen::Quaterniond(Eigen::AngleAxisf(0, Eigen::Vector3f::UnitX()) *
                                                           Eigen::AngleAxisf(0, Eigen::Vector3f::UnitY()) *
-                                                          Eigen::AngleAxisf(0, Eigen::Vector3f::UnitZ()))),
-    std::make_pair<Eigen::Vector3d,
-                   Eigen::Quaterniond>(Eigen::Vector3d(10, 5, 3),
-                                       Eigen::Quaterniond(Eigen::AngleAxisf(0, Eigen::Vector3f::UnitX()) *
-                                                          Eigen::AngleAxisf(0, Eigen::Vector3f::UnitY()) *
-                                                          Eigen::AngleAxisf(0, Eigen::Vector3f::UnitZ())))
-  };
+                                                          Eigen::AngleAxisf(0, Eigen::Vector3f::UnitZ())));
 
   auto localize_to_part_request = std::make_shared<crs_msgs::srv::LocalizeToPart::Request>();
-  for(auto &transform: transforms)
+  for(auto &point_cloud: point_clouds)
   {
     pcl::PointCloud<pcl::PointXYZ> tf_point_cloud;
     pcl::transformPointCloud(*point_cloud, tf_point_cloud, transform.first, transform.second);
@@ -84,12 +89,9 @@ int main(int argc, char **argv) {
   }
   auto localize_result = localize_result_future.get();
   RCLCPP_INFO(node->get_logger(), "%d", localize_result->success);
-  for(auto &transform: localize_result->transforms)
-  {
-      RCLCPP_INFO(node->get_logger(), "Transform : (%f, %f, %f)", transform.transform.translation.x,
-                                                                  transform.transform.translation.y,
-                                                                  transform.transform.translation.z);
-  }
+  RCLCPP_INFO(node->get_logger(), "Transform : (%f, %f, %f)", localize_result->transform.transform.translation.x,
+                                                              localize_result->transform.transform.translation.y,
+                                                              localize_result->transform.transform.translation.z);
 
   rclcpp::shutdown();
   return 0;

@@ -16,18 +16,18 @@ namespace crs_perception
     {
     }
 
-    bool convertToPCL(pcl::PointCloud<pcl::PointXYZ>::Ptr &point_cloud);
+    bool convertToPCL(pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud);
   
   private:
     std::string file_path_;
     int num_samples_;
     float leaf_size_;
 
-    void uniform_sampling(vtkSmartPointer<vtkPolyData> polydata, std::size_t n_samples, pcl::PointCloud<pcl::PointXYZ> & cloud_out);
+    void uniformSampling(vtkSmartPointer<vtkPolyData> polydata, std::size_t n_samples, pcl::PointCloud<pcl::PointXYZ> & cloud_out);
     inline void randPSurface(vtkPolyData *polydata, std::vector<double> *cumulativeAreas, double totalArea, Eigen::Vector3f& p);
     inline void randomPointTriangle(float a1, float a2, float a3, float b1, float b2, float b3, float c1, float c2, float c3,
                                     float r1, float r2, Eigen::Vector3f& p);
-    inline double uniform_deviate(int seed);
+    inline double uniformDeviate(int seed);
   };
 
 } // namespace crs_perception

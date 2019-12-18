@@ -26,7 +26,6 @@ namespace crs_perception
       // parameters
       mesh_num_samples_ = this->declare_parameter("mesh_num_samples", 100000);
       leaf_size_ = this->declare_parameter("leaf_size", 1.0);
-      camera_frame_ = this->declare_parameter("camera_frame", "/camera");
       part_frame_ = this->declare_parameter("part_frame", "/part");
 
       // services
@@ -48,7 +47,6 @@ namespace crs_perception
     // parameters
     int mesh_num_samples_;
     double leaf_size_;
-    std::string camera_frame_;
     std::string part_frame_;
 
     // services
@@ -86,38 +84,38 @@ namespace crs_perception
       (void)request_header;
       if (part_loaded_)
       {
+        pcl::PointCloud<pcl::PointXYZ>::Ptr combined_point_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
         for (auto &point_cloud_msg: request->point_clouds)
         {
-          pcl::PCLPointCloud2 point_cloud2;
           pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
-          pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
 
           pcl::fromROSMsg(point_cloud_msg, *point_cloud);
-
-          icp.setInputSource(point_cloud);
-          icp.setInputTarget(part_point_cloud_);
-          pcl::PointCloud<pcl::PointXYZ> final;
-          icp.align(final);
-          // todo(ayoungs): use convergence and fitness score?
-          // std::cout << "has converged:" << icp.hasConverged() << " score: " <<
-          // icp.getFitnessScore() << std::endl;
-
-          geometry_msgs::msg::TransformStamped transform;
-          transform.header.stamp = point_cloud_msg.header.stamp;
-          transform.header.frame_id = camera_frame_;
-          transform.child_frame_id = part_frame_;
-
-          // todo(ayoungs): look for EigenToTf for 4x4; it may already exist
-          Eigen::Matrix4d tm = icp.getFinalTransformation().cast<double>();
-          tf2::Transform tf2_transform(tf2::Matrix3x3(tm(0,0), tm(0,1), tm(0,2),
-                                                      tm(1,0), tm(1,1), tm(1,2),
-                                                      tm(2,0), tm(2,1), tm(2,2)),
-                                       tf2::Vector3(tm(0,3), tm(1,3), tm(2,3)));
-          transform.transform = tf2::toMsg(tf2_transform);
-          
-          response->transforms.push_back(transform);
-          response->success = true;
+          *combined_point_cloud += *point_cloud;
         }
+
+        pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
+        icp.setInputSource(combined_point_cloud);
+        icp.setInputTarget(part_point_cloud_);
+        pcl::PointCloud<pcl::PointXYZ> final;
+        icp.align(final);
+        // todo(ayoungs): use convergence and fitness score?
+        // std::cout << "has converged:" << icp.hasConverged() << " score: " <<
+        // icp.getFitnessScore() << std::endl;
+
+        // todo(ayoungs): should this generate the timestamp or use one of the point cloud stamps
+        response->transform.header.stamp = this->now();
+        response->transform.header.frame_id = request->frame;
+        response->transform.child_frame_id = part_frame_;
+
+        // todo(ayoungs): look for EigenToTf for 4x4; it may already exist
+        Eigen::Matrix4d tm = icp.getFinalTransformation().cast<double>();
+        tf2::Transform tf2_transform(tf2::Matrix3x3(tm(0,0), tm(0,1), tm(0,2),
+                                                    tm(1,0), tm(1,1), tm(1,2),
+                                                    tm(2,0), tm(2,1), tm(2,2)),
+                                     tf2::Vector3(tm(0,3), tm(1,3), tm(2,3)));
+        response->transform.transform = tf2::toMsg(tf2_transform);
+        
+        response->success = true;
       }
       else
       {

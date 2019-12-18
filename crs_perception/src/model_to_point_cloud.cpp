@@ -8,7 +8,7 @@
 
 namespace crs_perception
 {
-  bool ModelToPointCloud::convertToPCL(pcl::PointCloud<pcl::PointXYZ>::Ptr &point_cloud)
+  bool ModelToPointCloud::convertToPCL(pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud)
   {
     // todo(ayoungs): handle multiple file formats?
     // todo(ayoungs): handle error for bad file
@@ -29,7 +29,7 @@ namespace crs_perception
     polydata1 = triangleMapper->GetInput();
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
-    uniform_sampling(polydata1, num_samples_, *cloud);
+    uniformSampling(polydata1, num_samples_, *cloud);
 
     // Voxelgrid
     pcl::VoxelGrid<pcl::PointXYZ> grid_;
@@ -41,7 +41,7 @@ namespace crs_perception
     return true;
   }
 
-  void ModelToPointCloud::uniform_sampling(vtkSmartPointer<vtkPolyData> polydata, std::size_t n_samples, pcl::PointCloud<pcl::PointXYZ> & cloud_out)
+  void ModelToPointCloud::uniformSampling(vtkSmartPointer<vtkPolyData> polydata, std::size_t n_samples, pcl::PointCloud<pcl::PointXYZ> & cloud_out)
   {
     polydata->BuildCells();
     vtkSmartPointer<vtkCellArray> cells = polydata->GetPolys();
@@ -77,7 +77,7 @@ namespace crs_perception
 
   inline void ModelToPointCloud::randPSurface(vtkPolyData *polydata, std::vector<double> *cumulativeAreas, double totalArea, Eigen::Vector3f& p)
   {
-    float r = static_cast<float>(uniform_deviate(rand()) * totalArea);
+    float r = static_cast<float>(uniformDeviate(rand()) * totalArea);
 
     std::vector<double>::iterator low = std::lower_bound(cumulativeAreas->begin(), cumulativeAreas->end(), r);
     vtkIdType el = vtkIdType(low - cumulativeAreas->begin());
@@ -89,8 +89,8 @@ namespace crs_perception
     polydata->GetPoint(ptIds[0], A);
     polydata->GetPoint(ptIds[1], B);
     polydata->GetPoint(ptIds[2], C);
-    float r1 = static_cast<float>(uniform_deviate(rand()));
-    float r2 = static_cast<float>(uniform_deviate(rand()));
+    float r1 = static_cast<float>(uniformDeviate(rand()));
+    float r2 = static_cast<float>(uniformDeviate(rand()));
     randomPointTriangle(float(A[0]), float(A[1]), float(A[2]),
                         float(B[0]), float(B[1]), float(B[2]),
                         float(C[0]), float(C[1]), float(C[2]), r1, r2, p);
@@ -116,7 +116,7 @@ namespace crs_perception
     p[2] = c3;
   }
 
-  inline double ModelToPointCloud::uniform_deviate(int seed)
+  inline double ModelToPointCloud::uniformDeviate(int seed)
   {
     double ran = seed *(1.0 /(RAND_MAX + 1.0));
     return ran;
