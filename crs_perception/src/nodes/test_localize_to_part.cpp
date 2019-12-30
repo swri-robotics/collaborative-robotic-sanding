@@ -29,7 +29,7 @@ int main(int argc, char **argv) {
 
     if (pcl::io::loadPCDFile<pcl::PointXYZ>(pcf, *point_cloud) == -1)
     {
-      RCLCPP_ERROR(node->get_logger(), "Couldn't read file %s", pcf);
+      RCLCPP_ERROR(node->get_logger(), "Couldn't read file %s", pcf.c_str());
       rclcpp::shutdown();
       return 1;
     }
