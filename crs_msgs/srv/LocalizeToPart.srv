@@ -1,0 +1,8 @@
+# All point clouds should be in the same frame
+# The specified frame should be stationary (i.e. world, robot base, etc.)
+string frame
+sensor_msgs/PointCloud2[] point_clouds
+---
+bool success
+string error
+geometry_msgs/TransformStamped transform

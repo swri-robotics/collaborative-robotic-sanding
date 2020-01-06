@@ -20,6 +20,53 @@ find_package(ament_cmake REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
+find_package(crs_msgs REQUIRED)
+find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(PCL REQUIRED)
+find_package(VTK REQUIRED)
+
+include_directories(include
+  SYSTEM
+  ${PCL_INCLUDE_DIRS}
+  ${VTK_INCLUDE_DIRS})
+
+add_library(${PROJECT_NAME}
+  src/model_to_point_cloud.cpp
+)
+target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES})
+  
+
+add_library(${PROJECT_NAME}_nodes SHARED
+  src/nodes/localize_to_part.cpp)
+rclcpp_components_register_nodes(${PROJECT_NAME}_nodes "crs_perception::LocalizeToPart")
+target_link_libraries(${PROJECT_NAME}_nodes ${PROJECT_NAME} ${PCL_LIBRARIES})
+ament_target_dependencies(${PROJECT_NAME}_nodes
+  crs_msgs
+)
+
+add_executable(test_localize_to_part src/nodes/test_localize_to_part.cpp)
+target_link_libraries(test_localize_to_part ${PROJECT_NAME} ${PCL_LIBRARIES})
+ament_target_dependencies(test_localize_to_part
+  rclcpp
+  crs_msgs
+  std_msgs)
+install(TARGETS test_localize_to_part
+DESTINATION lib/${PROJECT_NAME})
+
+install(DIRECTORY include/
+  DESTINATION include
+)
+
+install(TARGETS
+  ${PROJECT_NAME}
+  ${PROJECT_NAME}_nodes
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -32,4 +79,5 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+ament_export_dependencies(ament_cmake)
 ament_package()
