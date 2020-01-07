@@ -24,7 +24,7 @@ namespace crs_perception
     float leaf_size_;
 
     void uniformSampling(vtkSmartPointer<vtkPolyData> polydata, std::size_t n_samples, pcl::PointCloud<pcl::PointXYZ> & cloud_out);
-    inline void randPSurface(vtkPolyData *polydata, std::vector<double> *cumulativeAreas, double totalArea, Eigen::Vector3f& p);
+    inline void randPSurface(vtkSmartPointer<vtkPolyData> polydata, std::vector<double> *cumulativeAreas, double totalArea, Eigen::Vector3f& p);
     inline void randomPointTriangle(float a1, float a2, float a3, float b1, float b2, float b3, float c1, float c2, float c3,
                                     float r1, float r2, Eigen::Vector3f& p);
     inline double uniformDeviate(int seed);
