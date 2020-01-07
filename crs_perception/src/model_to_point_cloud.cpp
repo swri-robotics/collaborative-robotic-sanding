@@ -75,7 +75,7 @@ namespace crs_perception
     }
   }
 
-  inline void ModelToPointCloud::randPSurface(vtkPolyData *polydata, std::vector<double> *cumulativeAreas, double totalArea, Eigen::Vector3f& p)
+  inline void ModelToPointCloud::randPSurface(vtkSmartPointer<vtkPolyData> polydata, std::vector<double> *cumulativeAreas, double totalArea, Eigen::Vector3f& p)
   {
     float r = static_cast<float>(uniformDeviate(rand()) * totalArea);
 
