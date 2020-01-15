@@ -1,0 +1,9 @@
+{
+  "build": {
+    "skip": {
+      "packages-skip": ["tesseract_python",
+                        "tesseract_viewer_python"
+                        ],
+    }
+  }
+}
