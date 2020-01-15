@@ -5,3 +5,4 @@
 - git: {local-name: tesseract, uri: 'https://github.com/ros-industrial-consortium/tesseract.git', version: master}  # NOTE: must add COLCON_IGNORE file to tesseract_ros package
 - git: {local-name: tesseract_ros2, uri: 'https://github.com/schornakj/tesseract_ros2.git', version: feature/migrate-tesseract-monitoring}
 - git: {local-name: trajopt_ros, uri: 'https://github.com/schornakj/trajopt_ros.git', version: fix/closest-collision-body-flag}
+- git: {local-name: ros_scxml, uri: 'https://github.com/swri-robotics/ros_scxml.git', version: master}
