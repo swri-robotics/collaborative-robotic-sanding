@@ -136,7 +136,7 @@ private:
     tesseract_motion_planners::TrajOptMotionPlanner traj_motion_planner;
     tesseract_motion_planners::PlannerResponse plan_resp;
     traj_motion_planner.setConfiguration(traj_pc);
-    traj_motion_planner.solve(plan_resp, true);
+    traj_motion_planner.solve(plan_resp, false);
 
     // Store generated trajectory
     tesseract_common::TrajArray traj_array = plan_resp.joint_trajectory.trajectory;
