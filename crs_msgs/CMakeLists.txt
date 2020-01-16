@@ -18,6 +18,8 @@ endif()
 set(MSG_DEPS
   sensor_msgs
   std_msgs
+  geometry_msgs
+  trajectory_msgs
 )
 
 # find dependencies
@@ -29,10 +31,13 @@ find_package(rosidl_default_generators REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(trajectory_msgs REQUIRED)
 
 set(MSG_FILES
   srv/LoadPart.srv
   srv/LocalizeToPart.srv
+  srv/CallFreespaceMotion.srv
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}

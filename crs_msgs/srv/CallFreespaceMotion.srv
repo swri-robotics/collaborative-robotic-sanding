@@ -1,0 +1,10 @@
+# Target link
+string target_link
+# Target pose/ori
+geometry_msgs/Transform goal_pose
+# bool execute
+bool execute
+---
+trajectory_msgs/JointTrajectory output_trajectory
+bool success
+string message
