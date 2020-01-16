@@ -1,0 +1,47 @@
+<sdf version='1.6'>
+  <model name='part1_loader'>
+    <link name='part_link'>
+      <pose frame=''>0 0 0 -1.571 0 0</pose>
+      <inertial>
+        <pose frame=''>0 0 0 0 -0 0</pose>
+        <mass>0.1</mass>
+        <inertia>
+          <ixx>0.03</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.03</iyy>
+          <iyz>0</iyz>
+          <izz>0.03</izz>
+        </inertia>
+      </inertial>
+      <collision name='part_link_collision'>
+        <pose frame=''>0 0 -0.1168 1.571 -0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>1 1 1</scale>
+            <uri>model://crs_support/meshes/Parts/collision/part_from_mockup.stl</uri>
+          </mesh>
+        </geometry>
+      </collision>
+      <visual name='part_link_visual'>
+        <pose frame=''>0 0 -0.1168 1.571 -0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>1 1 1</scale>
+            <uri>model://crs_support/meshes/Parts/visual/part_from_mockup.stl</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <ambient>0 0.25 0 1.0</ambient>
+          <diffuse>0 0.25 0 1.0</diffuse>
+          <specular>0 0.25 0 1.0</specular>
+          <emissive>0 0.25 0 1.0</emissive>
+        </material>
+      </visual>
+    </link>
+    <joint name='world_to_part' type='fixed'>
+      <child>part_link</child>
+      <parent>world</parent>
+    </joint>
+  </model>
+</sdf>

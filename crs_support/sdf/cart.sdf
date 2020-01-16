@@ -1,0 +1,47 @@
+<sdf version='1.6'>
+  <model name='cart_loader'>
+    <link name='cart_link'>
+      <pose frame=''>0 0 0 -1.571 0 0</pose>
+      <inertial>
+        <pose frame=''>0 0 0 0 -0 0</pose>
+        <mass>0.1</mass>
+        <inertia>
+          <ixx>0.03</ixx>
+          <ixy>0</ixy>
+          <ixz>0</ixz>
+          <iyy>0.03</iyy>
+          <iyz>0</iyz>
+          <izz>0.03</izz>
+        </inertia>
+      </inertial>
+      <collision name='cart_link_collision'>
+        <pose frame=''>0 0 -0.1168 1.571 -0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>1 1 1</scale>
+            <uri>model://crs_support/meshes/Mockup/collision/empty_cart_collision.stl</uri>
+          </mesh>
+        </geometry>
+      </collision>
+      <visual name='cart_link_visual'>
+        <pose frame=''>0 0 -0.1168 1.571 -0 0</pose>
+        <geometry>
+          <mesh>
+            <scale>1 1 1</scale>
+            <uri>model://crs_support/meshes/Mockup/visual/empty_cart.stl</uri>
+          </mesh>
+        </geometry>
+        <material>
+          <ambient>0.25 0 0 1.0</ambient>
+          <diffuse>0.25 0 0 1.0</diffuse>
+          <specular>0.25 0 0 1.0</specular>
+          <emissive>0.25 0 0 1.0</emissive>
+        </material>
+      </visual>
+    </link>
+    <joint name='world_to_cart' type='fixed'>
+      <child>cart_link</child>
+      <parent>world</parent>
+    </joint>
+  </model>
+</sdf>
