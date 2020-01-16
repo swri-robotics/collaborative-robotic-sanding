@@ -14,7 +14,7 @@ def generate_launch_description():
         path = os.path.join(head, 'tesseract_collision')
         os.environ["AMENT_PREFIX_PATH"] += os.pathsep + path
 
-    urdf = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs.urdf')
+    urdf = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'swri_demo.urdf')
     srdf = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'ur10e_robot.srdf')
     gzworld = os.path.join(get_package_share_directory('crs_support'), 'worlds', 'crs.world')
 
@@ -44,7 +44,7 @@ def generate_launch_description():
         node_name='spawn_node',
         package='gazebo_ros',
         node_executable='spawn_entity.py',
-        arguments=['-entity', 'robot', '-x', '0', '-y', '0', '-z', '0.05', '-file', urdf])
+        arguments=['-entity', 'test', '-x', '0', '-y', '0', '-z', '0.05', '-file', urdf])
 
     return launch.LaunchDescription([
         # environment
