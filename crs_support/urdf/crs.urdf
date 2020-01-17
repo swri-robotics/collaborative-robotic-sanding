@@ -250,7 +250,7 @@
     <link name="eoat_link">
         <visual>
             <geometry>
-                <mesh filename="package://crs_support/meshes/end_effector/visual/FRAMOS.stl" />
+                <mesh filename="package://crs_support/meshes/end_effector/visual/ee_v1.stl" />
             </geometry>
             <material name="Orange">
                 <color rgba="1.0 0.4 0.0 1.0" />
@@ -258,7 +258,7 @@
         </visual>
         <collision>
             <geometry>
-                <mesh filename="package://crs_support/meshes/end_effector/collision/FRAMOS_collision.stl" />
+                <mesh filename="package://crs_support/meshes/end_effector/collision/ee_collision_full.stl" />
             </geometry>
         </collision>
 
@@ -271,7 +271,7 @@
     <joint name="tool0_to_eoat_link" type="fixed">
         <parent link="tool0" />
         <child link="eoat_link" />
-        <origin rpy="1.57 0.0 0" xyz="-0.04 0.09 -0.03" />
+        <origin rpy="0.0 0.0 0" xyz="0.00 0.00 0.00" />
     </joint>
     <link name="robot_stand">
         <visual>
@@ -356,8 +356,8 @@
     </joint>
     <link name="gazebo_camera_link" />
     <joint name="gazebo_camera_joint" type="fixed">
-        <origin xyz="0 0 0.02" rpy="0 0 1.571"/>
-        <parent link="wrist_3_link"/>
+        <origin xyz="-0.04241 0.003917 0.0378" rpy="0 3.1416 0.0"/>
+        <parent link="eoat_link"/>
         <child link="gazebo_camera_link"/>
     </joint>
     <link name="camera_link_optical" />
@@ -366,6 +366,13 @@
         <parent link="gazebo_camera_link"/>
         <child link="camera_link_optical"/>
     </joint>
+    <link name="sander_center_link" />
+    <joint name="sander_joint" type = "fixed">
+        <origin xyz="0.10969 -0.001207 0.093395" rpy="0 1.571 0.0"/>
+        <parent link="eoat_link"/>
+        <child link="sander_center_link" />
+    </joint>
+
 
     <transmission name="trans_shoulder_pan_joint">
         <type>transmission_interface/SimpleTransmission</type>
