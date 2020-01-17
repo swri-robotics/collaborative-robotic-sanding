@@ -17,7 +17,13 @@ The CRS (Collaborative Robotic Sanding) Application buit in ROS2 dashing
     ```
     rosdep install --from-path src --ignore-src
     ```
-    
+#### Download additional resources
+- colcon mixin:
+    ```
+    sudo apt install python3-colcon-mixin
+    ```  
+- QT5 is a dependency of [ros_scxml](https://github.com/swri-robotics/ros_scxml) therefore follow the instructions provided [here](https://github.com/swri-robotics/ros_scxml)
+
 #### Ignore select packages from colcon build
 - Objective:
     Since some of the source dependencies in this workspace will have a mixture of ROS1 and ROS2 packages then these instructions will allow ignoring the ROS1/catkin packages from the build.
