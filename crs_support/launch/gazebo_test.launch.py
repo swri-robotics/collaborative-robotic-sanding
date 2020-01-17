@@ -46,13 +46,21 @@ def generate_launch_description():
         node_executable='spawn_entity.py',
         arguments=['-entity', 'robot', '-x', '0', '-y', '0', '-z', '0.05', '-file', urdf])
 
+    freespace_planner = launch_ros.actions.Node(
+        node_executable='crs_motion_planning_freespace_planning_server',
+        package='crs_motion_planning',
+        node_name='freespace_planning_server')
+
     return launch.LaunchDescription([
         # environment
         tesseract_env,
 
         # gazebo
         gzserver,
-        spawner1
+        spawner1,
+
+        # planning
+        freespace_planner
 
 ])
 
