@@ -44,6 +44,16 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC)
 ament_target_dependencies(${PROJECT_NAME} rclcpp rclcpp_components crs_msgs)
 
+add_executable(${PROJECT_NAME}_node src/crs_application.cpp)
+target_link_libraries(${PROJECT_NAME}_node 
+  ${PROJECT_NAME}
+)
+target_include_directories(${PROJECT_NAME}_node PUBLIC
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+    "$<INSTALL_INTERFACE:include>")
+target_include_directories(${PROJECT_NAME}_node SYSTEM PUBLIC)
+ament_target_dependencies(${PROJECT_NAME}_node rclcpp rclcpp_components crs_msgs)
+
 ##################################
 # install
 ##################################
@@ -51,6 +61,9 @@ list (APPEND PACKAGE_LIBRARIES ${PROJECT_NAME})
 install(TARGETS ${PACKAGE_LIBRARIES}
   EXPORT ${PROJECT_NAME}-targets
   DESTINATION lib)
+
+install(TARGETS ${PROJECT_NAME}_node
+DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
