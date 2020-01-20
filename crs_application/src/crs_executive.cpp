@@ -1,6 +1,6 @@
 /*
  * @author Jorge Nicho
- * @file crs_application.cpp
+ * @file crs_executive.cpp
  * @date Jan 16, 2020
  * @copyright Copyright (c) 2020, Southwest Research Institute
  * Software License Agreement (BSD License)
@@ -36,7 +36,6 @@
 #include "crs_application/crs_executive.h"
 #include <rclcpp/rclcpp.hpp>
 
-static const std::string NODE_NAME = "crs_application";
 static const std::string GET_CONFIGURATION_SERVICE = "get_configuration";
 static const double WAIT_FOR_SERVICE_PERIOD = 10.0;
 static const double WAIT_SERVICE_COMPLETION_PERIOD = 10.0;
@@ -106,7 +105,8 @@ namespace state_names
 namespace crs_application
 {
 
-CRSExecutive::CRSExecutive()
+CRSExecutive::CRSExecutive(std::shared_ptr<rclcpp::Node> node):
+    node_(node)
 {
   if(!setup())
   {
@@ -224,17 +224,17 @@ bool CRSExecutive::addStateCallbacks(const std::map<std::string, StateCallbackIn
 
 bool CRSExecutive::setup()
 {
-  node_ = std::make_shared<rclcpp::Node>(NODE_NAME,rclcpp::NodeOptions());
-
   // getting parameters
-  const std::vector<rclcpp::ParameterValue> parameters = {node_->declare_parameter(parameter_names::SM_FILE)};
+  using ParamInfo = std::tuple<std::string, rclcpp::ParameterValue>;
+  const std::vector<ParamInfo> parameters = {std::make_tuple(parameter_names::SM_FILE,
+                                                                          node_->declare_parameter(parameter_names::SM_FILE))};
 
   // check parameters
   for(const auto& p : parameters)
   {
-    if(p.get_type() == rclcpp::ParameterType::PARAMETER_NOT_SET)
+    if(std::get<1>(p).get_type() == rclcpp::ParameterType::PARAMETER_NOT_SET)
     {
-      RCLCPP_ERROR(node_->get_logger(),"%s failed to read parameter", node_->get_name());
+      RCLCPP_ERROR(node_->get_logger(),"%s failed to read parameter '%s'", node_->get_name(), std::get<0>(p).c_str());
       return false;
     }
   }
@@ -259,7 +259,7 @@ bool CRSExecutive::setup()
   part_rework_mngr_ = std::make_shared<task_managers::PartReworkManager>(node_);
 
   // create state machine
-  std::string state_machine_file = parameters[0].get<std::string>();
+  std::string state_machine_file = std::get<1>(parameters[0]).get<std::string>();
   sm_ = std::make_shared<scxml_core::StateMachine>();
   if(!sm_->loadFile(state_machine_file))
   {
@@ -413,7 +413,7 @@ bool CRSExecutive::setupScanAcquisitionStates()
     exit_cb: nullptr,
     on_done_action: action_names::SM_DONE,
     on_failed_action: action_names::SM_NEXT};
-
+  https://github.com/swri-robotics/collaborative-robotic-sanding/pull/6
   st_callbacks_map[scan::SAVE_RESULTS] = StateCallbackInfo{
     entry_cb : [this]() -> common::ActionResult{
       return part_regt_mngr_->setInput(scan_acqt_mngr_->getResult());

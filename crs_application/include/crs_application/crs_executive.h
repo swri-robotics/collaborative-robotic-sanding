@@ -1,6 +1,6 @@
 /*
  * @author Jorge Nicho
- * @file crs_application.h
+ * @file crs_executive.h
  * @date Jan 16, 2020
  * @copyright Copyright (c) 2020, Southwest Research Institute
  * Software License Agreement (BSD License)
@@ -68,7 +68,7 @@ namespace action_names
 class CRSExecutive
 {
 public:
-  CRSExecutive();
+  CRSExecutive(std::shared_ptr<rclcpp::Node> node);
   virtual ~CRSExecutive();
 
   std::shared_ptr<scxml_core::StateMachine> getSM()

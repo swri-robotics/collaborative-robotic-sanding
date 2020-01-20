@@ -40,6 +40,8 @@ set(SRV_FILES
   srv/LocalizeToPart.srv
   srv/CallFreespaceMotion.srv
   srv/GetConfiguration.srv
+  srv/ExecuteAction.srv
+  srv/GetAvailableActions.srv
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
