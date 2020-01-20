@@ -12,6 +12,37 @@
   <test_depend>ament_lint_auto</test_depend>
   <test_depend>ament_lint_common</test_depend>
 
+  <depend>rosidl_default_generators</depend>
+  <depend>actionlib_msgs</depend>
+  <depend>rclcpp_action</depend>
+  <depend>geometry_msgs</depend>
+  <depend>trajectory_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>std_msgs</depend>
+
+  <depend>tesseract_msgs</depend>
+  <depend>tesseract</depend>
+  <depend>tesseract_monitoring</depend>
+  <depend>tesseract_rosutils</depend>
+  <depend>tesseract_kinematics</depend>
+  <depend>tesseract_visualization</depend>
+
+  <depend>trajopt</depend>
+  <depend>trajopt_utils</depend>
+  <depend>trajopt_sco</depend>
+
+  <depend>descartes_light</depend>
+  <depend>descartes_ikfast</depend>
+  <depend>descartes_samplers</depend>
+  <depend>descartes_tesseract</depend>
+
+  <depend>tf2</depend>
+
+  <depend>yaml-cpp</depend>
+  <depend>action_msgs</depend>
+  <depend>visualization_msgs</depend>
+
   <export>
     <build_type>ament_cmake</build_type>
   </export>

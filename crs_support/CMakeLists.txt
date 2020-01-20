@@ -36,6 +36,7 @@ install(DIRECTORY
   launch
   meshes
   urdf
+  sdf
   worlds
   DESTINATION share/${PROJECT_NAME}/
 )
