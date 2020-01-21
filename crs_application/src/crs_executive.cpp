@@ -37,7 +37,7 @@
 #include <rclcpp/rclcpp.hpp>
 
 static const std::string GET_CONFIGURATION_SERVICE = "get_configuration";
-static const double WAIT_FOR_SERVICE_PERIOD = 10.0;
+static const double WAIT_FOR_SERVICE_PERIOD = 5.0;
 static const double WAIT_SERVICE_COMPLETION_PERIOD = 10.0;
 
 namespace parameter_names
@@ -142,6 +142,13 @@ common::ActionResult CRSExecutive::initialize()
 common::ActionResult CRSExecutive::configure()
 {
   using namespace crs_msgs::srv;
+  if(!get_config_client_->wait_for_service(std::chrono::duration<double>(5.0)))
+  {
+    RCLCPP_ERROR(node_->get_logger(),"%s wait for service '%s' timed out", node_->get_name(),
+    		get_config_client_->get_service_name());
+    return false;
+  }
+
   GetConfiguration::Request::SharedPtr req = std::make_shared<GetConfiguration::Request>();
   std::shared_future < GetConfiguration::Response::SharedPtr > res = get_config_client_->async_send_request(req);
 
@@ -163,7 +170,6 @@ common::ActionResult CRSExecutive::configure()
   return configureManagers();
 }
 
-
 bool CRSExecutive::configureManagers()
 {
   // TODO: populate each config structure from the data in process_config_
@@ -180,12 +186,12 @@ bool CRSExecutive::addStateCallbacks(const std::map<std::string, StateCallbackIn
   using namespace crs_application;
   using namespace scxml_core;
 
-  auto sm_ = this->sm_;
   for(const auto& kv : st_callbacks_map)
   {
     // create actual callback
-    auto sm_entry_cb = [&sm_, &kv](const Action& action) -> Response
+    auto sm_entry_cb = [this, kv](const Action& action) -> Response
     {
+      auto sm_ = this->sm_;
       auto res = kv.second.entry_cb();
       if(!res)
       {
@@ -207,12 +213,14 @@ bool CRSExecutive::addStateCallbacks(const std::map<std::string, StateCallbackIn
       return false;
     }
 
+    std::cout<<"Added entry cb for state "<< kv.first << std::endl;
+
     if(!kv.second.exit_cb)
     {
       continue; // no exit callback so go to next
     }
 
-    if(!sm_->addExitCallback(kv.first,[&kv](){
+    if(!sm_->addExitCallback(kv.first,[kv](){
       kv.second.exit_cb();
     }))
     {
@@ -241,13 +249,13 @@ bool CRSExecutive::setup()
 
   // create connections
   get_config_client_ = node_->create_client<crs_msgs::srv::GetConfiguration>(GET_CONFIGURATION_SERVICE);
-  std::vector<rclcpp::ClientBase*> clients = {get_config_client_.get()};
-  for(auto& c : clients)
+  std::vector<rclcpp::ClientBase*> optional_clients = {get_config_client_.get()};
+  for(auto& c : optional_clients)
   {
     if(!c->wait_for_service(std::chrono::duration<double>(WAIT_FOR_SERVICE_PERIOD)))
     {
-      RCLCPP_ERROR(node_->get_logger(),"%s wait for service '%s' timed out", node_->get_name(), c->get_service_name());
-      return false;
+      RCLCPP_WARN(node_->get_logger(),"%s wait for service '%s' timed out",
+    		  node_->get_name(), c->get_service_name());
     }
   }
 
@@ -374,6 +382,10 @@ bool CRSExecutive::setupProcessExecStates()
     async : false};
 
   st_callbacks_map[process_exec::EXEC_MEDIA_CHANGE] = StateCallbackInfo{
+    entry_cb : std::bind(&task_managers::ProcessExecutionManager::execMediaChange, process_exec_mngr_.get()),
+    async : false};
+
+  st_callbacks_map[process_exec::EXEC_HOME] = StateCallbackInfo{
     entry_cb : std::bind(&task_managers::ProcessExecutionManager::execMediaChange, process_exec_mngr_.get()),
     async : false};
 

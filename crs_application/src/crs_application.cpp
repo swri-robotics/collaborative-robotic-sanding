@@ -45,6 +45,7 @@
 
 #include "crs_application/crs_executive.h"
 
+static const double STATE_PUB_RATE = 0.5;
 static const std::string NODE_NAME = "crs_application";
 static const std::string CURRENT_ST_TOPIC = "current_state";
 static const std::string EXECUTE_ACTION_SERVICE = "execute_action";
@@ -56,16 +57,18 @@ int main(int argc, char** argv)
   using namespace crs_msgs;
   using namespace scxml_core;
 
+  QApplication app(argc, argv);
+
+  std::cout<<"CRS Starting" << std::endl;
+
   rclcpp::init(argc, argv);
   std::shared_ptr<rclcpp::Node> node = std::make_shared<rclcpp::Node>(NODE_NAME, rclcpp::NodeOptions());
+  rcutils_logging_set_logger_level(node->get_logger().get_name(), RCUTILS_LOG_SEVERITY_INFO);
 
   // crs executive
   CRSExecutive exec(node);
 
-  // qt application
-  QApplication app(argc, argv);
-
-  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr state_pub_ = node->create_publisher<std_msgs::msg::String>(CURRENT_ST_TOPIC,
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr state_pub = node->create_publisher<std_msgs::msg::String>(CURRENT_ST_TOPIC,
                                                                                                       rclcpp::QoS(rclcpp::KeepLast(7)));
 
   rclcpp::Service<srv::ExecuteAction>::SharedPtr exec_action_server = node->create_service<srv::ExecuteAction>(
@@ -126,6 +129,25 @@ int main(int argc, char** argv)
                            req->search_pattern.c_str());
   });
 
+  rclcpp::TimerBase::SharedPtr pub_timer = node->create_wall_timer(std::chrono::duration<double>(STATE_PUB_RATE),
+                                                                   [&exec, &state_pub](){
+
+    if(!exec.getSM()->isRunning())
+    {
+      return;
+    }
+    std_msgs::msg::String msg;
+    msg.data = exec.getSM()->getCurrentState();
+    state_pub->publish(msg);
+  });
+
+  // start sm
+  if(!exec.getSM()->start())
+  {
+    RCLCPP_ERROR(node->get_logger(),"CRS SM failed to start");
+  }
+  RCLCPP_INFO(node->get_logger(),"CRS Application started");
+
   // main loop
   rclcpp::Rate throttle(100);
   while(rclcpp::ok())
@@ -134,6 +156,7 @@ int main(int argc, char** argv)
     throttle.sleep();
     rclcpp::spin_some(node);
   }
+  app.exit();
 
   return 0;
 }
