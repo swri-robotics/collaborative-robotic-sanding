@@ -95,6 +95,7 @@ namespace state_names
   // process execution
   namespace process_exec
   {
+    static const std::string MOVE_START = "Move_Start";
     static const std::string EXEC_PROCESS = "Exec_Process";
     static const std::string EXEC_MEDIA_CHANGE = "Exec_Media_Change";
     static const std::string CHECK_QUEUE = "PE_Check_Queue";
@@ -376,6 +377,10 @@ bool CRSExecutive::setupProcessExecStates()
   using namespace scxml_core;
 
   std::map<std::string, StateCallbackInfo > st_callbacks_map;
+
+  st_callbacks_map[process_exec::MOVE_START] = StateCallbackInfo{
+    entry_cb : std::bind(&task_managers::ProcessExecutionManager::moveStart, process_exec_mngr_.get()),
+    async : false};
 
   st_callbacks_map[process_exec::EXEC_PROCESS] = StateCallbackInfo{
     entry_cb : std::bind(&task_managers::ProcessExecutionManager::execProcess, process_exec_mngr_.get()),

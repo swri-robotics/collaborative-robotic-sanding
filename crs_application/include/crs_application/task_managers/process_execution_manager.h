@@ -63,6 +63,11 @@ public:
   common::ActionResult setInput(const datatypes::ProcessExecutionData& input);
 
   // Process Actions
+  /**
+   * @brief moves to start position
+   * @return
+   */
+  common::ActionResult moveStart();
   common::ActionResult execProcess();
   common::ActionResult execMediaChange();
 

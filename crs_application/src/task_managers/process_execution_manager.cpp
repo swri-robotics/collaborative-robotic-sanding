@@ -93,5 +93,12 @@ common::ActionResult ProcessExecutionManager::execHome()
   return true;
 }
 
+common::ActionResult ProcessExecutionManager::moveStart()
+{
+  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  return true;
+}
+
 } /* namespace task_managers */
 } /* namespace crs_application */
+
