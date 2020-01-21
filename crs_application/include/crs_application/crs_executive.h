@@ -44,6 +44,7 @@
 #include <std_srvs/srv/trigger.hpp>
 #include <std_msgs/msg/string.hpp>
 #include <scxml_core/state_machine.h>
+#include <QObject>
 
 #include "crs_application/task_managers/motion_planning_manager.h"
 #include "crs_application/task_managers/part_registration_manager.h"
@@ -65,7 +66,7 @@ namespace action_names
   static const std::string SM_DONE = "sm_done";
 }
 
-class CRSExecutive
+class CRSExecutive: public QObject
 {
 public:
   CRSExecutive(std::shared_ptr<rclcpp::Node> node);
@@ -123,6 +124,7 @@ protected:
 
   // rclcpp
   rclcpp::Client<crs_msgs::srv::GetConfiguration>::SharedPtr get_config_client_;
+  rclcpp::TimerBase::SharedPtr state_pub_timer_;
 
   // data
   crs_msgs::msg::ProcessConfiguration process_config_;
