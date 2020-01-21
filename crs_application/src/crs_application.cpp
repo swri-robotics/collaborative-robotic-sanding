@@ -131,13 +131,12 @@ int main(int argc, char** argv)
 
   rclcpp::TimerBase::SharedPtr pub_timer = node->create_wall_timer(std::chrono::duration<double>(STATE_PUB_RATE),
                                                                    [&exec, &state_pub](){
-
     if(!exec.getSM()->isRunning())
     {
       return;
     }
     std_msgs::msg::String msg;
-    msg.data = exec.getSM()->getCurrentState();
+    msg.data = exec.getSM()->getCurrentState(true);
     state_pub->publish(msg);
   });
 
