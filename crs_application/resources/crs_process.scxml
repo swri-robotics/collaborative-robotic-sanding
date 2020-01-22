@@ -1,194 +1,240 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" binding="early" name="crs_process.scxml" qt:editorversion="4.8.2" xmlns:qt="http://www.qt.io/2015/02/scxml-ext">
+<scxml xmlns="http://www.w3.org/2005/07/scxml" version="1.0" binding="early" xmlns:qt="http://www.qt.io/2015/02/scxml-ext" name="crs_process.scxml" qt:editorversion="4.8.2" initial="Initialization">
+    <qt:editorinfo initialGeometry="356.71;8.81;-20;-20;40;40"/>
     <state id="Ready">
-        <qt:editorinfo geometry="603.60;358.44;-202.54;-93.97;398.96;219.39" scenegeometry="603.60;358.44;401.06;264.47;398.96;219.39"/>
+        <qt:editorinfo geometry="603.60;358.44;-202.54;-250.73;398.96;376.15" scenegeometry="603.60;358.44;401.06;107.71;398.96;376.15"/>
         <state id="Wait_User_Cmd">
             <qt:editorinfo geometry="-122.54;15.72;-60;-50;166.03;100" scenegeometry="481.06;374.16;421.06;324.16;166.03;100"/>
-            <transition type="external" event="user_approves" target="Scan Acquisition">
+            <transition type="external" event="user_approves" target="Scan_Acquisition">
                 <qt:editorinfo movePoint="15.51;10.54" endTargetFactors="97.11;56.63"/>
             </transition>
-            <transition type="external" event="user_configs" target="User_Configure_Process">
-                <qt:editorinfo movePoint="0;-15.29" endTargetFactors="19.23;90.80"/>
+            <transition type="external" event="user_configs" target="Configuration">
+                <qt:editorinfo movePoint="-1.33;2.01" endTargetFactors="20.54;88.53" startTargetFactors="59.64;10.73"/>
             </transition>
         </state>
         <state id="At_Fault">
-            <qt:editorinfo geometry="116.42;15.72;-60;-50;120;100" scenegeometry="720.02;374.16;660.02;324.16;120;100"/>
+            <qt:editorinfo geometry="116.42;21.06;-83.17;-76.22;143.17;148.83" scenegeometry="720.02;379.50;636.85;303.28;143.17;148.83"/>
             <transition type="external" event="user_restores" target="Wait_User_Cmd">
                 <qt:editorinfo movePoint="6.79;13.57" endTargetFactors="91.43;49.18"/>
             </transition>
-        </state>
-    </state>
-    <state id="Scan Acquisition">
-        <qt:editorinfo geometry="99.65;262.61;-97.09;-104.80;360.18;304.52" scenegeometry="99.65;262.61;2.56;157.81;360.18;304.52"/>
-        <state id="Verification">
-            <qt:editorinfo geometry="-2.69;3.47;-74.40;-50;134.40;100" scenegeometry="89.87;312.96;15.47;262.96;134.40;100"/>
-            <transition type="external" event="sm_done" target="Move_Robot">
-                <qt:editorinfo endTargetFactors="9.82;52.72"/>
+            <transition type="external" event="user_configs" target="Configuration">
+                <qt:editorinfo localGeometry="8.57;-84.17" movePoint="20.47;-46.28" endTargetFactors="95.33;61.12" startTargetFactors="78.81;8.26"/>
             </transition>
         </state>
-        <state id="Move_Robot">
-            <qt:editorinfo geometry="180.58;3.57;-60;-50;120;100" scenegeometry="273.14;313.06;213.14;263.06;120;100"/>
-            <transition type="external" event="sm_done" target="Capture_Image">
+        <state id="Configuration">
+            <qt:editorinfo geometry="-16.32;-138.16;-121.31;-50;269.14;100" scenegeometry="587.28;220.28;465.97;170.28;269.14;100"/>
+            <transition type="external" event="sm_done" target="Wait_User_Cmd">
+                <qt:editorinfo movePoint="21.46;5.37" startTargetFactors="36.35;86.65" endTargetFactors="84.97;18.64"/>
+            </transition>
+            <transition type="external" event="sm_failure" target="At_Fault">
+                <qt:editorinfo movePoint="-20.96;11.51" endTargetFactors="34.83;10.01" startTargetFactors="78.33;87.97"/>
+            </transition>
+        </state>
+    </state>
+    <state id="Scan_Acquisition" initial="SC_Verification">
+        <qt:editorinfo geometry="82.94;261;-152.13;-175.60;415.22;385.62" scenegeometry="82.94;261;-69.19;85.40;415.22;385.62"/>
+        <state id="SC_Move_Robot">
+            <qt:editorinfo geometry="167.69;-62.46;-60;-50;120;100" scenegeometry="250.63;198.54;190.63;148.54;120;100"/>
+            <transition type="external" event="sm_done" target="SC_Capture">
                 <qt:editorinfo endTargetFactors="37.56;10.66"/>
             </transition>
         </state>
-        <state id="Capture_Image">
-            <qt:editorinfo geometry="180.85;128.35;-60;-50;120;100" scenegeometry="273.41;437.84;213.41;387.84;120;100"/>
-            <transition type="external" event="sm_done" target="Check_Queue">
-                <qt:editorinfo endTargetFactors="90.73;48.09"/>
+        <state id="SC_Verification">
+            <qt:editorinfo geometry="-51.01;-59.33;-74.40;-50;134.40;100" scenegeometry="31.93;201.67;-42.47;151.67;134.40;100"/>
+            <transition type="external" event="sm_done" target="SC_Move_Robot">
+                <qt:editorinfo endTargetFactors="9.82;52.72"/>
             </transition>
         </state>
-        <state id="Check_Queue">
-            <qt:editorinfo geometry="-9.52;129.72;-60;-50;120;100" scenegeometry="90.13;392.33;30.13;342.33;120;100"/>
-            <transition type="external" event="sm_done" target="Part_Registration">
-                <qt:editorinfo startTargetFactors="44.79;89.91" endTargetFactors="26.33;5.14"/>
+        <state id="SC_Capture">
+            <qt:editorinfo geometry="180.84;51.05;-60;-50;120;100" scenegeometry="263.78;312.05;203.78;262.05;120;100"/>
+            <transition type="external" event="sm_done" target="SC_Check_Queue">
+                <qt:editorinfo movePoint="33.82;6.45" endTargetFactors="90.73;48.09"/>
             </transition>
-            <transition type="external" event="sm_next" target="Move_Robot">
+        </state>
+        <transition type="external" event="sm_failure" target="At_Fault">
+            <qt:editorinfo localGeometry="239.66;2.25" movePoint="-69.25;12.88" endTargetFactors="9.72;78.89" startTargetFactors="97.42;91.43"/>
+        </transition>
+        <state id="SC_Check_Queue">
+            <qt:editorinfo geometry="-70.72;52.42;-60;-50;120;100" scenegeometry="12.22;313.42;-47.78;263.42;120;100"/>
+            <transition type="external" event="sm_done" target="SC_Save_Results">
+                <qt:editorinfo movePoint="-18.63;34.61" startTargetFactors="44.79;89.91" endTargetFactors="6.37;43"/>
+            </transition>
+            <transition type="external" event="sm_next" target="SC_Move_Robot">
                 <qt:editorinfo movePoint="-10.86;17.64" endTargetFactors="8.82;80.79"/>
+            </transition>
+        </state>
+        <state id="SC_Save_Results">
+            <qt:editorinfo geometry="51.97;140.02;-60;-50;127.02;100" scenegeometry="134.91;401.02;74.91;351.02;127.02;100"/>
+            <transition type="external" event="sm_done" target="Part_Registration">
+                <qt:editorinfo endTargetFactors="46.97;4.67"/>
             </transition>
         </state>
     </state>
     <state id="Initialization">
-        <qt:editorinfo geometry="557.80;51.93;-112.17;-50;275.30;100" scenegeometry="557.80;51.93;445.63;1.93;275.30;100"/>
-        <transition type="external" event="sm_done" target="User_Configure_Process">
-            <qt:editorinfo endTargetFactors="49.15;19.38"/>
+        <qt:editorinfo geometry="575.06;17.32;-112.17;-67.02;275.30;117.02" scenegeometry="575.06;17.32;462.89;-49.70;275.30;117.02"/>
+        <transition type="external" event="sm_done" target="Ready">
+            <qt:editorinfo endTargetFactors="49.95;4.26"/>
         </transition>
     </state>
     <state id="Part_Registration">
-        <qt:editorinfo geometry="251.33;631.88;-286.47;-103.66;369.66;310.58" scenegeometry="251.33;631.88;-35.14;528.22;369.66;310.58"/>
-        <state id="Get_Transform">
-            <qt:editorinfo geometry="-156;14.47;-81.53;-50;141.53;100" scenegeometry="91.62;685.83;10.09;635.83;141.53;100"/>
+        <qt:editorinfo geometry="251.33;631.88;-286.47;-103.66;374.88;320.24" scenegeometry="251.33;631.88;-35.14;528.22;374.88;320.24"/>
+        <state id="Compute_Transform">
+            <qt:editorinfo geometry="-156;14.47;-92.41;-50;152.41;100" scenegeometry="95.33;646.35;2.92;596.35;152.41;100"/>
             <transition type="external" event="sm_done" target="Apply_transform">
-                <qt:editorinfo movePoint="-25.81;26.83" startTargetFactors="32.57;88.77" endTargetFactors="26.54;11.31"/>
+                <qt:editorinfo movePoint="-37.08;10.72" startTargetFactors="32.57;88.77" endTargetFactors="26.54;11.31"/>
             </transition>
         </state>
-        <state id="Reg_Preview">
-            <qt:editorinfo geometry="-3.06;12.23;-60;-50;126.25;100" scenegeometry="244.56;683.59;184.56;633.59;126.25;100"/>
+        <state id="RG_Preview">
+            <qt:editorinfo geometry="-3.06;12.23;-60;-50;126.25;100" scenegeometry="248.27;644.11;188.27;594.11;126.25;100"/>
             <transition type="external" event="user_rejects" target="Ready">
-                <qt:editorinfo movePoint="-13.58;8.14" endTargetFactors="2.74;88.80"/>
+                <qt:editorinfo movePoint="-13.58;8.14" endTargetFactors="5.83;96.44"/>
             </transition>
-            <transition type="external" event="user_approves" target="Motion_Planning">
-                <qt:editorinfo startTargetFactors="91.17;64.29" endTargetFactors="3.28;40.13"/>
+            <transition type="external" event="user_approves" target="RG_Save_Results">
+                <qt:editorinfo movePoint="8.47;8.47" startTargetFactors="64.23;88.85" endTargetFactors="60.31;11.94"/>
             </transition>
         </state>
         <state id="Apply_transform">
-            <qt:editorinfo geometry="-103.48;136.92;-60;-50;151.74;100" scenegeometry="147.85;768.80;87.85;718.80;151.74;100"/>
-            <transition type="external" event="sm_done" target="Reg_Preview">
-                <qt:editorinfo movePoint="20.39;24.47" endTargetFactors="58.20;86.29"/>
+            <qt:editorinfo geometry="-185.62;146.58;-60;-50;151.74;100" scenegeometry="65.71;778.46;5.71;728.46;151.74;100"/>
+            <transition type="external" event="sm_done" target="RG_Preview">
+                <qt:editorinfo movePoint="-15.04;19.64" endTargetFactors="24;89.65"/>
             </transition>
         </state>
+        <state id="RG_Save_Results">
+            <qt:editorinfo geometry="-1.70;144.39;-60;-50;130.11;100" scenegeometry="249.63;776.27;189.63;726.27;130.11;100"/>
+            <transition type="external" event="sm_done" target="Motion_Planning">
+                <qt:editorinfo movePoint="14.64;3.99" endTargetFactors="2.75;74.94"/>
+            </transition>
+        </state>
+        <transition type="external" event="sm_failure" target="At_Fault">
+            <qt:editorinfo localGeometry="113.43;-193.91;301.24;-193.91" movePoint="-19.33;9.66" endTargetFactors="16.11;87.55"/>
+        </transition>
     </state>
     <state id="Motion_Planning">
-        <qt:editorinfo geometry="675.58;774.23;-303.04;-247.64;433.81;330.21" scenegeometry="675.58;774.23;372.54;526.59;433.81;330.21"/>
+        <qt:editorinfo geometry="682.02;792.21;-312.56;-276.25;443.33;451.93" scenegeometry="682.02;792.21;369.46;515.96;443.33;451.93"/>
         <state id="Split_ToolPaths">
-            <qt:editorinfo geometry="-177.42;-137.83;-85.62;-50;170.23;100" scenegeometry="498.16;636.40;412.54;586.40;170.23;100"/>
+            <qt:editorinfo geometry="-150.80;-155.14;-85.62;-50;135.95;100" scenegeometry="531.22;637.07;445.60;587.07;135.95;100"/>
             <transition type="external" event="sm_done" target="Plan_Process_Paths">
                 <qt:editorinfo endTargetFactors="45.55;14.87"/>
             </transition>
         </state>
-        <state id="Plan_Process_Paths">
-            <qt:editorinfo geometry="-186.21;5.94;-71.75;-56.57;169.23;100" scenegeometry="489.37;780.17;417.62;723.60;169.23;100"/>
-            <transition type="external" event="sm_done" target="Plan_Media_Changes">
-                <qt:editorinfo startTargetFactors="90.96;59.56" endTargetFactors="7.84;60.41"/>
-            </transition>
-        </state>
-        <state id="Plan_Media_Changes">
-            <qt:editorinfo geometry="0.67;-3.01;-60;-50;170.10;100" scenegeometry="676.25;771.22;616.25;721.22;170.10;100"/>
-            <transition type="external" event="sm_done" target="MP_Preview">
-                <qt:editorinfo movePoint="6.79;6.79" startTargetFactors="43.09;12.83" endTargetFactors="49.33;87.37"/>
-            </transition>
-        </state>
         <state id="MP_Preview">
-            <qt:editorinfo geometry="-9.97;-134.95;-60;-50;170.10;100" scenegeometry="665.61;639.28;605.61;589.28;170.10;100"/>
+            <qt:editorinfo geometry="-20.62;-141.60;-60;-50;170.10;100" scenegeometry="661.40;650.61;601.40;600.61;170.10;100"/>
             <transition type="external" event="user_rejects" target="Ready">
-                <qt:editorinfo movePoint="17.27;-9.87" endTargetFactors="72.23;94.54"/>
+                <qt:editorinfo movePoint="30.15;-19.53" endTargetFactors="72.23;94.54"/>
             </transition>
-            <transition type="external" event="user_approves" target="Process_Execution">
-                <qt:editorinfo movePoint="16.04;4.94" endTargetFactors="3.10;57.41"/>
-            </transition>
-        </state>
-    </state>
-    <state id="User_Configure_Process">
-        <qt:editorinfo geometry="570.02;182.09;-121.31;-50;269.14;100" scenegeometry="570.02;182.09;448.71;132.09;269.14;100"/>
-        <transition type="external" event="user_approves" target="Ready">
-            <qt:editorinfo movePoint="8.15;2.71" startTargetFactors="77.49;87.31" endTargetFactors="64.73;6.68"/>
-        </transition>
-    </state>
-    <state id="Process_Execution" initial="Exec_Process">
-        <qt:editorinfo geometry="996.73;637.18;-142.57;-141.13;437.70;335.87" scenegeometry="996.73;637.18;854.16;496.05;437.70;335.87"/>
-        <state id="Exec_Media_Change">
-            <qt:editorinfo geometry="157.33;-30.97;-60;-50;175.89;100" scenegeometry="1134.32;302.10;1074.32;252.10;175.89;100"/>
-            <transition type="external" event="sm_done" target="PE_Check_Queue">
-                <qt:editorinfo endTargetFactors="45.55;8.72"/>
-            </transition>
-        </state>
-        <state id="PE_Check_Queue">
-            <qt:editorinfo geometry="185.07;110.88;-72.49;-50;147.47;113.86" scenegeometry="1162.06;443.95;1089.57;393.95;147.47;113.86"/>
-            <transition type="external" event="sm_next" target="Exec_Process">
-                <qt:editorinfo endTargetFactors="86.76;85.39"/>
-            </transition>
-            <transition type="external" event="sm_done" target="Exec_Home">
-                <qt:editorinfo movePoint="9.87;9.87" endTargetFactors="91.43;49.15"/>
-            </transition>
-        </state>
-        <state id="Exec_Home">
-            <qt:editorinfo geometry="-23.65;116.36;-76.20;-50;163.44;102.10" scenegeometry="973.08;703.58;896.88;653.58;163.44;102.10"/>
-            <transition type="external" event="sm_done" target="Part_Rework">
-                <qt:editorinfo movePoint="54.04;-109.10" startTargetFactors="9.77;63.74" localGeometry="-35.97;-48.78;-35.97;-321.01;91.46;-321.01" endTargetFactors="36.47;96.79"/>
+            <transition type="external" event="user_approves" target="MP_Save_Results">
+                <qt:editorinfo movePoint="16.04;4.94" endTargetFactors="39.22;14.14" startTargetFactors="54.59;89.57"/>
             </transition>
         </state>
         <transition type="external" event="sm_failure" target="At_Fault">
-            <qt:editorinfo movePoint="-5.10;-32.30" startTargetFactors="7.09;3.87" localGeometry="-132.76;-50.09" endTargetFactors="75.89;88.89"/>
+            <qt:editorinfo localGeometry="-1.75;-44.48;95.59;-44.48" movePoint="2.66;15.97" endTargetFactors="18.72;87.74" startTargetFactors="44.44;4.37"/>
+        </transition>
+        <state id="Plan_Media_Changes">
+            <qt:editorinfo geometry="-193.65;92.81;-60;-50;170.10;100" scenegeometry="488.37;885.02;428.37;835.02;170.10;100"/>
+            <transition type="external" event="sm_done" target="MP_Preview">
+                <qt:editorinfo localGeometry="131.46;-36.57" movePoint="6.79;6.79" startTargetFactors="43.09;12.83" endTargetFactors="18.55;88.42"/>
+            </transition>
+        </state>
+        <state id="Plan_Process_Paths">
+            <qt:editorinfo geometry="-220.81;-29.99;-71.75;-56.57;169.23;100" scenegeometry="461.21;762.22;389.46;705.65;169.23;100"/>
+            <transition type="external" event="sm_done" target="Plan_Media_Changes">
+                <qt:editorinfo startTargetFactors="29.65;88.78" endTargetFactors="18.08;9.83"/>
+            </transition>
+        </state>
+        <state id="MP_Save_Results">
+            <qt:editorinfo geometry="23.19;53.67;-60;-50;131.86;107.15" scenegeometry="705.21;845.88;645.21;795.88;131.86;107.15"/>
+            <transition type="external" event="sm_done" target="Process_Execution">
+                <qt:editorinfo endTargetFactors="2.43;86.37"/>
+            </transition>
+        </state>
+    </state>
+    <state id="Process_Execution" initial="Move_Start">
+        <qt:editorinfo geometry="996.73;637.18;-142.57;-148.97;437.70;466.64" scenegeometry="996.73;637.18;854.16;488.21;437.70;466.64"/>
+        <state id="Exec_Media_Change">
+            <qt:editorinfo geometry="157.33;-30.97;-60;-50;175.89;100" scenegeometry="1154.06;606.21;1094.06;556.21;175.89;100"/>
+            <transition type="external" event="sm_done" target="PW_Wait_User">
+                <qt:editorinfo endTargetFactors="30.58;15.48"/>
+            </transition>
+        </state>
+        <state id="PE_Check_Queue">
+            <qt:editorinfo geometry="184.03;233.81;-72.49;-50;147.47;113.86" scenegeometry="1180.76;870.99;1108.27;820.99;147.47;113.86"/>
+            <transition type="external" event="sm_next" target="Exec_Process">
+                <qt:editorinfo localGeometry="-1.46;-143.39" movePoint="-16.10;-57.98" endTargetFactors="86.76;85.39" startTargetFactors="17.01;12.97"/>
+            </transition>
+            <transition type="external" event="sm_done" target="Exec_Home">
+                <qt:editorinfo movePoint="-3.01;9.87" endTargetFactors="91.96;54.18"/>
+            </transition>
+        </state>
+        <state id="Exec_Home">
+            <qt:editorinfo geometry="-38.26;239.69;-76.20;-50;163.44;102.10" scenegeometry="958.47;876.87;882.27;826.87;163.44;102.10"/>
+            <transition type="external" event="sm_done" target="Part_Rework">
+                <qt:editorinfo localGeometry="-21.36;-172.12;-21.36;-444.33" movePoint="73.37;-118.76" startTargetFactors="9.77;63.74" endTargetFactors="38.29;97.11"/>
+            </transition>
+        </state>
+        <transition type="external" event="sm_failure" target="At_Fault">
+            <qt:editorinfo localGeometry="-139.69;0" movePoint="-52.95;-45.63" startTargetFactors="7.09;3.87" endTargetFactors="75.89;88.89"/>
         </transition>
         <state id="Exec_Process">
-            <qt:editorinfo geometry="-38.58;-27.44;-76.20;-50;164.08;100" scenegeometry="938.41;305.63;862.21;255.63;164.08;100"/>
+            <qt:editorinfo geometry="-38.58;-27.44;-76.20;-50;164.08;100" scenegeometry="958.15;609.74;881.95;559.74;164.08;100"/>
             <transition type="external" event="sm_done" target="Exec_Media_Change">
                 <qt:editorinfo movePoint="3.70;9.87" endTargetFactors="12.03;51.21"/>
             </transition>
         </state>
+        <state id="PW_Wait_User">
+            <qt:editorinfo geometry="214.37;104.75;-60;-50;120;100" scenegeometry="1211.10;741.93;1151.10;691.93;120;100"/>
+            <transition type="external" event="user_approves" target="PE_Check_Queue">
+                <qt:editorinfo movePoint="11.27;3.22" endTargetFactors="74.76;11.65"/>
+            </transition>
+            <transition type="external" event="user_cancels" target="Exec_Home">
+                <qt:editorinfo endTargetFactors="88.09;23.93"/>
+            </transition>
+        </state>
+        <state id="Move_Start">
+            <qt:editorinfo geometry="-25.59;117.63;-60;-50;120;100" scenegeometry="971.14;754.81;911.14;704.81;120;100"/>
+            <transition type="external" event="sm_done" target="Exec_Process">
+                <qt:editorinfo movePoint="53.14;12.88" endTargetFactors="51.04;90.91"/>
+            </transition>
+        </state>
     </state>
     <state id="Part_Rework">
-        <qt:editorinfo geometry="938.22;204.12;-120.73;-190.97;511.03;412.54" scenegeometry="938.22;204.12;817.49;13.15;511.03;412.54"/>
-        <state id="Waits_User_Assesment">
-            <qt:editorinfo geometry="-35.56;0.57;-60;-79.89;169.51;132.94" scenegeometry="902.66;203.67;842.66;123.78;169.51;132.94"/>
-            <transition type="external" event="user_approves" target="PR_Move_Robot">
-                <qt:editorinfo movePoint="39.77;-17.33" localGeometry="20.74;-89.15" endTargetFactors="11.17;23.52"/>
+        <qt:editorinfo geometry="938.22;204.12;-114.60;-158.95;480.99;391.13" scenegeometry="938.22;204.12;823.62;45.17;480.99;391.13"/>
+        <state id="Wait_User_Selection">
+            <qt:editorinfo geometry="-19.59;-8.61;-60;-79.89;169.51;132.94" scenegeometry="918.63;195.51;858.63;115.62;169.51;132.94"/>
+            <transition type="external" event="user_done" target="Ready">
+                <qt:editorinfo movePoint="17.72;-29" endTargetFactors="96.93;16.97" startTargetFactors="6.94;44.97"/>
             </transition>
-        </state>
-        <state id="PR_Move_Robot">
-            <qt:editorinfo geometry="175.01;-75.52;-60;-50;120;100" scenegeometry="1113.23;127.58;1053.23;77.58;120;100"/>
-            <transition type="external" event="sm_done" target="PR_Capture_Image">
-                <qt:editorinfo movePoint="47.92;12.23" localGeometry="150.11;0.38" endTargetFactors="64.55;12"/>
-            </transition>
-        </state>
-        <state id="PR_Capture_Image">
-            <qt:editorinfo geometry="310.30;15.30;-68.34;-50;128.34;100" scenegeometry="1248.52;219.42;1180.18;169.42;128.34;100"/>
-            <transition type="external" event="sm_done" target="PR_Check_Queue">
-                <qt:editorinfo movePoint="-13.26;-22.43" startTargetFactors="10.15;30.49" localGeometry="-91.65;0" endTargetFactors="53.59;11.51"/>
-            </transition>
-        </state>
-        <state id="PR_Check_Queue">
-            <qt:editorinfo geometry="159.03;65.91;-60;-50;120;100" scenegeometry="1097.26;270.03;1037.26;220.03;120;100"/>
-            <transition type="external" event="sm_next" target="PR_Capture_Image">
-                <qt:editorinfo movePoint="50.98;32.63" startTargetFactors="91.89;68.64" endTargetFactors="15.81;73.56"/>
-            </transition>
-            <transition type="external" event="sm_done" target="TrimToolPath">
-                <qt:editorinfo movePoint="35.69;18.35" localGeometry="1.83;81.86" endTargetFactors="9.86;52.34"/>
+            <transition type="external" event="user_approves" target="Get_User_Selection">
+                <qt:editorinfo movePoint="6.30;1.43" endTargetFactors="9.32;52.24" startTargetFactors="93.79;44.04"/>
             </transition>
         </state>
         <state id="PR_Preview">
-            <qt:editorinfo geometry="19.77;130.55;-80;-43.08;130.94;113.08" scenegeometry="957.99;334.67;877.99;291.59;130.94;113.08"/>
-            <transition type="external" event="user_approves" target="Motion_Planning">
-                <qt:editorinfo movePoint="-30.59;99.92" startTargetFactors="9.54;80.42" localGeometry="-59.50;0;-59.50;155.15" endTargetFactors="94.18;3.36"/>
-            </transition>
+            <qt:editorinfo geometry="149.32;116.84;-80;-43.08;130.94;113.08" scenegeometry="1087.54;320.96;1007.54;277.88;130.94;113.08"/>
             <transition type="external" event="user_rejects" target="Ready">
-                <qt:editorinfo endTargetFactors="96.20;38.75"/>
+                <qt:editorinfo movePoint="5.33;-23.95" endTargetFactors="96.95;52.46" startTargetFactors="9.95;20.93"/>
+            </transition>
+            <transition type="external" event="user_approves" target="PR_Save_Results">
+                <qt:editorinfo localGeometry="-44.90;15.29" movePoint="5.50;11" endTargetFactors="92.33;81.63" startTargetFactors="50.29;90.76"/>
             </transition>
         </state>
-        <state id="TrimToolPath">
-            <qt:editorinfo geometry="302.22;145.84;-60;-50;120;100" scenegeometry="1240.44;349.96;1180.44;299.96;120;100"/>
+        <state id="Trim_ToolPaths">
+            <qt:editorinfo geometry="285.29;134.16;-60;-50;120;100" scenegeometry="1223.51;338.28;1163.51;288.28;120;100"/>
             <transition type="external" event="sm_done" target="PR_Preview">
                 <qt:editorinfo startTargetFactors="9.84;75.26" endTargetFactors="90.04;75.73"/>
+            </transition>
+        </state>
+        <state id="Get_User_Selection">
+            <qt:editorinfo geometry="267.19;-31.25;-82.63;-50;142.63;100" scenegeometry="1205.41;172.87;1122.78;122.87;142.63;100"/>
+            <transition type="external" event="sm_done" target="Trim_ToolPaths">
+                <qt:editorinfo endTargetFactors="42.25;10.43" startTargetFactors="62.85;88.92"/>
+            </transition>
+            <transition type="external" event="sm_failure" target="At_Fault">
+                <qt:editorinfo localGeometry="-120.21;88.47;-391.42;88.47" movePoint="29.28;-14.64" endTargetFactors="88.65;9.95"/>
+            </transition>
+        </state>
+        <state id="PR_Save_Results">
+            <qt:editorinfo geometry="-14.22;159.98;-80.38;-50;140.38;100" scenegeometry="924;364.10;843.62;314.10;140.38;100"/>
+            <transition type="external" event="sm_done" target="Motion_Planning">
+                <qt:editorinfo movePoint="-38.29;69.12" startTargetFactors="17.55;88.92" endTargetFactors="94.18;3.36"/>
             </transition>
         </state>
     </state>

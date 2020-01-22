@@ -1,0 +1,15 @@
+trajectory_msgs/JointTrajectoryPoint start_position
+trajectory_msgs/JointTrajectoryPoint end_position
+geometry_msgs/Pose tool_offset							
+float64 approach_dist
+float64 retreat_dist
+float64 tool_speed
+crs_msgs/ToolProcessPath[] process_paths
+
+---
+crs_msgs/ProcessTrajectory[] trajectories	# The trajectories
+bool[] interrupt							# True to interrupt process at the end of the corresponding trajectory
+											# False to proceed with the following trajectory
+											
+bool succeeded
+string err_msg											
