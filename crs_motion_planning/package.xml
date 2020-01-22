@@ -20,6 +20,7 @@
   <depend>sensor_msgs</depend>
   <depend>std_srvs</depend>
   <depend>std_msgs</depend>
+  <depend>crs_msgs</depend>
 
   <depend>tesseract_msgs</depend>
   <depend>tesseract</depend>
