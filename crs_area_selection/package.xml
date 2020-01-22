@@ -1,0 +1,31 @@
+<package format="2">
+  <name>crs_area_selection</name>
+  <version>0.1.0</version>
+
+  <description>
+    The crs_area_selection package contains a number of tools to aid
+    selection of submeshes in RViz using the publish point tool
+  </description>
+
+  <author email="david.merz@swri.org">David Merz, Jr.</author>
+  <maintainer email="david.merz@swri.org">David Merz, Jr.</maintainer>
+  <license>Apache 2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>geometry_msgs</depend>
+  <depend>sensor_msgs</depend>
+  <depend>shape_msgs</depend>
+  <depend>std_srvs</depend>
+  <depend>visualization_msgs</depend>
+
+  <depend>rclcpp</depend>
+  <depend>tf2_eigen</depend>
+  <depend>tf2_ros</depend>
+
+  <depend>crs_msgs</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
