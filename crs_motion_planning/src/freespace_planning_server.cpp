@@ -25,6 +25,8 @@
 
 #include <ament_index_cpp/get_package_share_directory.hpp>
 
+static const std::vector<double> COEFFICIENTS {10, 10, 10, 10, 10, 10};
+
 void tesseractRosutilsToMsg(trajectory_msgs::msg::JointTrajectory& traj_msg,
                               const std::vector<std::string>& joint_names,
                               const Eigen::Ref<const tesseract_common::TrajArray>& traj)
@@ -49,7 +51,7 @@ void tesseractRosutilsToMsg(trajectory_msgs::msg::JointTrajectory& traj_msg,
       jtp.positions[static_cast<size_t>(j)] = traj(i, j);
     }
 
-    jtp.time_from_start = rclcpp::Duration(i, 0);  // TODO: re-enable with rclcpp::Duration
+    jtp.time_from_start = rclcpp::Duration(i, 0);
     traj_msg.points[static_cast<size_t>(i)] = jtp;
   }
 }
@@ -60,15 +62,21 @@ public:
   PlanningServer()
     : Node("planning_server_node")
   {
+    // ROS parameters
+    this->declare_parameter("urdf_path", ament_index_cpp::get_package_share_directory("crs_support") + "/urdf/crs.urdf");
+    this->declare_parameter("srdf_path", ament_index_cpp::get_package_share_directory("crs_support") + "/urdf/ur10e_robot.srdf");
+    this->declare_parameter("base_link_frame", "world");
+    this->declare_parameter("manipulator_group", "manipulator");
+    this->declare_parameter("num_steps", 200);
+
+    // ROS communications
     plan_service_ = this->create_service<crs_msgs::srv::CallFreespaceMotion>("test_plan", std::bind(&PlanningServer::planService, this, std::placeholders::_1, std::placeholders::_2));
     traj_publisher_ = this->create_publisher<trajectory_msgs::msg::JointTrajectory>("set_trajectory_test",10);
     joint_state_listener_ = this->create_subscription<sensor_msgs::msg::JointState>("/joint_states", 2, std::bind(&PlanningServer::jointCallback, this, std::placeholders::_1));
 
-    joint_name_list_ = {"shoulder_pan_joint", "shoulder_lift_joint", "elbow_joint", "wrist_1_joint", "wrist_2_joint", "wrist_3_joint"};
-
     std::string urdf_path, srdf_path;
-    urdf_path = ament_index_cpp::get_package_share_directory("crs_support") + "/urdf/crs.urdf";
-    srdf_path = ament_index_cpp::get_package_share_directory("crs_support") + "/urdf/ur10e_robot.srdf";
+    urdf_path = this->get_parameter("urdf_path").as_string();
+    srdf_path = this->get_parameter("srdf_path").as_string();
     std::stringstream urdf_xml_string, srdf_xml_string;
     std::ifstream urdf_in(urdf_path);
     urdf_xml_string << urdf_in.rdbuf();
@@ -78,6 +86,11 @@ public:
     tesseract_local_ = std::make_shared<tesseract::Tesseract>();
     tesseract_scene_graph::ResourceLocator::Ptr locator = std::make_shared<tesseract_rosutils::ROSResourceLocator>();
     tesseract_local_->init(urdf_xml_string.str(), srdf_xml_string.str(), locator);
+
+    base_link_frame_ = this->get_parameter("base_link_frame").as_string();
+    manipulator_ = this->get_parameter("manipulator_group").as_string();
+
+    num_steps_ = this->get_parameter("num_steps").as_int();
   }
 private:
   void jointCallback(const sensor_msgs::msg::JointState::SharedPtr joint_msg)
@@ -88,20 +101,17 @@ private:
                     std::shared_ptr<crs_msgs::srv::CallFreespaceMotion::Response> response)
   {
     std::string target_frame = request->target_link;
-    std::string base_link_frame = "world";
 
     Eigen::Isometry3d tcp_eigen;
     tcp_eigen.setIdentity();
+    auto traj_pc = std::make_shared<tesseract_motion_planners::TrajOptPlannerFreespaceConfig>(tesseract_local_, manipulator_, target_frame, tcp_eigen);
 
-    auto traj_pc = std::make_shared<tesseract_motion_planners::TrajOptPlannerFreespaceConfig>(tesseract_local_, "manipulator", target_frame, tcp_eigen);
-
+    std::vector<std::string> joint_names = tesseract_local_->getFwdKinematicsManagerConst()->getFwdKinematicSolver(manipulator_)->getJointNames();
     // Initialize vector of target waypoints
     std::vector<tesseract_motion_planners::Waypoint::Ptr> trgt_wypts;
 
     // Define initial waypoint
-    Eigen::VectorXd init_joint_pose(6);
-    init_joint_pose << curr_joint_state_.position[0], curr_joint_state_.position[1], curr_joint_state_.position[2], curr_joint_state_.position[3], curr_joint_state_.position[4], curr_joint_state_.position[5];
-    tesseract_motion_planners::JointWaypoint::Ptr joint_init_waypoint = std::make_shared<tesseract_motion_planners::JointWaypoint>(init_joint_pose, joint_name_list_);
+    tesseract_motion_planners::JointWaypoint::Ptr joint_init_waypoint = std::make_shared<tesseract_motion_planners::JointWaypoint>(curr_joint_state_.position, curr_joint_state_.name);
     joint_init_waypoint->setIsCritical(false);
 
     // Define goal waypoint
@@ -111,7 +121,7 @@ private:
 
     goal_waypoint->setIsCritical(true);
     Eigen::VectorXd coeffs(6);
-    coeffs << 10, 10, 10, 10, 10, 10;
+    coeffs << COEFFICIENTS[0], COEFFICIENTS[1], COEFFICIENTS[2], COEFFICIENTS[3], COEFFICIENTS[4], COEFFICIENTS[5];
     goal_waypoint->setCoefficients(coeffs);
 
     // Add waypoints
@@ -122,7 +132,7 @@ private:
     traj_pc->target_waypoints = trgt_wypts;
 
     // Various freespace configuration settings
-    traj_pc->num_steps = 200;
+    traj_pc->num_steps = num_steps_;
     traj_pc->smooth_velocities = true;
     traj_pc->smooth_accelerations = true;
     traj_pc->smooth_jerks = true;
@@ -145,8 +155,8 @@ private:
 
     // Convert trajectory to ROSmsg
     trajectory_msgs::msg::JointTrajectory cumulative_joint_trajectory;
-    tesseractRosutilsToMsg(cumulative_joint_trajectory, joint_name_list_, cumulative_trajectory);
-    cumulative_joint_trajectory.header.frame_id = base_link_frame;
+    tesseractRosutilsToMsg(cumulative_joint_trajectory, joint_names, cumulative_trajectory);
+    cumulative_joint_trajectory.header.frame_id = base_link_frame_;
 
     // Modify time
     for (int i = 0; i < traj_pc->num_steps; ++i)
@@ -178,8 +188,12 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_listener_;
   tesseract::Tesseract::Ptr tesseract_local_;
 
-  std::vector<std::string> joint_name_list_;
   sensor_msgs::msg::JointState curr_joint_state_;
+
+  std::string base_link_frame_;
+  std::string manipulator_;
+
+  int num_steps_;
 };
 
 
