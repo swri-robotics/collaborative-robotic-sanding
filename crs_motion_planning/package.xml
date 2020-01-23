@@ -36,7 +36,6 @@
   <depend>descartes_light</depend>
   <depend>descartes_ikfast</depend>
   <depend>descartes_samplers</depend>
-  <depend>descartes_tesseract</depend>
 
   <depend>tf2</depend>
 
