@@ -15,7 +15,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-set(MSG_DEPS
+set(SRV_DEPS
   sensor_msgs
   std_msgs
   geometry_msgs
@@ -24,9 +24,6 @@ set(MSG_DEPS
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(builtin_interfaces REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -35,14 +32,22 @@ find_package(geometry_msgs REQUIRED)
 find_package(trajectory_msgs REQUIRED)
 
 set(MSG_FILES
+  msg/ProcessConfiguration.msg
+)
+
+set(SRV_FILES
   srv/LoadPart.srv
   srv/LocalizeToPart.srv
   srv/CallFreespaceMotion.srv
+  srv/GetConfiguration.srv
+  srv/ExecuteAction.srv
+  srv/GetAvailableActions.srv
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   ${MSG_FILES}
-  DEPENDENCIES ${MSG_DEPS}
+  ${SRV_FILES}
+  DEPENDENCIES ${SRV_DEPS}
 )
 
 if(BUILD_TESTING)
