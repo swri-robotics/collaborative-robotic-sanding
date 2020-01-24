@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>crs_gui</name>
+  <version>0.1.0</version>
+  <description>
+      description
+  </description>
+
+  <author email="mripperger@swri.org">mripperger</author>
+  <maintainer email="mripperger@swri.org">mripperger</maintainer>
+
+  <license>Apache 2.0</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+
+  <depend>crs_area_selection</depend>
+  <depend>rclcpp</depend>
+  <depend>shape_msgs</depend>
+  <depend>std_srvs</depend>
+
+  <export>
+<!--    <rviz plugin="${prefix}/plugin_description.xml"/>-->
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

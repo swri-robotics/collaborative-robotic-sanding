@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>PolygonAreaSelectionWidget</class>
+ <widget class="QWidget" name="PolygonAreaSelectionWidget">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>409</width>
+    <height>114</height>
+   </rect>
+  </property>
+  <property name="windowTitle">
+   <string>Form</string>
+  </property>
+  <layout class="QVBoxLayout" name="verticalLayout">
+   <item>
+    <widget class="QLabel" name="label_area_selection">
+     <property name="text">
+      <string>Area Selection
+(Use Publish Point tool, selection is automatically applied)</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="push_button_clear_selection">
+     <property name="text">
+      <string>Clear Selection</string>
+     </property>
+    </widget>
+   </item>
+   <item>
+    <widget class="QPushButton" name="push_button_apply_selection">
+     <property name="text">
+      <string>Apply Selection</string>
+     </property>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
