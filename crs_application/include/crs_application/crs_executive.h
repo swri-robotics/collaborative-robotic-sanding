@@ -82,6 +82,7 @@ protected:
 
   struct StateCallbackInfo
   {
+
     std::function< crs_application::common::ActionResult () > entry_cb = nullptr;
     bool async = false;
     std::function< crs_application::common::ActionResult () > exit_cb = nullptr;

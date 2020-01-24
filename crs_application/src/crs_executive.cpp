@@ -127,11 +127,11 @@ common::ActionResult CRSExecutive::initialize()
       process_exec_mngr_->init() &&
       part_rework_mngr_->init() )
   {
-    RCLCPP_INFO(node_->get_logger(),"%s All managers initialized");
+    RCLCPP_INFO(node_->get_logger(),"All managers initialized");
   }
   else
   {
-    RCLCPP_ERROR(node_->get_logger(),"%s One or more managers failed to initialize");
+    RCLCPP_ERROR(node_->get_logger(),"One or more managers failed to initialize");
     return false;
   }
 
@@ -425,7 +425,7 @@ bool CRSExecutive::setupScanAcquisitionStates()
     exit_cb: nullptr,
     on_done_action: action_names::SM_DONE,
     on_failed_action: action_names::SM_NEXT};
-  https://github.com/swri-robotics/collaborative-robotic-sanding/pull/6
+
   st_callbacks_map[scan::SAVE_RESULTS] = StateCallbackInfo{
     entry_cb : [this]() -> common::ActionResult{
       return part_regt_mngr_->setInput(scan_acqt_mngr_->getResult());
