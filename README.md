@@ -1,6 +1,7 @@
 # Collaborative-Robotic-Sanding
-The CRS (Collaborative Robotic Sanding) Application buit in ROS2 dashing
+The CRS (Collaborative Robotic Sanding) Application buit in ROS2 eloquent
 
+---
 ### Workspace Setup
 #### Download source dependencies
 - Install [wstool](http://wiki.ros.org/wstool)
@@ -18,10 +19,18 @@ The CRS (Collaborative Robotic Sanding) Application buit in ROS2 dashing
     rosdep install --from-path src --ignore-src
     ```
 #### Download additional resources
+- ros-eloquent-launch-xml
+    ```
+    sudo apt install ros-eloquent-launch-xml
+    ```
+    This allows using xml formatted launch files
+
 - colcon mixin:
     ```
     sudo apt install python3-colcon-mixin
     ```  
+    This is used for skipping select packages during a build, more on this later
+
 - QT5 is a dependency of [ros_scxml](https://github.com/swri-robotics/ros_scxml) therefore follow the instructions provided [here](https://github.com/swri-robotics/ros_scxml)
 
 #### Ignore select packages from colcon build
@@ -54,3 +63,7 @@ The CRS (Collaborative Robotic Sanding) Application buit in ROS2 dashing
         ```
         colcon build --symlink-install --mixin skip
         ```
+---
+### Running Application
+- See the instructions [here](crs_application/README.md)
+
