@@ -221,7 +221,6 @@ common::ActionResult MotionPlanningManager::planProcessPaths()
 
 common::ActionResult MotionPlanningManager::planMediaChanges()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
   using namespace crs_msgs::srv;
 
   common::ActionResult res = checkPreReq();
@@ -246,7 +245,7 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
                                                             pose_msg.position.z);
   req->goal_pose.rotation = pose_msg.orientation;
   req->execute = false;
-
+  req->num_steps = 0; // planner should use default
 
   auto call_planning = [this](const std::string& plan_name, CallFreespaceMotion::Request::SharedPtr req) ->
       boost::optional<trajectory_msgs::msg::JointTrajectory>

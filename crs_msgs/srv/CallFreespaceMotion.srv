@@ -6,6 +6,8 @@ sensor_msgs/JointState start_position 	# leave empty to use current position
 sensor_msgs/JointState goal_position    # looks into this one first
 geometry_msgs/Transform goal_pose		# use this one when 'goal_position' is empty
 
+int32 num_steps							# Set to 0 in order to use default
+
 bool execute
 ---
 trajectory_msgs/JointTrajectory output_trajectory
