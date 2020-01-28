@@ -166,7 +166,7 @@ private:
 
     // Define initial waypoint
     tesseract_motion_planners::JointWaypoint::Ptr joint_init_waypoint;
-    if(request->start_position.positions.empty())
+    if(request->start_position.position.empty())
     {
       //use current position when it was not specified in the request
       joint_init_waypoint = std::make_shared<tesseract_motion_planners::JointWaypoint>(
@@ -174,23 +174,23 @@ private:
     }
     else
     {
-      if(request->start_position.positions.size() < joint_names.size())
+      if(request->start_position.position.size() < joint_names.size())
       {
         response->message = boost::str(boost::format("start position (%lu) has fewer joints than the required number of %lu") %
-                                       request->start_position.positions.size() % joint_names.size());
+                                       request->start_position.position.size() % joint_names.size());
         response->success = false;
         RCLCPP_ERROR(this->get_logger(),response->message.c_str());
         return;
       }
       joint_init_waypoint = std::make_shared<tesseract_motion_planners::JointWaypoint>(
-          request->start_position.positions, request->joint_names);
+          request->start_position.position, request->start_position.name);
     }
 
     joint_init_waypoint->setIsCritical(true);
 
     // Define goal waypoint
     tesseract_motion_planners::Waypoint::Ptr goal_waypoint;
-    if(request->goal_position.positions.empty())
+    if(request->goal_position.position.empty())
     {
       Eigen::Vector3d goal_pose(request->goal_pose.translation.x, request->goal_pose.translation.y, request->goal_pose.translation.z);
       Eigen::Quaterniond goal_ori(request->goal_pose.rotation.w, request->goal_pose.rotation.x, request->goal_pose.rotation.y, request->goal_pose.rotation.z);
@@ -206,7 +206,7 @@ private:
     else
     {
       goal_waypoint = std::make_shared<tesseract_motion_planners::JointWaypoint>(
-                request->goal_position.positions, request->joint_names);
+                request->goal_position.position, request->goal_position.name);
       RCLCPP_INFO(this->get_logger(),"Planning FreeSpace motion to joint goal");
     }
 

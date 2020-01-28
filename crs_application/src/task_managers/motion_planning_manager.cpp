@@ -37,7 +37,6 @@
 #include <boost/optional.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <trajectory_msgs/msg/joint_trajectory.hpp>
-#include "crs_application/common/utils.h"
 #include "crs_application/task_managers/motion_planning_manager.h"
 
 static const double WAIT_SERVICE_DURATION = 2.0; // secs
@@ -45,6 +44,11 @@ static const double WAIT_SERVICE_COMPLETION_PERIOD = 30.0; // secs
 static const std::string CALL_FREESPACE_MOTION_SERVICE = "plan_free_space";
 static const std::string PLAN_PROCESS_MOTIONS_SERVICE = "plan_process_motions";
 static const std::string MANAGER_NAME = "MotionPlanningManager";
+
+static Eigen::Vector3d toEigen(const geometry_msgs::msg::Point& p_msg)
+{
+  return Eigen::Vector3d(p_msg.x, p_msg.y, p_msg.z);
+}
 
 namespace crs_application
 {
@@ -138,8 +142,8 @@ common::ActionResult MotionPlanningManager::splitToolpaths()
     int split_point_idx = -1;
     for(std::size_t p_idx = 0; p_idx < raster.poses.size() - 1; p_idx++)
     {
-      p1 = crs_common::toEigen(raster.poses[p_idx].position);
-      p2 = crs_common::toEigen(raster.poses[p_idx + 1].position);
+      p1 = toEigen(raster.poses[p_idx].position);
+      p2 = toEigen(raster.poses[p_idx + 1].position);
 
       double d = (p2 - p1).norm();
       if(current_dist + d > split_dist)
@@ -279,8 +283,8 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
   {
     datatypes::MediaChangeMotionPlan media_change_plan;
     const trajectory_msgs::msg::JointTrajectory& traj  = result_.process_plans[i].end;
-    req->joint_names = traj.joint_names;
-    req->start_position = traj.points.back();
+    req->start_position.name = traj.joint_names;
+    req->start_position.position = traj.points.back().positions;
 
     // calling freespace motion planning to media change position
     boost::optional<trajectory_msgs::msg::JointTrajectory> opt = call_planning("START", req);
@@ -291,8 +295,8 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
     media_change_plan.start_traj = opt.get();
 
     // free space motion planning for return move
-    req->start_position = media_change_plan.start_traj.points.back();
-    req->goal_position = media_change_plan.start_traj.points.front();
+    req->start_position.position = media_change_plan.start_traj.points.back().positions;
+    req->goal_position.position = media_change_plan.start_traj.points.front().positions;
     opt = call_planning("RETURN", req);
     if(!opt.is_initialized())
     {
