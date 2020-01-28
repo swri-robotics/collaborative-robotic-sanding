@@ -5,6 +5,7 @@
 #include <trajectory_msgs/msg/joint_trajectory.hpp>
 
 #include <crs_msgs/srv/call_freespace_motion.hpp>
+#include <crs_motion_planning/path_processing_utils.h>
 
 #include <tf2/transform_storage.h>
 #include <tf2/transform_datatypes.h>
@@ -26,35 +27,6 @@
 #include <ament_index_cpp/get_package_share_directory.hpp>
 
 static const std::vector<double> COEFFICIENTS {10, 10, 10, 10, 10, 10};
-
-void tesseractRosutilsToMsg(trajectory_msgs::msg::JointTrajectory& traj_msg,
-                              const std::vector<std::string>& joint_names,
-                              const Eigen::Ref<const tesseract_common::TrajArray>& traj)
-{
-  assert(joint_names.size() == static_cast<unsigned>(traj.cols()));
-
-  // Initialze the whole traject with the current state.
-  std::map<std::string, int> jn_to_index;
-  traj_msg.joint_names.resize(joint_names.size());
-  traj_msg.points.resize(static_cast<size_t>(traj.rows()));
-
-  for (int i = 0; i < traj.rows(); ++i)
-  {
-    trajectory_msgs::msg::JointTrajectoryPoint jtp;
-    jtp.positions.resize(static_cast<size_t>(traj.cols()));
-
-    for (int j = 0; j < traj.cols(); ++j)
-    {
-      if (i == 0)
-        traj_msg.joint_names[static_cast<size_t>(j)] = joint_names[static_cast<size_t>(j)];
-
-      jtp.positions[static_cast<size_t>(j)] = traj(i, j);
-    }
-
-    jtp.time_from_start = rclcpp::Duration(i, 0);
-    traj_msg.points[static_cast<size_t>(i)] = jtp;
-  }
-}
 
 class PlanningServer: public rclcpp::Node
 {
@@ -107,6 +79,7 @@ private:
     auto traj_pc = std::make_shared<tesseract_motion_planners::TrajOptPlannerFreespaceConfig>(tesseract_local_, manipulator_, target_frame, tcp_eigen);
 
     std::vector<std::string> joint_names = tesseract_local_->getFwdKinematicsManagerConst()->getFwdKinematicSolver(manipulator_)->getJointNames();
+
     // Initialize vector of target waypoints
     std::vector<tesseract_motion_planners::Waypoint::Ptr> trgt_wypts;
 
@@ -146,7 +119,7 @@ private:
     tesseract_motion_planners::TrajOptMotionPlanner traj_motion_planner;
     tesseract_motion_planners::PlannerResponse plan_resp;
     traj_motion_planner.setConfiguration(traj_pc);
-    traj_motion_planner.solve(plan_resp, false);
+    traj_motion_planner.solve(plan_resp, true);
 
     // Store generated trajectory
     tesseract_common::TrajArray traj_array = plan_resp.joint_trajectory.trajectory;
@@ -155,7 +128,7 @@ private:
 
     // Convert trajectory to ROSmsg
     trajectory_msgs::msg::JointTrajectory cumulative_joint_trajectory;
-    tesseractRosutilsToMsg(cumulative_joint_trajectory, joint_names, cumulative_trajectory);
+    crs_motion_planning::tesseractRosutilsToMsg(cumulative_joint_trajectory, joint_names, cumulative_trajectory);
     cumulative_joint_trajectory.header.frame_id = base_link_frame_;
 
     // Modify time
