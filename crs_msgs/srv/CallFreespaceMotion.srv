@@ -1,4 +1,5 @@
 string target_link
+sensor_msgs/JointState start_position 	# leave empty to use current position
 geometry_msgs/Transform goal_pose
 bool execute
 ---

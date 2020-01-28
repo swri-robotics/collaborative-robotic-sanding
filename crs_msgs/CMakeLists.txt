@@ -33,6 +33,8 @@ find_package(trajectory_msgs REQUIRED)
 
 set(MSG_FILES
   msg/ProcessConfiguration.msg
+  msg/ProcessMotionPlan.msg
+  msg/ToolProcessPath.msg
 )
 
 set(SRV_FILES
@@ -42,6 +44,7 @@ set(SRV_FILES
   srv/GetConfiguration.srv
   srv/ExecuteAction.srv
   srv/GetAvailableActions.srv
+  srv/PlanProcessMotions.srv
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
