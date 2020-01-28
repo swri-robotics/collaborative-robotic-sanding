@@ -1,5 +1,5 @@
-trajectory_msgs/JointTrajectoryPoint start_position
-trajectory_msgs/JointTrajectoryPoint end_position
+sensor_msgs/JointState start_position
+sensor_msgs/JointState end_position
 geometry_msgs/Pose tool_offset							
 float64 approach_dist
 float64 retreat_dist
