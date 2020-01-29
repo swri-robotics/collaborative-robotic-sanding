@@ -40,6 +40,11 @@
 #include <rclcpp/rclcpp.hpp>
 #include "crs_application/common/common.h"
 #include "crs_application/common/datatypes.h"
+#include <crs_msgs/srv/call_freespace_motion.hpp>
+
+#include <geometry_msgs/msg/transform.hpp>
+#include <sensor_msgs/msg/point_cloud2.hpp>
+
 
 namespace crs_application
 {
@@ -88,6 +93,23 @@ protected:
 
   std::shared_ptr<rclcpp::Node> node_;
   datatypes::ScanAcquisitionResult result_;
+
+  // parameters
+  std::vector<geometry_msgs::msg::Transform> scan_positions_;
+  std::string framos_frame_id_;
+  double max_time_since_last_point_cloud_;
+
+  // subscribers
+  rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr point_cloud_sub_;
+
+  // service clients
+  rclcpp::Client<crs_msgs::srv::CallFreespaceMotion>::SharedPtr call_freespace_motion_client_;
+
+  sensor_msgs::msg::PointCloud2 curr_point_cloud_;
+  std::vector<sensor_msgs::msg::PointCloud2> point_clouds_;
+  uint scan_index_;
+
+  void handlePointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr msg);
 };
 
 }

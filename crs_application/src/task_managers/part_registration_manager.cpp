@@ -35,6 +35,8 @@
 
 #include "crs_application/task_managers/part_registration_manager.h"
 
+#include <sensor_msgs/msg/point_cloud2.hpp>
+
 namespace crs_application
 {
 namespace task_managers
@@ -53,13 +55,35 @@ PartRegistrationManager::~PartRegistrationManager()
 
 common::ActionResult PartRegistrationManager::init()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  // todo(ayoungs): wait on service?
+  load_part_client_ = node_->create_client<crs_msgs::srv::LoadPart>("load_part");
+  localize_to_part_client_ = node_->create_client<crs_msgs::srv::LocalizeToPart>("localize_to_part");
+
+  node_->get_parameter("part_file", part_file_);
+
   return true;
 }
 
 common::ActionResult PartRegistrationManager::configure(const PartRegistrationConfig& config)
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  auto load_part_request = std::make_shared<crs_msgs::srv::LoadPart::Request>();
+  load_part_request->path_to_part = part_file_;
+
+  auto result_future = load_part_client_->async_send_request(load_part_request);
+  if (rclcpp::spin_until_future_complete(node_, result_future) !=
+    rclcpp::executor::FutureReturnCode::SUCCESS)
+  {
+    RCLCPP_ERROR(node_->get_logger(), "Load Part service call failed");
+    return false;
+  }
+  auto result = result_future.get();
+
+  if (!result->success)
+  {
+    RCLCPP_ERROR(node_->get_logger(), "Load Part service call failed");
+    return false;
+  }
+
   return true;
 }
 
@@ -77,7 +101,19 @@ common::ActionResult PartRegistrationManager::setInput(const datatypes::ScanAcqu
 
 common::ActionResult PartRegistrationManager::computeTransform()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  // todo(ayoungs) get vector of point clouds from scan_acquisition_manager
+  auto localize_to_part_request = std::make_shared<crs_msgs::srv::LocalizeToPart::Request>();
+  localize_to_part_request->point_clouds = std::vector<sensor_msgs::msg::PointCloud2>();
+
+  auto localize_result_future = localize_to_part_client_->async_send_request(localize_to_part_request);
+  if (rclcpp::spin_until_future_complete(node_, localize_result_future) !=
+      rclcpp::executor::FutureReturnCode::SUCCESS)
+  {
+      RCLCPP_ERROR(node_->get_logger(), "Localize to Part service call failed");
+      return false;
+  }
+  auto localize_result = localize_result_future.get();
+  // todo(ayoungs) save off transform
   return true;
 }
 

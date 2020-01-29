@@ -41,7 +41,12 @@ namespace task_managers
 {
 
 ScanAcquisitionManager::ScanAcquisitionManager(std::shared_ptr<rclcpp::Node> node):
-    node_(node)
+    node_(node),
+    scan_positions_(std::vector<geometry_msgs::msg::Transform>()),
+    framos_frame_id_(""),
+    max_time_since_last_point_cloud_(0.1),
+    point_clouds_(std::vector<sensor_msgs::msg::PointCloud2>()),
+    scan_index_(0)
 {
 
 }
@@ -53,14 +58,33 @@ ScanAcquisitionManager::~ScanAcquisitionManager()
 
 common::ActionResult ScanAcquisitionManager::init()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  // parameters
+  //scan_positions_ = node_->declare_parameter("scan_positions", std::vector<geometry_msgs::msg::Transform>());
+  framos_frame_id_ = node_->declare_parameter("framos_frame_id", "eoat_link");
+  max_time_since_last_point_cloud_ = node_->declare_parameter("max_time_since_last_point_cloud", 0.1);
+
+  // subscribers
+  point_cloud_sub_ = node_->create_subscription<sensor_msgs::msg::PointCloud2>("/point_cloud", 1,
+    std::bind(&ScanAcquisitionManager::handlePointCloud, this, std::placeholders::_1));
+
+  // service client
+  // todo(ayoungs): wait on service?
+  call_freespace_motion_client_ = node_->create_client<crs_msgs::srv::CallFreespaceMotion>("test_plan");
+
   return true;
 }
 
 common::ActionResult ScanAcquisitionManager::configure(const ScanAcquisitionConfig& config)
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
-  return true;
+  if (scan_positions_.size() == 0)
+  {
+    RCLCPP_ERROR(node_->get_logger(), "No scan positions provided.");
+    return false;
+  }
+  else
+  {
+    return true;
+  }
 }
 
 common::ActionResult ScanAcquisitionManager::verify()
@@ -71,20 +95,69 @@ common::ActionResult ScanAcquisitionManager::verify()
 
 common::ActionResult ScanAcquisitionManager::moveRobot()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
-  return true;
+  auto freespace_motion_request = std::make_shared<crs_msgs::srv::CallFreespaceMotion::Request>();
+  freespace_motion_request->target_link = framos_frame_id_;
+  freespace_motion_request->goal_pose = scan_positions_.at(scan_index_);
+  freespace_motion_request->execute = true;
+
+  auto result_future = call_freespace_motion_client_->async_send_request(freespace_motion_request);
+  if (rclcpp::spin_until_future_complete(node_, result_future) !=
+    rclcpp::executor::FutureReturnCode::SUCCESS)
+  {
+    RCLCPP_ERROR(node_->get_logger(), "Call Freespace Motion service call failed");
+    // todo(ayoungs): do I need to reset the scan_index_ here and clear the point clouds?
+    return false;
+  }
+  auto result = result_future.get();
+
+  if (result->success)
+  {
+    scan_index_++;
+    return true;
+  }
+  else
+  {
+    // todo(ayoungs): do I need to reset the scan_index_ here and clear the point clouds?
+    RCLCPP_ERROR(node_->get_logger(), result->message);
+    return false;
+  }
 }
 
 common::ActionResult ScanAcquisitionManager::capture()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
-  return true;
+  // todo(ayoungs): transform
+  // todo(ayoungs): is there a wait for topic call similar to ROS1?
+  if (node_->now() - curr_point_cloud_.header.stamp <= rclcpp::Duration(max_time_since_last_point_cloud_))
+  {
+    point_clouds_.push_back(curr_point_cloud_);
+    return true;
+  }
+  else
+  {
+    // todo(ayoungs): do I need to reset the scan_index_ here and clear the point clouds?
+    return false;
+  }
 }
 
 common::ActionResult ScanAcquisitionManager::checkQueue()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
-  return true;
+  if (scan_index_ < scan_positions_.size())
+  {
+    return false;
+  }
+  else
+  {
+    // save off results and reset the point clouds
+    result_.point_clouds = point_clouds_;
+    scan_index_ = 0;
+    point_clouds_.clear();
+    return true;
+  }
+}
+
+void ScanAcquisitionManager::handlePointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
+{
+  curr_point_cloud_ = *msg;
 }
 
 } // end of namespace task_managers
