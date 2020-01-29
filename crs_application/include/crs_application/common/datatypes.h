@@ -40,6 +40,7 @@
 #include <Eigen/Geometry>
 #include <crs_msgs/msg/process_motion_plan.hpp>
 #include <geometry_msgs/msg/pose_array.hpp>
+#include <sensor_msgs/msg/point_cloud2.hpp>
 
 namespace crs_application
 {
@@ -47,7 +48,7 @@ namespace datatypes
 {
 struct ScanAcquisitionResult
 {
-  Eigen::Isometry3d transform;
+  std::vector<sensor_msgs::msg::PointCloud2> point_clouds;
 };
 
 struct ProcessToolpathData
