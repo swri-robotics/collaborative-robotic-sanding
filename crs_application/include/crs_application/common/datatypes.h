@@ -36,7 +36,7 @@
 #ifndef INCLUDE_CRS_APPLICATION_COMMON_DATATYPES_H_
 #define INCLUDE_CRS_APPLICATION_COMMON_DATATYPES_H_
 
-#include <Eigen/Geometry>
+#include <sensor_msgs/msg/point_cloud2.hpp>
 
 namespace crs_application
 {
@@ -45,7 +45,7 @@ namespace datatypes
 
 struct ScanAcquisitionResult
 {
-  Eigen::Isometry3d transform;
+  std::vector<sensor_msgs::msg::PointCloud2> point_clouds;
 };
 
 struct ProcessToolpathData
