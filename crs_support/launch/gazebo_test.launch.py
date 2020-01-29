@@ -15,6 +15,7 @@ def generate_launch_description():
         os.environ["AMENT_PREFIX_PATH"] += os.pathsep + path
 
     urdf = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs.urdf')
+    urdf3 = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs_v3.urdf')
     srdf = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'ur10e_robot.srdf')
     gzworld = os.path.join(get_package_share_directory('crs_support'), 'worlds', 'crs.world')
 
@@ -32,7 +33,7 @@ def generate_launch_description():
          output='screen',
          parameters=[{'use_sim_time': 'true',
          'desc_param': 'robot_description',
-         'robot_description': urdf,
+         'robot_description': urdf3,
          'robot_description_semantic': srdf}])
 
     gzserver = launch.actions.ExecuteProcess(
@@ -44,7 +45,18 @@ def generate_launch_description():
         node_name='spawn_node',
         package='gazebo_ros',
         node_executable='spawn_entity.py',
-        arguments=['-entity', 'robot', '-x', '0', '-y', '0', '-z', '0.05', '-file', urdf])
+        arguments=['-entity', 'robot', '-x', '0', '-y', '0', '-z', '0.05', '-file', urdf3])
+
+    freespace_planner = launch_ros.actions.Node(
+        node_executable='crs_motion_planning_freespace_planning_server',
+        package='crs_motion_planning',
+        node_name='freespace_planning_server',
+        output='screen',
+        parameters=[{'urdf_path': urdf3,
+        'srdf_path': srdf,
+        'base_link_frame': "world",
+        'manipulator_group': "manipulator",
+        'num_steps': 200}])
 
     return launch.LaunchDescription([
         # environment
@@ -52,7 +64,10 @@ def generate_launch_description():
 
         # gazebo
         gzserver,
-        spawner1
+        spawner1,
+
+        # planning
+        freespace_planner
 
 ])
 
