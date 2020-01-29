@@ -29,6 +29,12 @@
 
 namespace crs_motion_planning
 {
+struct pathPlanningConfig
+{
+    tesseract::Tesseract::Ptr tesseract_local_;
+
+};
+
 ///
 /// \brief generateDescartesSeed Creates a seed trajectory using descartes
 /// \param tesseract_local
@@ -49,6 +55,8 @@ bool generateDescartesSeed(const tesseract_kinematics::ForwardKinematics::ConstP
                            std::vector<std::size_t>& failed_edges,
                            std::vector<std::size_t>& failed_vertices,
                            trajectory_msgs::msg::JointTrajectory& joint_trajectory);
+
+
 
 }
 
