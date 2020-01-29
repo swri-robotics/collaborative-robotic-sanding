@@ -250,7 +250,7 @@
     <link name="eoat_link">
         <visual>
             <geometry>
-                <mesh filename="package://crs_support/meshes/end_effector/visual/ee_v1.stl" />
+                <mesh filename="package://crs_support/meshes/end_effector/visual/ee_v2.stl" />
             </geometry>
             <material name="Orange">
                 <color rgba="1.0 0.4 0.0 1.0" />
@@ -258,7 +258,7 @@
         </visual>
         <collision>
             <geometry>
-                <mesh filename="package://crs_support/meshes/end_effector/collision/ee_collision_full.stl" />
+                <mesh filename="package://crs_support/meshes/end_effector/collision/ee_v2_collision_full.stl" />
             </geometry>
         </collision>
 
@@ -277,7 +277,7 @@
         <visual>
             <origin rpy="1.57079632679 0 0" xyz="0 0 -0.1168" />
             <geometry>
-                <mesh filename="package://crs_support/meshes/Mockup/visual/mock_up_frame.stl" />
+                <mesh filename="package://crs_support/meshes/Mockup/visual/mockup_frame_v3.stl" />
             </geometry>
             <material name="LightGrey">
                 <color rgba="0.7 0.7 0.7 1.0" />
@@ -286,7 +286,7 @@
         <visual>
             <origin rpy="1.57079632679 0 0" xyz="0 0 -0.1168" />
             <geometry>
-                <mesh filename="package://crs_support/meshes/Mockup/visual/empty_cart.stl" />
+                <mesh filename="package://crs_support/meshes/Mockup/visual/mockup_cart_v3.stl" />
             </geometry>
             <material name="LightGrey">
                 <color rgba="0.7 0.7 0.7 1.0" />
@@ -295,44 +295,32 @@
         <collision>
             <origin rpy="1.57079632679 0 0" xyz="0 0 -0.1168" />
             <geometry>
-                <mesh filename="package://crs_support/meshes/Mockup/collision/empty_cart_collision.stl" />
+                <mesh filename="package://crs_support/meshes/Mockup/collision/mockup_cart_collision_v3.stl" />
             </geometry>
         </collision>
-        <collision>
+        <collision> <!-- Right Wall-->
             <geometry>
-                <box size="2.7 2.25 0.05" />
+                <box size="1.02 2.14 0.1" />
             </geometry>
-            <origin rpy="0 0 0" xyz="-0.4 -1.1 1.325" />
+            <origin rpy="0 0 0" xyz="-0.42 -1.1 1.105" />
         </collision>
-        <collision>
+        <collision> <!-- Left Wall-->
             <geometry>
-                <box size="2.7 2.25 0.05" />
+                <box size="1.02 2.14 0.1" />
             </geometry>
-            <origin rpy="0 0 0" xyz="-0.4 -1.1 -1.11" />
+            <origin rpy="0 0 0" xyz="-0.42 -1.1 -1.46" />
         </collision>
-        <collision>
+        <collision> <!-- Top front beam-->
             <geometry>
-                <box size="0.05 2.25 2.7" />
+                <box size="0.22 0.12 2.65" />
             </geometry>
-            <origin rpy="0 0 0" xyz="-1.7 -1.1 0" />
+            <origin rpy="0 0 0" xyz="0.036983 -2.145 -0.175" />
         </collision>
-        <collision>
+        <collision> <!-- Top back beam-->
             <geometry>
-                <box size="0.05 2.25 2.7" />
+                <box size="0.22 0.12 2.65" />
             </geometry>
-            <origin rpy="0 0 0" xyz="0.85 -1.1 0" />
-        </collision>
-        <collision>
-            <geometry>
-                <box size="2.7 0.05 2.7" />
-            </geometry>
-            <origin rpy="0 0 0" xyz="-0.5 0 0" />
-        </collision>
-        <collision>
-            <geometry>
-                <box size="2.7 0.05 2.7" />
-            </geometry>
-            <origin rpy="0 0 0" xyz="-0.5 -2.045 0" />
+            <origin rpy="0 0 0" xyz="-0.867 -2.145 -0.175" />
         </collision>
 
         <inertial>
@@ -344,7 +332,7 @@
     <joint name="robot_base_joint" type="fixed">
         <parent link="robot_stand" />
         <child link="base" />
-        <origin rpy="0 1.571 0" xyz="0.077 -2.019 1.020 " />
+        <origin rpy="0 1.571 0" xyz="0.036983 -2.0948 0.58 " />
         <axis xyz="1 0 0"/>
         <limit effort="1.0" lower="-0.1" upper="1.9" velocity=".01" />
     </joint>
@@ -356,23 +344,44 @@
     </joint>
     <link name="gazebo_camera_link" />
     <joint name="gazebo_camera_joint" type="fixed">
-        <origin xyz="-0.04241 0.003917 0.0378" rpy="0 3.1416 0.0"/>
-        <parent link="eoat_link"/>
+        <origin xyz="0.0 0.0 0.0" rpy="1.57 -1.57 0.0"/>
+        <parent link="camera_link_optical"/>
         <child link="gazebo_camera_link"/>
     </joint>
     <link name="camera_link_optical" />
     <joint name="camera_optical_joint" type="fixed">
-        <origin xyz="0 0 0" rpy="-1.571 0 -1.571"/>
+        <origin xyz="-0.00345 0.070793 0.077409" rpy="-0.7854 0 0"/>
+        <parent link="eoat_link"/>
         <parent link="gazebo_camera_link"/>
         <child link="camera_link_optical"/>
     </joint>
     <link name="sander_center_link" />
     <joint name="sander_joint" type = "fixed">
-        <origin xyz="0.10969 -0.001207 0.093395" rpy="0 1.571 0.0"/>
+        <origin xyz="0.0 -0.1167 0.12664" rpy="0.7854 0.0 0.0"/>
         <parent link="eoat_link"/>
         <child link="sander_center_link" />
     </joint>
-
+    <link name="part" >
+        <visual>
+            <origin rpy="0 0 0" xyz="0 0 0" />
+            <geometry>
+                <mesh filename="package://crs_support/meshes/Parts/visual/part1_ch.stl" />
+            </geometry>
+            <material name="Green">
+                <color rgba="0.0 0.7 0.0 1.0" />
+            </material>
+        </visual>
+<!--        <collision>
+            <geometry>
+                <mesh filename="package://crs_support/meshes/Parts/collision/part1_ch.stl" />
+            </geometry>
+        </collision>-->
+    </link>
+    <joint name="robot_stand_to_part_joint" type= "fixed">
+        <origin xyz="-0.439 -1.1 -0.14" rpy= "-3.1416 0.0 -1.571"/>
+        <parent link="robot_stand"/>
+        <child link="part"/>
+    </joint>
 
     <transmission name="trans_shoulder_pan_joint">
         <type>transmission_interface/SimpleTransmission</type>
