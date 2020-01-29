@@ -1,0 +1,12 @@
+sensor_msgs/JointState start_position
+sensor_msgs/JointState end_position
+geometry_msgs/Pose tool_offset							
+float64 approach_dist
+float64 retreat_dist
+float64 tool_speed
+crs_msgs/ToolProcessPath[] process_paths
+
+---
+crs_msgs/ProcessMotionPlan[] plans	# The motion plans											
+bool succeeded
+string err_msg											
