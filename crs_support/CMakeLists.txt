@@ -38,6 +38,7 @@ install(DIRECTORY
   urdf
   sdf
   worlds
+  toolpaths
   DESTINATION share/${PROJECT_NAME}/
 )
 
