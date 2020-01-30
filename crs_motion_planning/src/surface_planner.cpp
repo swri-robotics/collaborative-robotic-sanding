@@ -28,12 +28,12 @@
 
 #include <ament_index_cpp/get_package_share_directory.hpp>
 
-#include <descartes_light/descartes_light.h>
-#include <descartes_samplers/evaluators/distance_edge_evaluator.h>
-#include <descartes_samplers/evaluators/euclidean_distance_edge_evaluator.h>
-#include <descartes_samplers/samplers/axial_symmetric_sampler.h>
-#include <descartes_samplers/samplers/fixed_joint_pose_sampler.h>
-#include <ur_ikfast_kinematics/descartes_ikfast_ur10e.h>
+//#include <descartes_light/descartes_light.h>
+//#include <descartes_samplers/evaluators/distance_edge_evaluator.h>
+//#include <descartes_samplers/evaluators/euclidean_distance_edge_evaluator.h>
+//#include <descartes_samplers/samplers/axial_symmetric_sampler.h>
+//#include <descartes_samplers/samplers/fixed_joint_pose_sampler.h>
+//#include <ur_ikfast_kinematics/descartes_ikfast_ur10e.h>
 
 static const std::vector<double> COEFFICIENTS {10, 10, 10, 10, 10, 10};
 
@@ -87,6 +87,13 @@ private:
   void planService(std::shared_ptr<std_srvs::srv::Trigger::Request> request,
                     std::shared_ptr<std_srvs::srv::Trigger::Response> response)
   {
+      crs_motion_planning::pathPlanningConfig path_planner_config;
+      path_planner_config.tesseract_local = tesseract_local_;
+      path_planner_config.manipulator = manipulator_;
+      path_planner_config.world_frame = "world";
+      path_planner_config.robot_base_frame = "base_link";
+      path_planner_config.tool0_frame = "tool0";
+      path_planner_config.tcp_frame = "sander_center_link";
       std::string waypoint_origin_frame = "part";
       std::vector<std::vector<geometry_msgs::msg::PoseStamped>> raster_strips;
       bool success = crs_motion_planning::parsePathFromFile(toolpath_filepath_, waypoint_origin_frame, raster_strips);
@@ -125,23 +132,11 @@ private:
           tf2::fromMsg(surface_pose_world_frame.pose, strip_converted_eigen);
       }
 
-      const std::shared_ptr<const tesseract_environment::Environment> env = tesseract_local_->getEnvironmentConst();
-      tesseract_kinematics::ForwardKinematics::ConstPtr kin = tesseract_local_->getFwdKinematicsManagerConst()->getFwdKinematicSolver(manipulator_);
-
-      tesseract_common::TransformMap curr_transforms = env->getCurrentState()->transforms;
-      Eigen::Isometry3d world_to_base_link, world_to_sander, world_to_tool0, tool0_to_sander;
-      world_to_base_link = curr_transforms.find("base_link")->second;
-      world_to_sander = curr_transforms.find("sander_center_link")->second;
-      world_to_tool0 = curr_transforms.find("tool0")->second;
-      tool0_to_sander = world_to_tool0.inverse() * world_to_sander;
-      descartes_light::KinematicsInterfaceD::Ptr kin_interface = std::make_shared<ur_ikfast_kinematics::UR10eKinematicsD>(world_to_base_link, tool0_to_sander, nullptr, nullptr);
-
       std::vector<size_t> failed_edges, failed_vertices;
       trajectory_msgs::msg::JointTrajectory joint_traj_msg_out_init, joint_traj_msg_out_final;
-      bool gen_preplan = crs_motion_planning::generateDescartesSeed(kin,
-                                                                    env,
+
+      bool gen_preplan = crs_motion_planning::generateDescartesSeed(path_planner_config,
                                                                     strip_of_interest_world_frame,
-                                                                    kin_interface,
                                                                     0.05,
                                                                     false,
                                                                     0.0075,
@@ -180,10 +175,8 @@ private:
           crs_motion_planning::rasterStripsToMarkerArray(reachable_rasters, "world", mark_array_fixed_msg, {1.0, 0.0, 1.0, 0.0}, -0.025);
           corrected_path_publisher_->publish(mark_array_fixed_msg);
 
-          gen_preplan = crs_motion_planning::generateDescartesSeed(kin,
-                                                                   env,
+          gen_preplan = crs_motion_planning::generateDescartesSeed(path_planner_config,
                                                                    reachable_rasters,
-                                                                   kin_interface,
                                                                    0.05,
                                                                    false,
                                                                    0.005,
@@ -199,7 +192,7 @@ private:
       // Split rasters based on signigicant joint motions
       std::vector<trajectory_msgs::msg::JointTrajectory> split_traj;
       std::vector<std::vector<geometry_msgs::msg::PoseStamped>> reresplit_rasters;
-      double desired_ee_val = 0.21, max_joint_vel = 4.15;
+      double desired_ee_val = 0.8, max_joint_vel = 2.0;
       std::vector<std::vector<double>> time_steps;
       crs_motion_planning::splitRastersByJointDist(joint_traj_msg_out_final,
                                                    reachable_rasters,

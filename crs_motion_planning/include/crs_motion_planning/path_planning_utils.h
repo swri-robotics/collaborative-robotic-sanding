@@ -24,6 +24,8 @@
 
 #include <crs_motion_planning/path_processing_utils.h>
 
+#include <ur_ikfast_kinematics/descartes_ikfast_ur10e.h>
+
 #include <Eigen/Eigen>
 #include <vector>
 
@@ -31,16 +33,28 @@ namespace crs_motion_planning
 {
 struct pathPlanningConfig
 {
-    tesseract::Tesseract::Ptr tesseract_local_;
+    tesseract::Tesseract::Ptr tesseract_local;
 
+    std::string manipulator = "manipulator";
+
+    std::string world_frame = "world";
+    std::string robot_base_frame = "base_link";
+    std::string tool0_frame = "tool0";
+    std::string tcp_frame;
+
+    Eigen::Isometry3d tool_offset;
+
+    bool smooth_velocities = true;
+    bool smooth_accelerations = true;
+    bool smooth_jerks = true;
 };
 
 ///
 /// \brief generateDescartesSeed Creates a seed trajectory using descartes
-/// \param tesseract_local
+/// \param kin
+/// \param env
 /// \param waypoints
-/// \param world_to_robot_base
-/// \param tool0_to_tip
+/// \param kin_interface
 /// \param axial_step
 /// \param allow_collisions
 /// \return success
@@ -49,6 +63,22 @@ bool generateDescartesSeed(const tesseract_kinematics::ForwardKinematics::ConstP
                            const std::shared_ptr<const tesseract_environment::Environment> env,
                            const std::vector<geometry_msgs::msg::PoseStamped> &waypoints,
                            const descartes_light::KinematicsInterfaceD::Ptr &kin_interface,
+                           const double &axial_step,
+                           const bool &allow_collisions,
+                           const double &collision_safety_margin,
+                           std::vector<std::size_t>& failed_edges,
+                           std::vector<std::size_t>& failed_vertices,
+                           trajectory_msgs::msg::JointTrajectory& joint_trajectory);
+///
+/// \brief generateDescartesSeed Creates a seed trajectory using descartes
+/// \param pathPlanningConfig
+/// \param waypoints
+/// \param axial_step
+/// \param allow_collisions
+/// \return success
+///
+bool generateDescartesSeed(const pathPlanningConfig config,
+                           const std::vector<geometry_msgs::msg::PoseStamped> &waypoints,
                            const double &axial_step,
                            const bool &allow_collisions,
                            const double &collision_safety_margin,
