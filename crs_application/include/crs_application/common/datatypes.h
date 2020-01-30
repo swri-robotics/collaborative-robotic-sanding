@@ -36,7 +36,10 @@
 #ifndef INCLUDE_CRS_APPLICATION_COMMON_DATATYPES_H_
 #define INCLUDE_CRS_APPLICATION_COMMON_DATATYPES_H_
 
+#include <vector>
 #include <Eigen/Geometry>
+#include <crs_msgs/msg/process_motion_plan.hpp>
+#include <geometry_msgs/msg/pose_array.hpp>
 
 namespace crs_application
 {
@@ -50,12 +53,18 @@ struct ScanAcquisitionResult
 
 struct ProcessToolpathData
 {
-
+  std::vector<geometry_msgs::msg::PoseArray> rasters;
 };
 
+struct MediaChangeMotionPlan
+{
+  trajectory_msgs::msg::JointTrajectory start_traj;
+  trajectory_msgs::msg::JointTrajectory return_traj;
+};
 struct ProcessExecutionData
 {
-
+  std::vector< crs_msgs::msg::ProcessMotionPlan > process_plans;
+  std::vector< MediaChangeMotionPlan > media_change_plans;
 };
 
 struct PartInspectionResult

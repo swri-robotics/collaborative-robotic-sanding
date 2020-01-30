@@ -20,6 +20,7 @@ find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(crs_msgs REQUIRED)
+find_package(tf2_eigen REQUIRED)
 find_package(scxml_core REQUIRED)
 find_package(Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Eigen3 REQUIRED NO_MODULE)
@@ -42,7 +43,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:include>")
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC)
-ament_target_dependencies(${PROJECT_NAME} rclcpp rclcpp_components crs_msgs)
+ament_target_dependencies(${PROJECT_NAME} rclcpp rclcpp_components crs_msgs tf2_eigen)
 
 add_executable(${PROJECT_NAME}_node src/crs_application.cpp)
 target_link_libraries(${PROJECT_NAME}_node 
@@ -52,7 +53,7 @@ target_include_directories(${PROJECT_NAME}_node PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:include>")
 target_include_directories(${PROJECT_NAME}_node SYSTEM PUBLIC)
-ament_target_dependencies(${PROJECT_NAME}_node rclcpp rclcpp_components crs_msgs)
+ament_target_dependencies(${PROJECT_NAME}_node rclcpp rclcpp_components crs_msgs tf2_eigen)
 
 ##################################
 # install
