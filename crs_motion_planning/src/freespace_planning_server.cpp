@@ -30,11 +30,11 @@
 
 static const std::vector<double> DEFAULT_COEFFICIENTS {10, 10, 10, 10, 10, 10};
 static const std::string RESOURCES_PACKAGE_NAME = "crs_support";
-static const std::string DEFAULT_URDF_PATH = "urdf/crs.urdf";
+static const std::string DEFAULT_URDF_PATH = "urdf/crs_v3.urdf";
 static const std::string DEFAULT_SRDF_PATH = "urdf/ur10e_robot.srdf";
 
-static const std::string FREESPACE_MOTION_PLANNING_SERVICE = "plan_freespace_motion";
-static const std::string FREESPACE_TRAJECTORY_TOPIC = "planned_freespace_trajectory";
+static const std::string DEFAULT_FREESPACE_MOTION_PLANNING_SERVICE = "plan_freespace_motion";
+static const std::string DEFAULT_FREESPACE_TRAJECTORY_TOPIC = "planned_freespace_trajectory";
 static const std::string JOINT_STATES_TOPIC = "joint_states";
 
 namespace param_names
@@ -45,6 +45,8 @@ namespace param_names
   static const std::string MANIPULATOR_GROUP = "manipulator_group";
   static const std::string NUM_STEPS = "num_steps";
   static const std::string CART_WEIGHT_COEFFS = "cartesian_coeffs";
+  static const std::string FREESPACE_MOTION_PLANNING_SERVICE = "freespace_motion_service";
+  static const std::string FREESPACE_TRAJECTORY_TOPIC = "trajectory_topic";
 }
 
 void tesseractRosutilsToMsg(trajectory_msgs::msg::JointTrajectory& traj_msg,
@@ -95,12 +97,18 @@ public:
     this->declare_parameter(param_names::MANIPULATOR_GROUP, "manipulator");
     this->declare_parameter(param_names::NUM_STEPS, 200);
     this->declare_parameter(param_names::CART_WEIGHT_COEFFS, DEFAULT_COEFFICIENTS);
+    this->declare_parameter(param_names::FREESPACE_MOTION_PLANNING_SERVICE, DEFAULT_FREESPACE_MOTION_PLANNING_SERVICE);
+    this->declare_parameter(param_names::FREESPACE_TRAJECTORY_TOPIC, DEFAULT_FREESPACE_TRAJECTORY_TOPIC);
+
+
+    std::string freespace_motion_service = this->get_parameter(param_names::FREESPACE_MOTION_PLANNING_SERVICE).as_string();
+    std::string freespace_trajectory_topic = this->get_parameter(param_names::FREESPACE_TRAJECTORY_TOPIC).as_string();
 
     // ROS communications
-    plan_service_ = this->create_service<crs_msgs::srv::CallFreespaceMotion>(FREESPACE_MOTION_PLANNING_SERVICE,
+    plan_service_ = this->create_service<crs_msgs::srv::CallFreespaceMotion>(freespace_motion_service,
                                                                              std::bind(&PlanningServer::planService,
                                                                              this, std::placeholders::_1, std::placeholders::_2));
-    traj_publisher_ = this->create_publisher<trajectory_msgs::msg::JointTrajectory>(FREESPACE_TRAJECTORY_TOPIC,10);
+    traj_publisher_ = this->create_publisher<trajectory_msgs::msg::JointTrajectory>(freespace_trajectory_topic,10);
     joint_state_listener_ = this->create_subscription<sensor_msgs::msg::JointState>(JOINT_STATES_TOPIC, 2,
                                                                               std::bind(&PlanningServer::jointCallback,
                                                                               this, std::placeholders::_1));
@@ -196,7 +204,7 @@ private:
       Eigen::Quaterniond goal_ori(request->goal_pose.rotation.w, request->goal_pose.rotation.x, request->goal_pose.rotation.y, request->goal_pose.rotation.z);
       tesseract_motion_planners::CartesianWaypoint::Ptr cart_goal_waypoint = std::make_shared<tesseract_motion_planners::CartesianWaypoint>(goal_pose, goal_ori);
 
-      cart_goal_waypoint->setIsCritical(true);
+      cart_goal_waypoint->setIsCritical(false);
 
       Eigen::VectorXd coeffs = Eigen::Map<Eigen::VectorXd, Eigen::Unaligned>(cart_weight_coeffs_.data(), 6);
       cart_goal_waypoint->setCoefficients(coeffs);
@@ -222,7 +230,7 @@ private:
     traj_pc->smooth_velocities = true;
     traj_pc->smooth_accelerations = true;
     traj_pc->smooth_jerks = true;
-    traj_pc->longest_valid_segment_length = 0.1;
+    traj_pc->longest_valid_segment_length = 0.05;
     traj_pc->init_type = trajopt::InitInfo::STATIONARY;
 
     // TODO: Make these values into configurable parameters read from yaml

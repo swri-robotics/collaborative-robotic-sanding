@@ -56,7 +56,9 @@ def generate_launch_description():
         'srdf_path': srdf,
         'base_link_frame': "world",
         'manipulator_group': "manipulator",
-        'num_steps': 200}])
+        'num_steps': 200,
+        'trajectory_topic': "set_trajectory_test",
+        'cartesian_coeffs': [10.0, 10.0, 10.0, 10.0, 10.0, 0.0]}])
 
     return launch.LaunchDescription([
         # environment
