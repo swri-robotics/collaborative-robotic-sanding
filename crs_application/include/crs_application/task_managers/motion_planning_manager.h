@@ -37,7 +37,10 @@
 #define INCLUDE_CRS_APPLICATION_TASK_MANAGERS_MOTION_PLANNING_MANAGER_H_
 
 #include <memory>
+#include <Eigen/Geometry>
 #include <rclcpp/rclcpp.hpp>
+#include <crs_msgs/srv/call_freespace_motion.hpp>
+#include <crs_msgs/srv/plan_process_motions.hpp>
 #include "crs_application/common/common.h"
 #include "crs_application/common/datatypes.h"
 
@@ -48,7 +51,15 @@ namespace task_managers
 
 struct MotionPlanningConfig
 {
+  double tool_speed;
+  Eigen::Isometry3d offset_pose;
+  double retreat_dist;
+  double approac_dist;
+  std::string tool_frame;
 
+  // media change
+  double media_change_time;             /** @brief secs */
+  Eigen::Isometry3d media_change_pose;  /** @brief in world coordinates */
 };
 
 class MotionPlanningManager
@@ -77,9 +88,21 @@ public:
 
 protected:
 
+  // support methods
+  common::ActionResult checkPreReq();
+  sensor_msgs::msg::JointState::SharedPtr getCurrentState();
+
   std::shared_ptr<rclcpp::Node> node_;
   std::shared_ptr<datatypes::ProcessToolpathData> input_ = nullptr;
+  std::shared_ptr<MotionPlanningConfig> config_ = nullptr;
   datatypes::ProcessExecutionData result_;
+
+  rclcpp::Client<crs_msgs::srv::CallFreespaceMotion>::SharedPtr call_freespace_planning_client_;
+  rclcpp::Client<crs_msgs::srv::PlanProcessMotions>::SharedPtr process_motion_planning_client_;
+
+  // process data
+  std::vector<datatypes::ProcessToolpathData> process_toolpaths_;
+
 };
 
 } /* namespace task_managers */
