@@ -136,11 +136,17 @@ private:
     traj_pc->smooth_velocities = true;
     traj_pc->smooth_accelerations = true;
     traj_pc->smooth_jerks = true;
-    traj_pc->collision_check = true;
-    traj_pc->collision_coeff = 20;
-    traj_pc->longest_valid_segment_length = 0.05;
+    traj_pc->longest_valid_segment_length = 0.1;
     traj_pc->init_type = trajopt::InitInfo::STATIONARY;
 
+    tesseract_motion_planners::CollisionConstraintConfig tesseract_collision_const_config;
+    tesseract_collision_const_config.safety_margin = 0.01;
+    tesseract_collision_const_config.coeff = 20;
+    tesseract_collision_const_config.enabled = true;
+    traj_pc->collision_constraint_config = tesseract_collision_const_config;
+    tesseract_motion_planners::CollisionCostConfig tesseract_collision_cost_config;
+    tesseract_collision_cost_config.enabled = false;
+    traj_pc->collision_cost_config = tesseract_collision_cost_config;
 
     // Setup and solve trajopt motoin plannner
     tesseract_motion_planners::TrajOptMotionPlanner traj_motion_planner;
