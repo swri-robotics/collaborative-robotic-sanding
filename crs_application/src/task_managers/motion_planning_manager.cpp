@@ -206,11 +206,11 @@ common::ActionResult MotionPlanningManager::splitToolpaths()
       new_raster.poses.clear();
       std::copy(raster.poses.begin() + start_idx, raster.poses.begin() + end_idx,
                 std::back_inserter(new_raster.poses));
-      toolpaths_processes.back().rasters.push_back(raster);
+      toolpaths_processes.back().rasters.push_back(new_raster);
 
       // create new toolpath
       toolpaths_processes.resize(toolpaths_processes.size() + 1);
-      start_idx = p_idx;
+      start_idx = end_idx;
     }
 
     // copy remaining segment of raster into toolpath
@@ -219,7 +219,7 @@ common::ActionResult MotionPlanningManager::splitToolpaths()
       new_raster.poses.clear();
       std::copy(raster.poses.begin() + end_idx, raster.poses.end(),
                 std::back_inserter(new_raster.poses));
-      toolpaths_processes.back().rasters.push_back(raster);
+      toolpaths_processes.back().rasters.push_back(new_raster);
     }
   }
 
