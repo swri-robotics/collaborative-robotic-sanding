@@ -90,6 +90,7 @@ protected:
 
   // support methods
   common::ActionResult checkPreReq();
+  sensor_msgs::msg::JointState::SharedPtr getCurrentState();
 
   std::shared_ptr<rclcpp::Node> node_;
   std::shared_ptr<datatypes::ProcessToolpathData> input_ = nullptr;
@@ -101,6 +102,7 @@ protected:
 
   // process data
   std::vector<datatypes::ProcessToolpathData> process_toolpaths_;
+
 };
 
 } /* namespace task_managers */

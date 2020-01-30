@@ -41,7 +41,9 @@
 
 static const double WAIT_SERVICE_DURATION = 2.0; // secs
 static const double WAIT_SERVICE_COMPLETION_PERIOD = 30.0; // secs
-static const std::string CALL_FREESPACE_MOTION_SERVICE = "plan_free_space";
+static const double WAIT_JOINT_STATE_TIMEOUT = 2.0;
+static const std::string CURRENT_JOINT_STATE_TOPIC = "joint_states";
+static const std::string CALL_FREESPACE_MOTION_SERVICE = "plan_freespace_motion";
 static const std::string PLAN_PROCESS_MOTIONS_SERVICE = "plan_process_motions";
 static const std::string MANAGER_NAME = "MotionPlanningManager";
 
@@ -64,6 +66,33 @@ MotionPlanningManager::MotionPlanningManager(std::shared_ptr<rclcpp::Node> node)
 MotionPlanningManager::~MotionPlanningManager()
 {
 
+}
+
+sensor_msgs::msg::JointState::SharedPtr MotionPlanningManager::getCurrentState()
+{
+  sensor_msgs::msg::JointState::SharedPtr msg = nullptr;
+  std::promise<sensor_msgs::msg::JointState> promise_obj;
+  std::future<sensor_msgs::msg::JointState> fut_obj = promise_obj.get_future();
+
+  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr subs;
+  subs = node_->create_subscription<sensor_msgs::msg::JointState>(
+      CURRENT_JOINT_STATE_TOPIC,rclcpp::QoS(1),[this,&promise_obj, &subs]
+                                   (const sensor_msgs::msg::JointState::SharedPtr msg) -> void
+  {
+    promise_obj.set_value(*msg);
+  });
+
+  std::future_status sts = fut_obj.wait_for(std::chrono::duration<double>(WAIT_JOINT_STATE_TIMEOUT));
+  subs.reset();
+  /** @warning there's no clean way to close a subscription but according to this issue
+                           https://github.com/ros2/rclcpp/issues/205, destroying the subscription
+                           should accomplish the same */
+  if(sts != std::future_status::ready)
+  {
+    return nullptr;
+  }
+  msg = std::make_shared<sensor_msgs::msg::JointState>(fut_obj.get());
+  return msg;
 }
 
 common::ActionResult MotionPlanningManager::init()
@@ -131,15 +160,14 @@ common::ActionResult MotionPlanningManager::splitToolpaths()
   // computing split distance
   const double split_dist = config_->tool_speed * config_->media_change_time;
 
-  // splitting paths
+  // finding breakpoints
   std::vector<datatypes::ProcessToolpathData> toolpaths_processes;
   double current_dist = 0.0;
   Eigen::Vector3d p1, p2;
-  toolpaths_processes.resize(1);
+  std::vector< std::vector< std::size_t> > rasters_breakpoints(input_->rasters.size());
   for(std::size_t r_idx = 0 ; r_idx < input_->rasters.size(); r_idx++)
   {
     geometry_msgs::msg::PoseArray& raster = input_->rasters[r_idx];
-    int split_point_idx = -1;
     for(std::size_t p_idx = 0; p_idx < raster.poses.size() - 1; p_idx++)
     {
       p1 = toEigen(raster.poses[p_idx].position);
@@ -149,33 +177,52 @@ common::ActionResult MotionPlanningManager::splitToolpaths()
       if(current_dist + d > split_dist)
       {
         RCLCPP_INFO(node_->get_logger(),"Found split at point %lu of raster %lu",p_idx, r_idx);
-        split_point_idx = p_idx;
+        rasters_breakpoints[r_idx].push_back(p_idx);
         current_dist = 0;
-        break;
       }
       current_dist += d;
     }
+  }
 
-    if(split_point_idx >=0)
+  // splitting toolpath
+  toolpaths_processes.resize(1);
+  for(std::size_t r_idx = 0; r_idx < rasters_breakpoints.size(); r_idx++)
+  {
+    geometry_msgs::msg::PoseArray& raster = input_->rasters[r_idx];
+    auto& breakpoints_indices = rasters_breakpoints[r_idx];
+    if(breakpoints_indices.empty())
     {
-      std::remove_reference <decltype(raster)>::type new_raster;
-      std::copy(raster.poses.begin(), raster.poses.begin() + split_point_idx,
-                std::back_inserter(new_raster.poses));
-      toolpaths_processes.back().rasters.push_back(new_raster);
-
-      // copying remaining part of raster into a new  process
-      toolpaths_processes.resize(toolpaths_processes.size() + 1);
-      new_raster.poses.clear();
-      std::copy(raster.poses.begin() + split_point_idx + 1, raster.poses.end(),
-                std::back_inserter(new_raster.poses));
-      toolpaths_processes.back().rasters.push_back(new_raster);
+      toolpaths_processes.back().rasters.push_back(raster);
+      continue;
     }
-    else
+
+    std::size_t start_idx = 0;
+    std::size_t end_idx;
+    std::remove_reference <decltype(raster)>::type new_raster;
+    for(std::size_t p_idx = 1; p_idx < breakpoints_indices.size(); p_idx++)
     {
-      // no split so copy current raster into current process
+      // copy portion of raster leading up to breakpoint into current toolpath
+      end_idx = breakpoints_indices[p_idx];
+      new_raster.poses.clear();
+      std::copy(raster.poses.begin() + start_idx, raster.poses.begin() + end_idx,
+                std::back_inserter(new_raster.poses));
+      toolpaths_processes.back().rasters.push_back(raster);
+
+      // create new toolpath
+      toolpaths_processes.resize(toolpaths_processes.size() + 1);
+      start_idx = p_idx;
+    }
+
+    // copy remaining segment of raster into toolpath
+    if(end_idx < raster.poses.size()-1)
+    {
+      new_raster.poses.clear();
+      std::copy(raster.poses.begin() + end_idx, raster.poses.end(),
+                std::back_inserter(new_raster.poses));
       toolpaths_processes.back().rasters.push_back(raster);
     }
   }
+
   RCLCPP_INFO(node_->get_logger(),"Split original process into %lu", toolpaths_processes.size());
   process_toolpaths_ = std::move(toolpaths_processes);
   return true;
@@ -191,8 +238,26 @@ common::ActionResult MotionPlanningManager::planProcessPaths()
     return res;
   }
 
+  // grabbing current joint pose
+  auto current_joint_st = getCurrentState();
+  if(!current_joint_st)
+  {
+    res.succeeded = false;
+    res.err_msg = "Failed to get the current state";
+    RCLCPP_ERROR(node_->get_logger(), "%s %s",MANAGER_NAME.c_str(), res.err_msg.c_str());
+    return res;
+  }
+
   // copying data into request
   srv::PlanProcessMotions::Request::SharedPtr req = std::make_shared<srv::PlanProcessMotions::Request>();
+  req->tool_link = config_->tool_frame;
+  req->approach_dist = config_->approac_dist;
+  req->retreat_dist = config_->retreat_dist;
+  req->tool_speed = config_->tool_speed;
+  req->tool_offset = tf2::toMsg(config_->offset_pose);
+  req->start_position = *current_joint_st;
+  req->end_position = *current_joint_st;
+
   for(datatypes::ProcessToolpathData& pd : process_toolpaths_)
   {
     msg::ToolProcessPath process_path;

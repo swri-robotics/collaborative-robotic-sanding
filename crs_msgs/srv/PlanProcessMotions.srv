@@ -1,3 +1,4 @@
+string tool_link
 sensor_msgs/JointState start_position
 sensor_msgs/JointState end_position
 geometry_msgs/Pose tool_offset							
