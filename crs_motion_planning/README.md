@@ -10,7 +10,7 @@ First run launch file that contains environment monitor, gazebo simulation, and 
 
 - target_link - TF frame of interest that will be moving to the specified goal
 - start_position (optional) - specified start joint state, defaults to current state
-- goal_position (optional) = specified end joint state, if unused defaults to goal_pose
+- goal_position (optional) - specified end joint state, if unused defaults to goal_pose
 - goal_pose (optional) - specified end cartesian position, required if goal_position unused
 - num_steps (optional) - number of timesteps in returned trajectory, defaults to 200
 - execute (optional) - if true the trajectory will be published in addition to being returned
