@@ -12,7 +12,6 @@ find_package(crs_area_selection REQUIRED path)
 find_package(Qt5 REQUIRED COMPONENTS
   Core
   Widgets
-  Sql
 )
 
 ###########
@@ -20,14 +19,20 @@ find_package(Qt5 REQUIRED COMPONENTS
 ###########
 
 set(crs_gui_UIS
+  ui/crs_application.ui
+  ui/part_selection.ui
   ui/polygon_area_selection_widget.ui
 )
 
 set(crs_gui_widget_HEADERS
+  include/${PROJECT_NAME}/widgets/crs_application_widget.h
+  include/${PROJECT_NAME}/widgets/part_selection_widget.h
   include/${PROJECT_NAME}/widgets/polygon_area_selection_widget.h
 )
 
 set(crs_gui_widget_SOURCES
+  src/widgets/crs_application_widget.cpp
+  src/widgets/part_selection_widget.cpp
   src/widgets/polygon_area_selection_widget.cpp
 )
 
@@ -62,11 +67,26 @@ ament_target_dependencies(${PROJECT_NAME}_widgets crs_area_selection rclcpp shap
 ## Demo Executables ##
 ######################
 
-# Area selection widget demp
+# Area selection widget demo
 add_executable(${PROJECT_NAME}_area_selection_demo src/nodes/area_selection_widget_demo.cpp)
 target_link_libraries(${PROJECT_NAME}_area_selection_demo ${PROJECT_NAME}_widgets)
 set_target_properties(${PROJECT_NAME}_area_selection_demo PROPERTIES CXX_STANDARD 14)
 target_include_directories(${PROJECT_NAME}_area_selection_demo PUBLIC
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+    "$<INSTALL_INTERFACE:include>")
+
+add_executable(${PROJECT_NAME}_part_selection_demo src/nodes/part_selection_widget_demo.cpp)
+target_link_libraries(${PROJECT_NAME}_part_selection_demo ${PROJECT_NAME}_widgets)
+set_target_properties(${PROJECT_NAME}_part_selection_demo PROPERTIES CXX_STANDARD 14)
+target_include_directories(${PROJECT_NAME}_part_selection_demo PUBLIC
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+    "$<INSTALL_INTERFACE:include>")
+
+# Area selection widget demo
+add_executable(${PROJECT_NAME}_crs_application_demo src/nodes/crs_application_demo.cpp)
+target_link_libraries(${PROJECT_NAME}_crs_application_demo ${PROJECT_NAME}_widgets)
+set_target_properties(${PROJECT_NAME}_crs_application_demo PROPERTIES CXX_STANDARD 14)
+target_include_directories(${PROJECT_NAME}_crs_application_demo PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:include>")
 
@@ -79,6 +99,8 @@ install(
   TARGETS
     ${PROJECT_NAME}_widgets
     ${PROJECT_NAME}_area_selection_demo
+    ${PROJECT_NAME}_part_selection_demo
+    ${PROJECT_NAME}_crs_application_demo
   EXPORT ${PACKAGE_NAME}-targets
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
