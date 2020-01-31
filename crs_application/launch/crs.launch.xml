@@ -4,6 +4,10 @@
 	
 	<group>
 		<let name="group_ns" value="crs"/>
+		<include file="$(find-pkg-share crs_application)/launch/load_preview_robot_model.launch.xml">
+			<arg name="global_ns" value="$(var group_ns)"/>
+		</include>
+		
 		<node pkg="crs_application" exec="crs_application_node" name="crs_main" namespace="$(var group_ns)"
 			 output="screen">
 			<param name="state_machine_file" value="$(var state_machine_file)"/>

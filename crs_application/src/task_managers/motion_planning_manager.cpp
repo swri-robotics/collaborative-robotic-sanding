@@ -43,6 +43,7 @@ static const double WAIT_SERVICE_DURATION = 2.0;            // secs
 static const double WAIT_SERVICE_COMPLETION_PERIOD = 30.0;  // secs
 static const double WAIT_JOINT_STATE_TIMEOUT = 2.0;
 static const std::string CURRENT_JOINT_STATE_TOPIC = "joint_states";
+static const std::string PREVIEW_JOINT_STATE_TOPIC = "preview/input_joints";
 static const std::string CALL_FREESPACE_MOTION_SERVICE = "plan_freespace_motion";
 static const std::string PLAN_PROCESS_MOTIONS_SERVICE = "plan_process_motions";
 static const std::string MANAGER_NAME = "MotionPlanningManager";
@@ -373,13 +374,114 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
 
 common::ActionResult MotionPlanningManager::showPreview()
 {
-  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
+  common::ActionResult res= true;
+  if(result_.process_plans.empty())
+  {
+    res.err_msg = "no process plan has been produced";
+    RCLCPP_WARN(node_->get_logger(),"%s %s",MANAGER_NAME.c_str(), res.err_msg.c_str());
+    return res;
+  }
+  publish_preview_enabled_ = true;
+
+  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr js_pub = node_->create_publisher<sensor_msgs::msg::JointState>(
+      PREVIEW_JOINT_STATE_TOPIC,10);
+  auto publish_joint_trajs = [this, &js_pub](const trajectory_msgs::msg::JointTrajectory& traj,
+      double time_factor) -> bool
+  {
+    sensor_msgs::msg::JointState js_msg;
+    js_msg.name = traj.joint_names;
+    js_msg.position.resize( js_msg.name.size(),0.0);
+    js_msg.velocity.resize( js_msg.name.size(),0.0);
+    js_msg.effort.resize( js_msg.name.size(),0.0);
+    std::chrono::duration<double> prev_dur(0.0);
+    std::chrono::duration<double> current_dur;
+
+    for(std::size_t j = 0; j < traj.points.size(); j++)
+    {
+      if(!publish_preview_enabled_)
+      {
+        return false;
+      }
+
+      js_msg.position = traj.points[j].positions;
+      current_dur = rclcpp::Duration(traj.points[j].time_from_start).to_chrono<std::chrono::seconds>();
+      std::chrono::duration<double> diff = (current_dur - prev_dur)/time_factor;
+      if(diff.count() > 0.0)
+      {
+        rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::nanoseconds>(diff));
+      }
+      js_pub->publish(js_msg);
+      prev_dur += diff;
+    }
+    return true;
+  };
+
+  for(std::size_t i = 0; i < result_.process_plans.size(); i++)
+  {
+    const crs_msgs::msg::ProcessMotionPlan& process_plan = result_.process_plans[i];
+
+    // previewing process plan moves now
+    if(!publish_joint_trajs(process_plan.start,config_->preview_time_scaling))
+    {
+      return true;
+    }
+
+    for(std::size_t j = 0; j < process_plan.process_motions.size(); j++)
+    {
+      if(!publish_joint_trajs(process_plan.process_motions[j],config_->preview_time_scaling))
+      {
+        return true;
+      }
+
+      if(j < process_plan.process_motions.size())
+      {
+        if(!publish_joint_trajs(process_plan.process_motions[j],config_->preview_time_scaling))
+        {
+          return true;
+        }
+      }
+    }
+    if(!publish_joint_trajs(process_plan.end,config_->preview_time_scaling))
+    {
+      return true;
+    }
+
+    // previewing media change moves now
+    if(result_.media_change_plans.size() > i)
+    {
+      if(!publish_joint_trajs(result_.media_change_plans[i].start_traj,config_->preview_time_scaling))
+      {
+        return true;
+      }
+
+      if(!publish_joint_trajs(result_.media_change_plans[i].return_traj,config_->preview_time_scaling))
+      {
+        return true;
+      }
+    }
+  }
   return true;
 }
 
 common::ActionResult MotionPlanningManager::hidePreview()
 {
-  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
+  publish_preview_enabled_ = false;
+  if(result_.process_plans.empty())
+  {
+    return true;
+  }
+
+  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr js_pub = node_->create_publisher<sensor_msgs::msg::JointState>(
+      PREVIEW_JOINT_STATE_TOPIC,10);
+  sensor_msgs::msg::JointState js_msg;
+  js_msg.name = result_.process_plans.front().process_motions.front().joint_names;
+  js_msg.position.resize( js_msg.name.size(),0.0);
+  js_msg.velocity.resize( js_msg.name.size(),0.0);
+  js_msg.effort.resize( js_msg.name.size(),0.0);
+  for(std::size_t i = 0; i < 10 ; i++)
+  {
+    js_pub->publish(js_msg);
+  }
   return true;
 }
 
