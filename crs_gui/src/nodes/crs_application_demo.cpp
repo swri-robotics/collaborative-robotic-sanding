@@ -18,19 +18,17 @@
 
 #include <rclcpp/rclcpp.hpp>
 
-#include "crs_gui/widgets/polygon_area_selection_widget.h"
+#include "crs_gui/widgets/crs_application_widget.h"
 
 int main(int argc, char** argv)
 {
   rclcpp::init(argc, argv);
-  auto node = std::make_shared<rclcpp::Node>("area_selection_widget_demo_node");
+  auto node = std::make_shared<rclcpp::Node>("crs_application_widget_node");
 
   // Create and start the Qt application
   QApplication app(argc, argv);
 
-  auto widget = std::make_unique<crs_gui::PolygonAreaSelectionWidget>(node, "world", "sensor_frame");
-  //  crs_gui::PolygonAreaSelectionWidget* widget = new crs_gui::PolygonAreaSelectionWidget(node,"world",
-  //  "sensor_frame");
+  auto widget = std::make_unique<crs_gui::CRSApplicationWidget>(node);
   widget->show();
 
   rclcpp::Rate throttle(100);
@@ -43,5 +41,6 @@ int main(int argc, char** argv)
       break;
   }
   app.exit();
+
   return 0;
 }
