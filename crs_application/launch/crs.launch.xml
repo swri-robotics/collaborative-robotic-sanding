@@ -8,9 +8,17 @@
 			<arg name="global_ns" value="$(var group_ns)"/>
 		</include>
 		
+		<include file="$(find-pkg-share crs_support)/launch/environment_launch.launch.py">
+			<arg name="global_ns" value="$(var group_ns)"/>
+		</include>
+		
 		<node pkg="crs_application" exec="crs_application_node" name="crs_main" namespace="$(var group_ns)"
 			 output="screen">
 			<param name="state_machine_file" value="$(var state_machine_file)"/>
-		</node>
+		</node>		
+		
+		<!-- rviz -->
+		<let name="rviz_config" value="$(find-pkg-share crs_application)/resources/crs.rviz"/>
+		<node pkg="rviz2" exec="rviz2" launch-prefix="xterm -e" args="-d $(var rviz_config) --ros-args --log-level ERROR" output="log"/>
 	</group>
 </launch>

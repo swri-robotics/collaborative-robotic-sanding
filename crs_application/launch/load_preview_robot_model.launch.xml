@@ -17,7 +17,4 @@
 		<param name="src_topics" value="input_joints" value-sep=", "/>
 	</node>
 	
-	<!-- rviz -->
-	<let name="rviz_config" value="$(find-pkg-share crs_application)/resources/crs.rviz"/>
-	<node pkg="rviz2" exec="rviz2" args="-d $(var rviz_config)" output="log"/>
 </launch>
