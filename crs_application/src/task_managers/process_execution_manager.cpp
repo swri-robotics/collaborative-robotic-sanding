@@ -35,6 +35,8 @@
 
 #include "crs_application/task_managers/process_execution_manager.h"
 
+static const std::string MANAGER_NAME = "ProcessExecutionManager";
+
 namespace crs_application
 {
 namespace task_managers
@@ -65,7 +67,7 @@ common::ActionResult ProcessExecutionManager::configure(const ProcessExecutionCo
 
 common::ActionResult ProcessExecutionManager::setInput(const datatypes::ProcessExecutionData& input)
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  input_ = std::make_shared<datatypes::ProcessExecutionData>(input);
   return true;
 }
 
@@ -95,7 +97,25 @@ common::ActionResult ProcessExecutionManager::execHome()
 
 common::ActionResult ProcessExecutionManager::moveStart()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  // check input
+  common::ActionResult res = true;
+  if(input_ == nullptr)
+  {
+    res.succeeded = false;
+    res.err_msg = "No process data has been provided";
+    RCLCPP_ERROR(node_->get_logger(),"%s %s",MANAGER_NAME.c_str(), res.err_msg.c_str());
+    return res;
+  }
+
+  if(input_->process_plans.empty())
+  {
+    res.succeeded = false;
+    res.err_msg = "Process plans buffer is empty";
+    RCLCPP_ERROR(node_->get_logger(),"%s %s",MANAGER_NAME.c_str(), res.err_msg.c_str());
+    return res;
+  }
+
+  current_process_idx_ = 0;
   return true;
 }
 
