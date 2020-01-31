@@ -16,7 +16,7 @@ The CRS (Collaborative Robotic Sanding) Application buit in ROS2 eloquent
 - Install [rosdep](http://wiki.ros.org/rosdep)
 - From the root directory of your workspace run the following:
     ```
-    rosdep install --from-path src --ignore-src
+    rosdep install --from-path src --ignore-src -r
     ```
 #### Download additional resources
 - ros-eloquent-launch-xml
@@ -32,6 +32,9 @@ The CRS (Collaborative Robotic Sanding) Application buit in ROS2 eloquent
     This is used for skipping select packages during a build, more on this later
 
 - QT5 is a dependency of [ros_scxml](https://github.com/swri-robotics/ros_scxml) therefore follow the instructions provided [here](https://github.com/swri-robotics/ros_scxml)
+
+#### Workarounds 
+- This project uses [tesseract](https://github.com/ros-industrial-consortium/tesseract) and [tesseract_ros2](https://github.com/ros-industrial-consortium/tesseract_ros2) which have packages with the same name. Therefore, by adding a **COLCON_IGNORE** file in the **tesseract/tesseract_ros** directory it will allow *colcon* to ignore the ROS1 packages listed in that directory.
 
 #### Ignore select packages from colcon build
 - Objective:
