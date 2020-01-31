@@ -57,12 +57,17 @@ int main(int argc, char** argv)
   using namespace crs_msgs;
   using namespace scxml_core;
 
+  // force flush of the stdout buffer.
+  // this ensures a correct sync of all prints
+  // even when executed simultaneously within the launch file.
+  setvbuf(stdout, NULL, _IONBF, BUFSIZ);
+
   QApplication app(argc, argv);
 
   std::cout << "CRS Starting" << std::endl;
 
   rclcpp::init(argc, argv);
-  std::shared_ptr<rclcpp::Node> node = std::make_shared<rclcpp::Node>(NODE_NAME, rclcpp::NodeOptions());
+  std::shared_ptr<rclcpp::Node> node = std::make_shared<rclcpp::Node>(NODE_NAME);
   rcutils_logging_set_logger_level(node->get_logger().get_name(), RCUTILS_LOG_SEVERITY_INFO);
 
   // crs executive
