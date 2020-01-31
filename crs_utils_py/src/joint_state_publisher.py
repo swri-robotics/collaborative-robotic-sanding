@@ -64,8 +64,7 @@ class JointStatePub(Node):
     def src_joint_state_callback(self, msg: JointState):
         
         for i, jn in enumerate(msg.name):
-            if jn in self.joints_dict_:
-                self.joints_dict_[jn] = msg.position[i]
+            self.joints_dict_[jn] = msg.position[i]
                 
 def main(args = None):
     rclpy.init(args = sys.argv)

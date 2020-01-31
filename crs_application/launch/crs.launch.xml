@@ -2,8 +2,10 @@
 <launch>
 	<let name="state_machine_file" value="$(find-pkg-share crs_application)/resources/crs_process.scxml"/>
 	
-	<group ns="crs">
-		<node pkg="crs_application" exec="crs_application_node" output="screen" >
+	<group>
+		<let name="group_ns" value="crs"/>
+		<node pkg="crs_application" exec="crs_application_node" name="crs_main" namespace="$(var group_ns)"
+			 output="screen">
 			<param name="state_machine_file" value="$(var state_machine_file)"/>
 		</node>
 	</group>
