@@ -51,6 +51,13 @@ struct ProcessExecutionConfig
 
 };
 
+enum class ProcessExecActions: int
+{
+  EXEC_PROCESS = 1,
+  EXEC_MEDIA_CHANGE,
+  DONE
+};
+
 class ProcessExecutionManager
 {
 public:
@@ -64,12 +71,18 @@ public:
 
   // Process Actions
   /**
-   * @brief moves to start position
-   * @return
+   * @brief Checks inputs and other variables and moves to start position if necessary
+   * @return True on success, false otherwise
    */
   common::ActionResult moveStart();
   common::ActionResult execProcess();
   common::ActionResult execMediaChange();
+
+  /**
+   * @brief moves from media change position back to process
+   * @return True on success, false otherwise
+   */
+  common::ActionResult execMoveReturn();
 
   /**
    * @brief checks if there are any process motions left in the queue
@@ -81,8 +94,16 @@ public:
 
 protected:
 
+  // roscpp
   std::shared_ptr<rclcpp::Node> node_;
+
+  // process data
   std::shared_ptr<datatypes::ProcessExecutionData> input_ = nullptr;
+
+  // other
+  int current_process_idx_ = 0;
+
+
 };
 
 } /* namespace task_managers */
