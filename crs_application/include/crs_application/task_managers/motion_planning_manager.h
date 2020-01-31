@@ -37,6 +37,7 @@
 #define INCLUDE_CRS_APPLICATION_TASK_MANAGERS_MOTION_PLANNING_MANAGER_H_
 
 #include <memory>
+#include <atomic>
 #include <Eigen/Geometry>
 #include <rclcpp/rclcpp.hpp>
 #include <crs_msgs/srv/call_freespace_motion.hpp>
@@ -60,6 +61,9 @@ struct MotionPlanningConfig
   // media change
   double media_change_time;             /** @brief secs */
   Eigen::Isometry3d media_change_pose;  /** @brief in world coordinates */
+
+  // preview
+  double preview_time_scaling = 1.0;            /** @brief preview will be played at a scaled speed */
 };
 
 class MotionPlanningManager
@@ -77,7 +81,18 @@ public:
   common::ActionResult splitToolpaths();
   common::ActionResult planProcessPaths();
   common::ActionResult planMediaChanges();
+
+  /**
+   * @brief previews the entire set of robot trajectories.  This method is blocking
+   * therefore it must be executed asynchronously
+   * @return True always
+   */
   common::ActionResult showPreview();
+
+  /**
+   * @brief stops an ongoing preview
+   * @return  True always
+   */
   common::ActionResult hidePreview();
 
   // Results
@@ -102,6 +117,9 @@ protected:
 
   // process data
   std::vector<datatypes::ProcessToolpathData> process_toolpaths_;
+
+  // others
+  std::atomic<bool> publish_preview_enabled_;
 
 };
 
