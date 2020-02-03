@@ -42,6 +42,7 @@
 static const double WAIT_SERVICE_DURATION = 2.0; // secs
 static const double WAIT_SERVICE_COMPLETION_PERIOD = 30.0; // secs
 static const double WAIT_JOINT_STATE_TIMEOUT = 2.0;
+static const double MAX_JOINT_TOLERANCE = (M_PI/180.0) * 1.0;
 static const std::string CURRENT_JOINT_STATE_TOPIC = "joint_states";
 static const std::string PREVIEW_JOINT_STATE_TOPIC = "preview/input_joints";
 static const std::string CALL_FREESPACE_MOTION_SERVICE = "plan_freespace_motion";
@@ -69,33 +70,6 @@ MotionPlanningManager::~MotionPlanningManager()
 
 }
 
-sensor_msgs::msg::JointState::SharedPtr MotionPlanningManager::getCurrentState()
-{
-  sensor_msgs::msg::JointState::SharedPtr msg = nullptr;
-  std::promise<sensor_msgs::msg::JointState> promise_obj;
-  std::future<sensor_msgs::msg::JointState> fut_obj = promise_obj.get_future();
-
-  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr subs;
-  subs = node_->create_subscription<sensor_msgs::msg::JointState>(
-      CURRENT_JOINT_STATE_TOPIC,rclcpp::QoS(1),[this,&promise_obj, &subs]
-                                   (const sensor_msgs::msg::JointState::SharedPtr msg) -> void
-  {
-    promise_obj.set_value(*msg);
-  });
-
-  std::future_status sts = fut_obj.wait_for(std::chrono::duration<double>(WAIT_JOINT_STATE_TIMEOUT));
-  subs.reset();
-  /** @warning there's no clean way to close a subscription but according to this issue
-                           https://github.com/ros2/rclcpp/issues/205, destroying the subscription
-                           should accomplish the same */
-  if(sts != std::future_status::ready)
-  {
-    return nullptr;
-  }
-  msg = std::make_shared<sensor_msgs::msg::JointState>(fut_obj.get());
-  return msg;
-}
-
 common::ActionResult MotionPlanningManager::init()
 {
   using namespace crs_msgs;
@@ -119,6 +93,22 @@ common::ActionResult MotionPlanningManager::init()
 common::ActionResult MotionPlanningManager::configure(const MotionPlanningConfig& config)
 {
   config_ = std::make_shared<MotionPlanningConfig>(config);
+  home_js_.reset();
+  if(config_->joint_home_position.empty() || config_->joint_names.empty() )
+  {
+    common::ActionResult res;
+    res.succeeded = false;
+    res.err_msg = "No home position was provided";
+    RCLCPP_ERROR(node_->get_logger(),"%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
+    return res;
+  }
+
+  // constructing home position
+  home_js_ = std::make_shared<sensor_msgs::msg::JointState>();
+  home_js_->name = config_->joint_names;
+  home_js_->position = config_->joint_home_position;
+  home_js_->velocity.resize( home_js_->position.size(), 0.0);
+  home_js_->effort.resize( home_js_->position.size(), 0.0);
   return true;
 }
 
@@ -139,13 +129,15 @@ common::ActionResult MotionPlanningManager::checkPreReq()
   if(!config_)
   {
     common::ActionResult res = { succeeded :false, err_msg: "No configuration has been provided, can not proceed"};
-    RCLCPP_WARN(node_->get_logger(),"%s %s",MANAGER_NAME.c_str(), res.err_msg.c_str());
+    RCLCPP_ERROR(node_->get_logger(),"%s %s",MANAGER_NAME.c_str(), res.err_msg.c_str());
+    return res;
   }
 
   if(!input_)
   {
     common::ActionResult res = { succeeded :false, err_msg: "No input data has been provided, can not proceed"};
-    RCLCPP_WARN(node_->get_logger(),"%s %s",MANAGER_NAME.c_str(), res.err_msg.c_str());
+    RCLCPP_ERROR(node_->get_logger(),"%s %s",MANAGER_NAME.c_str(), res.err_msg.c_str());
+    return res;
   }
   return true;
 }
@@ -239,14 +231,42 @@ common::ActionResult MotionPlanningManager::planProcessPaths()
     return res;
   }
 
-  // grabbing current joint pose
-  auto current_joint_st = getCurrentState();
-  if(!current_joint_st)
+  // grabbing current state
+  auto current_st = common::getCurrentState(this->node_, CURRENT_JOINT_STATE_TOPIC
+                                                  ,WAIT_JOINT_STATE_TIMEOUT);
+  if(!current_st)
   {
     res.succeeded = false;
     res.err_msg = "Failed to get the current state";
     RCLCPP_ERROR(node_->get_logger(), "%s %s",MANAGER_NAME.c_str(), res.err_msg.c_str());
     return res;
+  }
+
+  // grabbing current joint pose
+  result_.move_to_start.joint_names.clear();
+  result_.move_to_start.points.clear();
+  double diff = common::compare(*home_js_, *current_st, res.err_msg);
+  if(diff < 0.0)
+  {
+    res.succeeded = false;
+    RCLCPP_ERROR(node_->get_logger(), "%s %s",MANAGER_NAME.c_str(), res.err_msg.c_str());
+    return res;
+  }
+
+  if(diff > MAX_JOINT_TOLERANCE)
+  {
+    // planning free start motion to home from current
+    srv::CallFreespaceMotion::Request::SharedPtr free_motion_req = std::make_shared<srv::CallFreespaceMotion::Request>();
+    free_motion_req->goal_position = *home_js_;
+    free_motion_req->num_steps = 0;
+    free_motion_req->target_link = config_->tool_frame; // shouldn't make a difference since planning to a joint goal
+    free_motion_req->start_position = *current_st;
+    boost::optional<trajectory_msgs::msg::JointTrajectory> opt = planFreeSpace("CURRENT TO HOME", free_motion_req);
+    if(!opt.is_initialized())
+    {
+      return false;
+    }
+    result_.move_to_start = opt.get();
   }
 
   // copying data into request
@@ -256,8 +276,8 @@ common::ActionResult MotionPlanningManager::planProcessPaths()
   req->retreat_dist = config_->retreat_dist;
   req->tool_speed = config_->tool_speed;
   req->tool_offset = tf2::toMsg(config_->offset_pose);
-  req->start_position = *current_joint_st;
-  req->end_position = *current_joint_st;
+  req->start_position = *home_js_;
+  req->end_position = *home_js_;
 
   for(datatypes::ProcessToolpathData& pd : process_toolpaths_)
   {
@@ -289,6 +309,35 @@ common::ActionResult MotionPlanningManager::planProcessPaths()
   return true;
 }
 
+boost::optional<trajectory_msgs::msg::JointTrajectory> MotionPlanningManager::planFreeSpace(
+    const std::string& plan_name, crs_msgs::srv::CallFreespaceMotion::Request::SharedPtr req)
+{
+  using namespace crs_msgs::srv;
+  std::shared_future<CallFreespaceMotion::Response::SharedPtr> fut = call_freespace_planning_client_->async_send_request(
+      req);
+
+  if (rclcpp::spin_until_future_complete(node_->get_node_base_interface(), fut,
+                                         std::chrono::duration<double>(WAIT_SERVICE_COMPLETION_PERIOD))
+      != rclcpp::executor::FutureReturnCode::SUCCESS)
+  {
+    RCLCPP_ERROR(node_->get_logger(), "%s freespace planning service for '%s' error or timeout",MANAGER_NAME.c_str(),
+                 plan_name.c_str());
+    return boost::none;
+  }
+
+  if(!fut.get()->success)
+  {
+    RCLCPP_ERROR(node_->get_logger(), "%s freespace planning for '%s' failed, %s",MANAGER_NAME.c_str(),
+                 plan_name.c_str(), fut.get()->message.c_str());
+    return boost::none;
+  }
+
+  RCLCPP_INFO(node_->get_logger(), "%s freespace planning for '%s' succeeded",MANAGER_NAME.c_str(),
+               plan_name.c_str());
+
+  return fut.get()->output_trajectory;
+}
+
 common::ActionResult MotionPlanningManager::planMediaChanges()
 {
   using namespace crs_msgs::srv;
@@ -317,34 +366,6 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
   req->execute = false;
   req->num_steps = 0; // planner should use default
 
-  auto call_planning = [this](const std::string& plan_name, CallFreespaceMotion::Request::SharedPtr req) ->
-      boost::optional<trajectory_msgs::msg::JointTrajectory>
-    {
-      std::shared_future<CallFreespaceMotion::Response::SharedPtr> fut = call_freespace_planning_client_->async_send_request(
-          req);
-
-      if (rclcpp::spin_until_future_complete(node_->get_node_base_interface(), fut,
-                                             std::chrono::duration<double>(WAIT_SERVICE_COMPLETION_PERIOD))
-          != rclcpp::executor::FutureReturnCode::SUCCESS)
-      {
-        RCLCPP_ERROR(node_->get_logger(), "%s freespace planning service for '%s' move error or timeout",MANAGER_NAME.c_str(),
-                     plan_name.c_str());
-        return boost::none;
-      }
-
-      if(!fut.get()->success)
-      {
-        RCLCPP_ERROR(node_->get_logger(), "%s freespace planning for media change '%s' move failed, %s",MANAGER_NAME.c_str(),
-                     plan_name.c_str(), fut.get()->message.c_str());
-        return boost::none;
-      }
-
-      RCLCPP_INFO(node_->get_logger(), "%s freespace planning for media change '%s' move succeeded",MANAGER_NAME.c_str(),
-                   plan_name.c_str());
-
-      return fut.get()->output_trajectory;
-    };
-
   for(std::size_t i = 0 ; i < result_.process_plans.size() - 1; i++)
   {
     datatypes::MediaChangeMotionPlan media_change_plan;
@@ -353,7 +374,7 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
     req->start_position.position = traj.points.back().positions;
 
     // calling freespace motion planning to media change position
-    boost::optional<trajectory_msgs::msg::JointTrajectory> opt = call_planning("START", req);
+    boost::optional<trajectory_msgs::msg::JointTrajectory> opt = planFreeSpace("START MEDIA CHANGE", req);
     if(!opt.is_initialized())
     {
       return false;
@@ -363,7 +384,7 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
     // free space motion planning for return move
     req->start_position.position = media_change_plan.start_traj.points.back().positions;
     req->goal_position.position = media_change_plan.start_traj.points.front().positions;
-    opt = call_planning("RETURN", req);
+    opt = planFreeSpace("RETURN TO PROCESS", req);
     if(!opt.is_initialized())
     {
       return false;
