@@ -10,16 +10,13 @@ setup(
     version='0.0.0',
     # Packages to export
     packages=[],
-    py_modules=[
-        'src/joint_state_publisher',
-    ],
     # Files we want to install, specifically launch files
 #     data_files=[
 #         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
 #         # Include our package.xml file
 #         (os.path.join('share', package_name), ['package.xml']),
 #         # Include all launch files.
-#         (os.path.join('share', package_name, 'src'), glob('*.py'))
+#         (os.path.join('share', package_name, 'crs_utils_py'), glob('*.py'))
 #     ],
     # This is important as well
     install_requires=['setuptools'],
@@ -41,7 +38,7 @@ setup(
     # scripts here.
     entry_points={
         'console_scripts': [
-            'joint_state_publisher = src.joint_state_publisher:main'
+            'joint_state_publisher = crs_utils_py.joint_state_publisher:main'
         ],
     },
 )
