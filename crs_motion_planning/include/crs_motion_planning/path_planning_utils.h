@@ -118,7 +118,8 @@ public:
                                const double &collision_safety_margin,
                                std::vector<std::size_t>& failed_edges,
                                std::vector<std::size_t>& failed_vertices,
-                               trajectory_msgs::msg::JointTrajectory& joint_trajectory);
+                               trajectory_msgs::msg::JointTrajectory& joint_trajectory,
+                               Eigen::MatrixXd& joint_traj_eigen_out);
 
 protected:
     pathPlanningConfig::Ptr config_;

@@ -2,9 +2,8 @@
 
 bool crs_motion_planning::parsePathFromFile(const std::string& yaml_filepath,
                                             const std::string& waypoint_origin_frame,
-                                            std::vector<geometry_msgs::msg::PoseArray> &raster_strip_pose_array)
+                                            std::vector<geometry_msgs::msg::PoseArray> &raster_strips)
 {
-//    std::vector<geometry_msgs::msg::PoseArray> raster_strip_pose_array;
     YAML::Node full_yaml_node = YAML::LoadFile(yaml_filepath);
     YAML::Node paths = full_yaml_node[0]["paths"];
     std::double_t offset_strip = 0.0;
@@ -61,8 +60,7 @@ bool crs_motion_planning::parsePathFromFile(const std::string& yaml_filepath,
            }
 
         }
-        raster_strip_pose_array.push_back(curr_pose_array);
-//        raster_strips.push_back(temp_poses);
+        raster_strips.push_back(curr_pose_array);
     }
     return true;
 }
@@ -96,17 +94,16 @@ void crs_motion_planning::tesseractRosutilsToMsg(trajectory_msgs::msg::JointTraj
   }
 }
 
-void crs_motion_planning::rasterStripsToMarkerArray(const geometry_msgs::msg::PoseArray& strips_pose_array,
+void crs_motion_planning::rasterStripsToMarkerArray(const geometry_msgs::msg::PoseArray& strip,
                                                     const std::string& frame,
                                                     visualization_msgs::msg::MarkerArray &arrows,
                                                     std::vector<float> color,
                                                     double size)
 {
-//    geometry_msgs::msg::PoseArray strips_pose_array;
     arrows.markers.clear(); // reset marker list
 
     int arrow_count = 0;
-    for (auto pose : strips_pose_array.poses)
+    for (auto pose : strip.poses)
     {
         Eigen::Affine3d arrow_pose;
         tf2::fromMsg(pose, arrow_pose);
@@ -141,30 +138,27 @@ void crs_motion_planning::rasterStripsToMarkerArray(const geometry_msgs::msg::Po
     }
 }
 
-void crs_motion_planning::rasterStripsToMarkerArray(const std::vector<geometry_msgs::msg::PoseArray>& strips_pose_array,
+void crs_motion_planning::rasterStripsToMarkerArray(const std::vector<geometry_msgs::msg::PoseArray>& strips,
                                                     const std::string& frame,
                                                     visualization_msgs::msg::MarkerArray &arrows,
                                                     std::vector<float> color,
                                                     double size)
 {
     std::vector<geometry_msgs::msg::PoseStamped> combined_strips;
-//    std::vector<geometry_msgs::msg::PoseArray> strips_pose_array;
     geometry_msgs::msg::PoseArray combined_pose_array;
-    for(auto strip : strips_pose_array)
+    for(auto strip : strips)
     {
-//        combined_strips.insert(combined_strips.end(), strip.begin(), strip.end());
         combined_pose_array.poses.insert(combined_pose_array.poses.end(), strip.poses.begin(), strip.poses.end());
     }
     crs_motion_planning::rasterStripsToMarkerArray(combined_pose_array, frame, arrows, color, size);
 }
 
-void crs_motion_planning::failedEdgesToMarkerArray(const geometry_msgs::msg::PoseArray& vertices_pose_array,
+void crs_motion_planning::failedEdgesToMarkerArray(const geometry_msgs::msg::PoseArray& vertices,
                                                    const std::string& frame,
                                                    visualization_msgs::msg::Marker &markers,
                                                    std::vector<float> color,
                                                    double size)
 {
-//    geometry_msgs::msg::PoseArray vertices_pose_array;
     markers.type = visualization_msgs::msg::Marker::SPHERE_LIST;
     markers.header.frame_id = frame;
     markers.action = visualization_msgs::msg::Marker::ADD;
@@ -180,63 +174,59 @@ void crs_motion_planning::failedEdgesToMarkerArray(const geometry_msgs::msg::Pos
     markers.id = 1001;
     markers.pose = tf2::toMsg(Eigen::Isometry3d::Identity());
 
-    for (auto vertex : vertices_pose_array.poses)
+    for (auto vertex : vertices.poses)
     {
         markers.points.push_back(vertex.position);
     }
 }
 
-void crs_motion_planning::cleanRasterStrip(const geometry_msgs::msg::PoseArray& original_strip_pose_array,
+void crs_motion_planning::cleanRasterStrip(const geometry_msgs::msg::PoseArray& original_strip,
                       const std::vector<std::size_t>& failed_vertices,
-                      std::vector<geometry_msgs::msg::PoseArray> &fixed_strips_pose_array,
+                      std::vector<geometry_msgs::msg::PoseArray> &fixed_strips,
                       geometry_msgs::msg::PoseArray &failed_vertex_poses)
 {
     geometry_msgs::msg::PoseArray curr_raster_pose_array;
-//    std::vector<geometry_msgs::msg::PoseArray> fixed_strips_pose_array;
     size_t j = 0;
     int min_len_raster = 0;
     std::vector<geometry_msgs::msg::PoseStamped> curr_raster;
-//    for (size_t i = 0; i < original_strip.size(); ++i)
-    for (size_t i = 0; i < original_strip_pose_array.poses.size(); ++i)
+    for (size_t i = 0; i < original_strip.poses.size(); ++i)
     {
         if (j <= failed_vertices.size() && i == failed_vertices[j])
         {
             if (curr_raster_pose_array.poses.size() > min_len_raster)
             {
-                fixed_strips_pose_array.push_back(curr_raster_pose_array);
+                fixed_strips.push_back(curr_raster_pose_array);
             }
             j++;
             curr_raster_pose_array.poses.clear();
-            failed_vertex_poses.poses.push_back(original_strip_pose_array.poses[i]);
+            failed_vertex_poses.poses.push_back(original_strip.poses[i]);
         }
         else
         {
-            curr_raster_pose_array.poses.push_back(original_strip_pose_array.poses[i]);
+            curr_raster_pose_array.poses.push_back(original_strip.poses[i]);
         }
     }
     if (curr_raster_pose_array.poses.size() > min_len_raster)
     {
-        fixed_strips_pose_array.push_back(curr_raster_pose_array);
+        fixed_strips.push_back(curr_raster_pose_array);
     }
 }
 
 void crs_motion_planning::splitRastersByJointDist(const trajectory_msgs::msg::JointTrajectory& given_traj,
-                                                  const geometry_msgs::msg::PoseArray& given_raster_pose_array,
+                                                  const geometry_msgs::msg::PoseArray& given_raster,
                                                   const double& desired_ee_vel,
                                                   const double& max_joint_vel,
                                                   std::vector<trajectory_msgs::msg::JointTrajectory> &split_traj,
-                                                  std::vector<geometry_msgs::msg::PoseArray> &split_rasters_pose_array,
+                                                  std::vector<geometry_msgs::msg::PoseArray> &split_rasters,
                                                   std::vector<std::vector<double>> &time_steps)
 {
     geometry_msgs::msg::PoseArray curr_raster_pose_array;
-//    std::vector<geometry_msgs::msg::PoseArray> split_rasters_pose_array;
     std::vector<geometry_msgs::msg::PoseStamped> curr_raster;
     trajectory_msgs::msg::JointTrajectory curr_traj;
     std::vector<double> curr_time_steps;
     curr_traj.joint_names = given_traj.joint_names;
     curr_traj.points.push_back(given_traj.points[0]);
-//    curr_raster.push_back(given_raster[0]);
-    curr_raster_pose_array.poses.push_back(given_raster_pose_array.poses[0]);
+    curr_raster_pose_array.poses.push_back(given_raster.poses[0]);
     curr_time_steps.push_back(0);
     for (size_t i = 1; i < given_traj.points.size(); ++i)
     {
@@ -251,10 +241,8 @@ void crs_motion_planning::splitRastersByJointDist(const trajectory_msgs::msg::Jo
         // Find cartesian distance traveled between points
         Eigen::Isometry3d curr_cart_pose, prev_cart_pose;
         Eigen::Vector3d cart_pose_diff;
-//        tf2::fromMsg(given_raster[i].pose, curr_cart_pose);
-        tf2::fromMsg(given_raster_pose_array.poses[i], curr_cart_pose);
-//        tf2::fromMsg(given_raster[i-1].pose, prev_cart_pose);
-        tf2::fromMsg(given_raster_pose_array.poses[i-1], prev_cart_pose);
+        tf2::fromMsg(given_raster.poses[i], curr_cart_pose);
+        tf2::fromMsg(given_raster.poses[i-1], prev_cart_pose);
         cart_pose_diff = curr_cart_pose.translation() - prev_cart_pose.translation();
         double dist_traveled = cart_pose_diff.norm();
 
@@ -268,18 +256,18 @@ void crs_motion_planning::splitRastersByJointDist(const trajectory_msgs::msg::Jo
             std::cout << "Size of curr traj: " << curr_raster_pose_array.poses.size() << std::endl;
             split_traj.push_back(curr_traj);
             curr_traj.points.clear();
-            split_rasters_pose_array.push_back(curr_raster_pose_array);
+            split_rasters.push_back(curr_raster_pose_array);
             curr_raster_pose_array.poses.clear();
             time_steps.push_back(curr_time_steps);
             curr_time_steps.clear();
         }
         // Add current point to running trajectory and raster list
         curr_traj.points.push_back(given_traj.points[i]);
-        curr_raster_pose_array.poses.push_back(given_raster_pose_array.poses[i]);
+        curr_raster_pose_array.poses.push_back(given_raster.poses[i]);
         curr_time_steps.push_back(curr_time_step);
 
     }
     split_traj.push_back(curr_traj);
-    split_rasters_pose_array.push_back(curr_raster_pose_array);
+    split_rasters.push_back(curr_raster_pose_array);
     time_steps.push_back(curr_time_steps);
 }

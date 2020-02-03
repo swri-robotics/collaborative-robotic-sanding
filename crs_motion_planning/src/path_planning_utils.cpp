@@ -143,7 +143,8 @@ bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray
                                              const double &collision_safety_margin,
                                              std::vector<std::size_t>& failed_edges,
                                              std::vector<std::size_t>& failed_vertices,
-                                             trajectory_msgs::msg::JointTrajectory& joint_trajectory)
+                                             trajectory_msgs::msg::JointTrajectory& joint_trajectory,
+                                             Eigen::MatrixXd& joint_traj_eigen_out)
 {
 //    geometry_msgs::msg::PoseArray waypoints_pose_array;
     tesseract::Tesseract::Ptr tesseract_local = config_->tesseract_local;
@@ -202,7 +203,7 @@ bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray
     seed_traj << solution_vec;
 
     int n_rows = seed_traj.size() / kin_interface->dof();
-    Eigen::MatrixXd joint_traj_eigen_out = Eigen::Map<Eigen::MatrixXd>(seed_traj.data(), kin_interface->dof(), n_rows).transpose();
+    joint_traj_eigen_out = Eigen::Map<Eigen::MatrixXd>(seed_traj.data(), kin_interface->dof(), n_rows).transpose();
 
     crs_motion_planning::tesseractRosutilsToMsg(joint_trajectory, kin->getJointNames(), joint_traj_eigen_out);
     return true;

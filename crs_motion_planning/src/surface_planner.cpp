@@ -25,6 +25,7 @@
 #include <trajopt/problem_description.hpp>
 
 #include <tesseract_rosutils/utils.h>
+#include <tesseract_rosutils/conversions.h>
 
 #include <ament_index_cpp/get_package_share_directory.hpp>
 
@@ -92,10 +93,8 @@ private:
 
       // Load rasters and get them in usable form
       std::string waypoint_origin_frame = "part";
-//      std::vector<std::vector<geometry_msgs::msg::PoseStamped>> raster_strips;
       std::vector<geometry_msgs::msg::PoseArray> raster_strips;
       bool success = crs_motion_planning::parsePathFromFile(toolpath_filepath_, waypoint_origin_frame, raster_strips);
-//      std::vector<geometry_msgs::msg::PoseStamped> strip_of_interset;
       geometry_msgs::msg::PoseArray strip_of_interset;
       for (auto strip : raster_strips)
       {
@@ -121,17 +120,6 @@ private:
         return;
       }
 
-      // Convert rasters into world frame
-//      std::vector<geometry_msgs::msg::PoseStamped> strip_of_interest_world_frame;
-//      for (int i = 0; i < strip_of_interset.size(); ++i)
-//      {
-//          geometry_msgs::msg::PoseStamped surface_pose_world_frame;
-//          tf2::doTransform(strip_of_interset[i], surface_pose_world_frame, world_to_goal_frame);
-//          strip_of_interest_world_frame.push_back(std::move(surface_pose_world_frame));
-//          Eigen::Isometry3d strip_og_eigen, strip_converted_eigen;
-//          tf2::fromMsg(strip_of_interset[i].pose, strip_og_eigen);
-//          tf2::fromMsg(surface_pose_world_frame.pose, strip_converted_eigen);
-//      }
       // Convert rasters into world frame
       geometry_msgs::msg::PoseArray strip_of_interest_world_frame;
       for (size_t i = 0; i < strip_of_interset.poses.size(); ++i)
@@ -162,6 +150,7 @@ private:
       // Determine reachability of all rasters using descartes
       std::vector<size_t> failed_edges, failed_vertices;
       trajectory_msgs::msg::JointTrajectory joint_traj_msg_out_init, joint_traj_msg_out_final;
+      Eigen::MatrixXd joint_eigen_out1;
 
       bool gen_preplan = crs_motion_planner.generateDescartesSeed(strip_of_interest_world_frame,
                                                                   0.1,
@@ -169,12 +158,13 @@ private:
                                                                   0.0075,
                                                                   failed_edges,
                                                                   failed_vertices,
-                                                                  joint_traj_msg_out_init);
+                                                                  joint_traj_msg_out_init,
+                                                                  joint_eigen_out1);
 
 
-//      std::vector<std::vector<geometry_msgs::msg::PoseStamped>> resplit_rasters;
       std::vector<geometry_msgs::msg::PoseArray> resplit_rasters;
       geometry_msgs::msg::PoseArray reachable_rasters;
+      Eigen::MatrixXd joint_eigen_out;
       // Check if all rasters reachable
       if (!gen_preplan)
       {
@@ -210,10 +200,11 @@ private:
           gen_preplan = crs_motion_planner.generateDescartesSeed(reachable_rasters,
                                                                  0.05,
                                                                  false,
-                                                                 0.005,
+                                                                 0.0075,
                                                                  failed_edges,
                                                                  failed_vertices,
-                                                                 joint_traj_msg_out_final);
+                                                                 joint_traj_msg_out_final,
+                                                                 joint_eigen_out);
       }
       else
       {
@@ -244,20 +235,88 @@ private:
           tcp_eigen.setIdentity();
           auto traj_pc = std::make_shared<tesseract_motion_planners::TrajOptPlannerDefaultConfig>(tesseract_local_, manipulator_, target_frame, tcp_eigen);
           // TODO: FINISH TRAJOPT TRAJECTORY OPTIMIZATION OF DESCARTES PREPLAN
+          tesseract_motion_planners::CollisionCostConfig coll_cost_config;
+          coll_cost_config.enabled = false;
+          traj_pc->collision_cost_config = coll_cost_config;
 
+          tesseract_motion_planners::CollisionConstraintConfig coll_cnt_config;
+          coll_cnt_config.enabled = true;
+          coll_cnt_config.safety_margin = 0.003;
+          traj_pc->collision_constraint_config = coll_cnt_config;
 
+          traj_pc->init_type = trajopt::InitInfo::GIVEN_TRAJ;
+          traj_pc->longest_valid_segment_fraction = 0.01;
+
+          traj_pc->smooth_velocities = false;
+          traj_pc->smooth_accelerations = false;
+          traj_pc->smooth_jerks = false;
+
+          Eigen::VectorXd surface_coeffs(6);
+          surface_coeffs << 10, 10, 10, 10, 10, 0;
+
+          std::vector<std::vector<tesseract_motion_planners::Waypoint::Ptr>> waypoints;
+          bool waypoints_critical = true;
+          for (size_t i = 0; i < reresplit_rasters.size(); ++i)
+          {
+              std::vector<tesseract_motion_planners::Waypoint::Ptr> curr_raster;
+              for (auto waypoint : reresplit_rasters[i].poses)
+              {
+                  Eigen::Vector3d surface_pose(waypoint.position.x, waypoint.position.y, waypoint.position.z);
+                  Eigen::Quaterniond surface_ori(waypoint.orientation.w, waypoint.orientation.x, waypoint.orientation.y, waypoint.orientation.z);
+                  tesseract_motion_planners::CartesianWaypoint::Ptr surface_waypoint = std::make_shared<tesseract_motion_planners::CartesianWaypoint>(surface_pose, surface_ori);
+                  surface_waypoint->setCoefficients(surface_coeffs);
+                  surface_waypoint->setIsCritical(waypoints_critical);
+                  curr_raster.push_back(std::move(surface_waypoint));
+              }
+              waypoints.push_back(curr_raster);
+          }
+          traj_pc->target_waypoints = waypoints[0];
+
+          Eigen::MatrixXd joint_eigen_from_jt = tesseract_rosutils::toEigen(split_traj[0],split_traj[0].joint_names);
+
+          traj_pc->seed_trajectory = joint_eigen_from_jt;
+
+          trajectory_msgs::msg::JointTrajectory trajopt_result_traj;
+          tesseract_motion_planners::PlannerResponse planner_resp;
+          tesseract_motion_planners::TrajOptMotionPlanner traj_surface_planner;
+          traj_surface_planner.setConfiguration(traj_pc);
+          std::cout << "Solving" << std::endl;
+          traj_surface_planner.solve(planner_resp);
+          std::cout << "DONE" << std::endl;
+
+          if (planner_resp.status.value() < 0)
+          {
+              response->success = false;
+              response->message = planner_resp.status.message();
+              return;
+          }
+          Eigen::MatrixXd result_traj(planner_resp.joint_trajectory.trajectory.rows(), planner_resp.joint_trajectory.trajectory.cols());
+          result_traj << planner_resp.joint_trajectory.trajectory;
+          crs_motion_planning::tesseractRosutilsToMsg(trajopt_result_traj, split_traj[0].joint_names, result_traj);
+
+          split_traj.push_back(trajopt_result_traj);
           // Assign trajectory timestamps for motion execution
           std::vector<double> traj_times;
           for (size_t i = 0; i < split_traj.size(); ++i)
           {
+              std::cout << "Raster: " << i << " " << split_traj[i].points.size() << std::endl;
               split_traj[i].header.frame_id  = "world";
+              size_t i2;
+              if (i == 2)
+              {
+                  i2 = 0;
+              }
+              else{
+                i2 = i;
+              }
               double curr_traj_time = 0;
               for (size_t j = 1; j < split_traj[i].points.size(); ++j)
               {
-                  split_traj[i].points[j-1].time_from_start.sec = static_cast<int>(floor(time_steps[i][j]));
-                  split_traj[i].points[j-1].time_from_start.nanosec = static_cast<uint>(1e9 * (time_steps[i][j] - floor(time_steps[i][j])));
-                  curr_traj_time += time_steps[i][j];
+                  split_traj[i].points[j-1].time_from_start.sec = static_cast<int>(floor(time_steps[i2][j]));
+                  split_traj[i].points[j-1].time_from_start.nanosec = static_cast<uint>(1e9 * (time_steps[i2][j] - floor(time_steps[i2][j])));
+                  curr_traj_time += time_steps[i2][j];
               }
+              std::cout << "Done" << std::endl;
               split_traj[i].points.end()->time_from_start.sec = 0;
               traj_times.push_back(curr_traj_time);
           }
