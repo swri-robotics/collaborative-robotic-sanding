@@ -36,6 +36,7 @@
 #ifndef INCLUDE_CRS_APPLICATION_TASK_MANAGERS_PROCESS_EXECUTION_MANAGER_H_
 #define INCLUDE_CRS_APPLICATION_TASK_MANAGERS_PROCESS_EXECUTION_MANAGER_H_
 
+#include <atomic>
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include "crs_application/common/common.h"
@@ -47,13 +48,9 @@ namespace task_managers
 {
 struct ProcessExecutionConfig
 {
-};
-
-enum class ProcessExecActions: int
-{
-  EXEC_PROCESS = 1,
-  EXEC_MEDIA_CHANGE,
-  DONE
+  double traj_time_tolerance = 5.0; /** @brief time tolerance on trajectory duration */
+  double wait_state_timeout = 1.0; /** @brief seconds to wait for the current joint state*/
+  double joint_tolerance = (3.1416/180.0) * 2.0; /** @brief how close the robot needs to be to the last position in radians */
 };
 
 class ProcessExecutionManager
@@ -90,16 +87,28 @@ public:
 
   common::ActionResult execHome();
 
+  common::ActionResult cancelMotion();
+
 protected:
+
+  // support methods
+  void resetIndexes();
+  common::ActionResult execTrajectory(const trajectory_msgs::msg::JointTrajectory& traj);
+  common::ActionResult checkPreReq();
 
   // roscpp
   std::shared_ptr<rclcpp::Node> node_;
+  rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr traj_exec_pub_;
 
   // process data
+  std::shared_ptr<ProcessExecutionConfig> config_ = nullptr;
   std::shared_ptr<datatypes::ProcessExecutionData> input_ = nullptr;
 
   // other
   int current_process_idx_ = 0;
+  int current_media_change_idx_ = 0;
+
+  std::atomic<bool> executing_motion_;
 
 
 };
