@@ -105,21 +105,13 @@ public:
     /// \param allow_collisions
     /// \return success
     ///
-//    bool generateDescartesSeed(const std::vector<geometry_msgs::msg::PoseStamped> &waypoints,
-//                               const double &axial_step,
-//                               const bool &allow_collisions,
-//                               const double &collision_safety_margin,
-//                               std::vector<std::size_t>& failed_edges,
-//                               std::vector<std::size_t>& failed_vertices,
-//                               trajectory_msgs::msg::JointTrajectory& joint_trajectory);
     bool generateDescartesSeed(const geometry_msgs::msg::PoseArray &waypoints,
                                const double &axial_step,
                                const bool &allow_collisions,
                                const double &collision_safety_margin,
                                std::vector<std::size_t>& failed_edges,
                                std::vector<std::size_t>& failed_vertices,
-                               trajectory_msgs::msg::JointTrajectory& joint_trajectory,
-                               Eigen::MatrixXd& joint_traj_eigen_out);
+                               trajectory_msgs::msg::JointTrajectory& joint_trajectory);
 
 protected:
     pathPlanningConfig::Ptr config_;

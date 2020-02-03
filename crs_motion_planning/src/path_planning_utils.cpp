@@ -143,10 +143,8 @@ bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray
                                              const double &collision_safety_margin,
                                              std::vector<std::size_t>& failed_edges,
                                              std::vector<std::size_t>& failed_vertices,
-                                             trajectory_msgs::msg::JointTrajectory& joint_trajectory,
-                                             Eigen::MatrixXd& joint_traj_eigen_out)
+                                             trajectory_msgs::msg::JointTrajectory& joint_trajectory)
 {
-//    geometry_msgs::msg::PoseArray waypoints_pose_array;
     tesseract::Tesseract::Ptr tesseract_local = config_->tesseract_local;
     const std::shared_ptr<const tesseract_environment::Environment> env = tesseract_local->getEnvironmentConst();
     tesseract_common::TransformMap curr_transforms = env->getCurrentState()->transforms;
@@ -166,7 +164,6 @@ bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray
     tool0_to_sander = world_to_tool0.inverse() * world_to_sander;
     descartes_light::KinematicsInterfaceD::Ptr kin_interface = std::make_shared<ur_ikfast_kinematics::UR10eKinematicsD>(world_to_base_link, tool0_to_sander, nullptr, nullptr);
 
-//    for (size_t i = 0; i < waypoints.size(); ++i)
     for (size_t i = 0; i < waypoints_pose_array.poses.size(); ++i)
     {
         Eigen::Isometry3d current_waypoint_pose;
@@ -203,7 +200,7 @@ bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray
     seed_traj << solution_vec;
 
     int n_rows = seed_traj.size() / kin_interface->dof();
-    joint_traj_eigen_out = Eigen::Map<Eigen::MatrixXd>(seed_traj.data(), kin_interface->dof(), n_rows).transpose();
+    Eigen::MatrixXd joint_traj_eigen_out = Eigen::Map<Eigen::MatrixXd>(seed_traj.data(), kin_interface->dof(), n_rows).transpose();
 
     crs_motion_planning::tesseractRosutilsToMsg(joint_trajectory, kin->getJointNames(), joint_traj_eigen_out);
     return true;

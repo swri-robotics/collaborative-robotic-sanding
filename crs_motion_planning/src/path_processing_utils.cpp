@@ -212,7 +212,7 @@ void crs_motion_planning::cleanRasterStrip(const geometry_msgs::msg::PoseArray& 
     }
 }
 
-void crs_motion_planning::splitRastersByJointDist(const trajectory_msgs::msg::JointTrajectory& given_traj,
+bool crs_motion_planning::splitRastersByJointDist(const trajectory_msgs::msg::JointTrajectory& given_traj,
                                                   const geometry_msgs::msg::PoseArray& given_raster,
                                                   const double& desired_ee_vel,
                                                   const double& max_joint_vel,
@@ -220,6 +220,7 @@ void crs_motion_planning::splitRastersByJointDist(const trajectory_msgs::msg::Jo
                                                   std::vector<geometry_msgs::msg::PoseArray> &split_rasters,
                                                   std::vector<std::vector<double>> &time_steps)
 {
+    bool split_exists = false;
     geometry_msgs::msg::PoseArray curr_raster_pose_array;
     std::vector<geometry_msgs::msg::PoseStamped> curr_raster;
     trajectory_msgs::msg::JointTrajectory curr_traj;
@@ -253,6 +254,7 @@ void crs_motion_planning::splitRastersByJointDist(const trajectory_msgs::msg::Jo
         // If required joint velocity is higher than max allowable then split raster
         if (req_joint_vel > max_joint_vel)
         {
+            split_exists = true;
             std::cout << "Size of curr traj: " << curr_raster_pose_array.poses.size() << std::endl;
             split_traj.push_back(curr_traj);
             curr_traj.points.clear();
@@ -270,4 +272,13 @@ void crs_motion_planning::splitRastersByJointDist(const trajectory_msgs::msg::Jo
     split_traj.push_back(curr_traj);
     split_rasters.push_back(curr_raster_pose_array);
     time_steps.push_back(curr_time_steps);
+    return split_exists;
+}
+
+void crs_motion_planning::addApproachAndRetreat(const geometry_msgs::msg::PoseArray& given_raster,
+                                                const double& approach_dist,
+                                                const double& retreat_dist,
+                                                geometry_msgs::msg::PoseArray &returned_raster)
+{
+    returned_raster = given_raster;
 }
