@@ -33,7 +33,11 @@ namespace crs_motion_planning
 {
 struct pathPlanningConfig
 {
+    using Ptr = std::shared_ptr<pathPlanningConfig>;
+
     tesseract::Tesseract::Ptr tesseract_local;
+
+    descartes_light::KinematicsInterfaceD::Ptr kin_interface;
 
     std::string manipulator = "manipulator";
 
@@ -86,7 +90,40 @@ bool generateDescartesSeed(const pathPlanningConfig config,
                            std::vector<std::size_t>& failed_vertices,
                            trajectory_msgs::msg::JointTrajectory& joint_trajectory);
 
+class crsMotionPlanner
+{
+public:
+    crsMotionPlanner(pathPlanningConfig::Ptr config);
 
+//    bool setConfiguration(pathPlanningConfig::Ptr config);
+
+    ///
+    /// \brief generateDescartesSeed Creates a seed trajectory using descartes
+    /// \param pathPlanningConfig
+    /// \param waypoints
+    /// \param axial_step
+    /// \param allow_collisions
+    /// \return success
+    ///
+//    bool generateDescartesSeed(const std::vector<geometry_msgs::msg::PoseStamped> &waypoints,
+//                               const double &axial_step,
+//                               const bool &allow_collisions,
+//                               const double &collision_safety_margin,
+//                               std::vector<std::size_t>& failed_edges,
+//                               std::vector<std::size_t>& failed_vertices,
+//                               trajectory_msgs::msg::JointTrajectory& joint_trajectory);
+    bool generateDescartesSeed(const geometry_msgs::msg::PoseArray &waypoints,
+                               const double &axial_step,
+                               const bool &allow_collisions,
+                               const double &collision_safety_margin,
+                               std::vector<std::size_t>& failed_edges,
+                               std::vector<std::size_t>& failed_vertices,
+                               trajectory_msgs::msg::JointTrajectory& joint_trajectory);
+
+protected:
+    pathPlanningConfig::Ptr config_;
+
+};
 
 }
 
