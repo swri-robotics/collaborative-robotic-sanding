@@ -50,7 +50,7 @@ namespace task_managers
 ScanAcquisitionManager::ScanAcquisitionManager(std::shared_ptr<rclcpp::Node> node):
     node_(node),
     scan_positions_(std::vector<geometry_msgs::msg::Transform>()),
-    framos_frame_id_(""),
+    camera_frame_id_(""),
     max_time_since_last_point_cloud_(0.1),
     point_clouds_(std::vector<sensor_msgs::msg::PointCloud2>()),
     scan_index_(0)
@@ -66,7 +66,7 @@ ScanAcquisitionManager::~ScanAcquisitionManager()
 common::ActionResult ScanAcquisitionManager::init()
 {
   // parameters
-  framos_frame_id_ = node_->declare_parameter("framos_frame_id", "eoat_link");
+  camera_frame_id_ = node_->declare_parameter("camera_frame_id", "eoat_link");
   max_time_since_last_point_cloud_ = node_->declare_parameter("max_time_since_last_point_cloud", 0.1);
   pre_acquisition_pause_ = node_->declare_parameter("pre_acquisition_pause", 1.0);
 
@@ -112,6 +112,12 @@ common::ActionResult ScanAcquisitionManager::configure(const ScanAcquisitionConf
 
 common::ActionResult ScanAcquisitionManager::verify()
 {
+  common::ActionResult res = checkPreReqs();
+  if(!res)
+  {
+    return res;
+  }
+
   // resetting variables
   scan_index_ = 0;
   point_clouds_.clear();
@@ -121,7 +127,7 @@ common::ActionResult ScanAcquisitionManager::verify()
 common::ActionResult ScanAcquisitionManager::moveRobot()
 {
   auto freespace_motion_request = std::make_shared<crs_msgs::srv::CallFreespaceMotion::Request>();
-  freespace_motion_request->target_link = framos_frame_id_;
+  freespace_motion_request->target_link = camera_frame_id_;
   freespace_motion_request->goal_pose = scan_positions_.at(scan_index_);
   freespace_motion_request->execute = true;
 
@@ -191,6 +197,27 @@ common::ActionResult ScanAcquisitionManager::checkQueue()
     point_clouds_.clear();
     return true;
   }
+}
+
+common::ActionResult ScanAcquisitionManager::checkPreReqs()
+{
+  common::ActionResult res;
+  if(scan_positions_.empty())
+  {
+    res.succeeded =false;
+    res.err_msg = "No scan positions available, cannot proceed";
+    RCLCPP_ERROR(node_->get_logger(),"%s %s",MANAGER_NAME.c_str(), res.err_msg.c_str());
+    return res;
+  }
+
+  if(camera_frame_id_.empty())
+  {
+    res.succeeded =false;
+    res.err_msg = "No camera frame has been specified, cannot proceed";
+    RCLCPP_ERROR(node_->get_logger(),"%s %s",MANAGER_NAME.c_str(), res.err_msg.c_str());
+    return res;
+  }
+  return true;
 }
 
 void ScanAcquisitionManager::handlePointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
