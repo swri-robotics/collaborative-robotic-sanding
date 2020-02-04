@@ -48,7 +48,6 @@ namespace crs_application
 {
 namespace task_managers
 {
-
 struct MotionPlanningConfig
 {
   double tool_speed;
@@ -58,8 +57,8 @@ struct MotionPlanningConfig
   std::string tool_frame;
 
   // media change
-  double media_change_time;             /** @brief secs */
-  Eigen::Isometry3d media_change_pose;  /** @brief in world coordinates */
+  double media_change_time;            /** @brief secs */
+  Eigen::Isometry3d media_change_pose; /** @brief in world coordinates */
 };
 
 class MotionPlanningManager
@@ -81,13 +80,9 @@ public:
   common::ActionResult hidePreview();
 
   // Results
-  const datatypes::ProcessExecutionData& getResult()
-  {
-    return result_;
-  }
+  const datatypes::ProcessExecutionData& getResult() { return result_; }
 
 protected:
-
   // support methods
   common::ActionResult checkPreReq();
   sensor_msgs::msg::JointState::SharedPtr getCurrentState();
@@ -102,7 +97,6 @@ protected:
 
   // process data
   std::vector<datatypes::ProcessToolpathData> process_toolpaths_;
-
 };
 
 } /* namespace task_managers */

@@ -45,7 +45,6 @@ namespace crs_application
 {
 namespace task_managers
 {
-
 struct ScanAcquisitionConfig
 {
   std::vector<std::vector<double> > scan_poses;
@@ -79,18 +78,14 @@ public:
   common::ActionResult checkQueue();
 
   // Results
-  const datatypes::ScanAcquisitionResult& getResult()
-  {
-    return result_;
-  }
+  const datatypes::ScanAcquisitionResult& getResult() { return result_; }
 
 protected:
-
   std::shared_ptr<rclcpp::Node> node_;
   datatypes::ScanAcquisitionResult result_;
 };
 
-}
-}
+}  // namespace task_managers
+}  // namespace crs_application
 
 #endif /* INCLUDE_CRS_APPLICATION_TASK_MANAGERS_SCAN_ACQUISITION_MANAGER_H_ */

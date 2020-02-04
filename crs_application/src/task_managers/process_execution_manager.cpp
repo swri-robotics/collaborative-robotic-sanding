@@ -39,66 +39,57 @@ namespace crs_application
 {
 namespace task_managers
 {
+ProcessExecutionManager::ProcessExecutionManager(std::shared_ptr<rclcpp::Node> node) : node_(node) {}
 
-ProcessExecutionManager::ProcessExecutionManager(std::shared_ptr<rclcpp::Node> node):
-    node_(node)
-{
-
-}
-
-ProcessExecutionManager::~ProcessExecutionManager()
-{
-
-}
+ProcessExecutionManager::~ProcessExecutionManager() {}
 
 common::ActionResult ProcessExecutionManager::init()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   return true;
 }
 
 common::ActionResult ProcessExecutionManager::configure(const ProcessExecutionConfig& config)
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   return true;
 }
 
 common::ActionResult ProcessExecutionManager::setInput(const datatypes::ProcessExecutionData& input)
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   return true;
 }
 
 common::ActionResult ProcessExecutionManager::execProcess()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   return true;
 }
 
 common::ActionResult ProcessExecutionManager::execMediaChange()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   return true;
 }
 
 common::ActionResult ProcessExecutionManager::checkQueue()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   return true;
 }
 
 common::ActionResult ProcessExecutionManager::execHome()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   return true;
 }
 
 common::ActionResult ProcessExecutionManager::moveStart()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   return true;
 }
 
 } /* namespace task_managers */
 } /* namespace crs_application */
-

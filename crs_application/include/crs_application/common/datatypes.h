@@ -45,7 +45,6 @@ namespace crs_application
 {
 namespace datatypes
 {
-
 struct ScanAcquisitionResult
 {
   Eigen::Isometry3d transform;
@@ -63,16 +62,15 @@ struct MediaChangeMotionPlan
 };
 struct ProcessExecutionData
 {
-  std::vector< crs_msgs::msg::ProcessMotionPlan > process_plans;
-  std::vector< MediaChangeMotionPlan > media_change_plans;
+  std::vector<crs_msgs::msg::ProcessMotionPlan> process_plans;
+  std::vector<MediaChangeMotionPlan> media_change_plans;
 };
 
 struct PartInspectionResult
 {
-
 };
 
-}
-}
+}  // namespace datatypes
+}  // namespace crs_application
 
 #endif /* INCLUDE_CRS_APPLICATION_COMMON_DATATYPES_H_ */

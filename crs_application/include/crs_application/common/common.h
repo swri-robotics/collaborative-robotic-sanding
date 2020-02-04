@@ -43,17 +43,15 @@ namespace crs_application
 {
 namespace common
 {
-
 struct ActionResult
 {
-  bool succeeded = false; /** @brief indicates that the whether or not the action succeeded*/
-  std::string err_msg; /** @brief an optional error message if the requested action failed **/
+  bool succeeded = false;             /** @brief indicates that the whether or not the action succeeded*/
+  std::string err_msg;                /** @brief an optional error message if the requested action failed **/
   boost::any opt_data = boost::any(); /** @brief optional data returned if the requested action failed */
 
-  ActionResult(bool succeeded = true, std::string msg = "", boost::any data = boost::any()) :
-      succeeded(succeeded), err_msg(msg), opt_data(data)
+  ActionResult(bool succeeded = true, std::string msg = "", boost::any data = boost::any())
+    : succeeded(succeeded), err_msg(msg), opt_data(data)
   {
-
   }
 
   ActionResult& operator=(const bool& b)
@@ -62,13 +60,9 @@ struct ActionResult
     return *this;
   }
 
-  operator bool() const
-  {
-    return succeeded;
-  }
-
+  operator bool() const { return succeeded; }
 };
-}
-}
+}  // namespace common
+}  // namespace crs_application
 
 #endif /* INCLUDE_CRS_APPLICATION_COMMON_COMMON_H_ */

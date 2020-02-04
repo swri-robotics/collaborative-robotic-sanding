@@ -39,45 +39,37 @@ namespace crs_application
 {
 namespace task_managers
 {
+PartReworkManager::PartReworkManager(std::shared_ptr<rclcpp::Node> node) : node_(node) {}
 
-PartReworkManager::PartReworkManager(std::shared_ptr<rclcpp::Node> node):
-    node_(node)
-{
-
-}
-
-PartReworkManager::~PartReworkManager()
-{
-
-}
+PartReworkManager::~PartReworkManager() {}
 
 common::ActionResult PartReworkManager::init()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   return true;
 }
 
 common::ActionResult PartReworkManager::configure(const PartReworkConfig& config)
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   return true;
 }
 
 common::ActionResult PartReworkManager::getUserSelection()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   return true;
 }
 
 common::ActionResult PartReworkManager::trimToolpaths()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   return true;
 }
 
 common::ActionResult PartReworkManager::showPreview()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   return true;
 }
 
