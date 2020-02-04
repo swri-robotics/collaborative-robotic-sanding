@@ -30,6 +30,9 @@
    </item>
    <item>
     <widget class="QTabWidget" name="tab_widget">
+     <property name="enabled">
+      <bool>true</bool>
+     </property>
      <property name="currentIndex">
       <number>0</number>
      </property>
@@ -84,6 +87,9 @@
       </layout>
      </widget>
      <widget class="QWidget" name="tab_rework">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <attribute name="title">
        <string>Plan</string>
       </attribute>
@@ -91,7 +97,7 @@
        <item>
         <widget class="QGroupBox" name="group_box_select_job">
          <property name="title">
-          <string>3. Select Job</string>
+          <string>Note: All of these tabs get removed in the constructor</string>
          </property>
          <layout class="QVBoxLayout" name="verticalLayout_3">
           <item>
@@ -135,6 +141,9 @@
       </layout>
      </widget>
      <widget class="QWidget" name="tab_execution">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <attribute name="title">
        <string>Execution</string>
       </attribute>
@@ -180,6 +189,9 @@
       </layout>
      </widget>
      <widget class="QWidget" name="tab_log">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <attribute name="title">
        <string>Log</string>
       </attribute>
@@ -211,6 +223,9 @@
       </layout>
      </widget>
      <widget class="QWidget" name="tab_manipulation">
+      <property name="enabled">
+       <bool>false</bool>
+      </property>
       <attribute name="title">
        <string>Manual Manipulation</string>
       </attribute>
