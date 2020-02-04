@@ -79,7 +79,7 @@ public:
 
   /**
    * @brief checks if there are any scan positions left in the queue
-   * @return  True when the queue is empty
+   * @return  True all scan positions have been visited
    */
   common::ActionResult checkQueue();
 
@@ -97,6 +97,7 @@ protected:
   // parameters
   std::vector<geometry_msgs::msg::Transform> scan_positions_;
   std::string framos_frame_id_;
+  double pre_acquisition_pause_;
   double max_time_since_last_point_cloud_;
 
   // subscribers

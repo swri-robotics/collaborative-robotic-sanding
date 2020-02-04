@@ -33,7 +33,14 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <boost/format.hpp>
 #include "crs_application/task_managers/scan_acquisition_manager.h"
+
+static const double WAIT_FOR_SERVICE_PERIOD = 10.0;
+static const double WAIT_MESSAGE_TIMEOUT = 2.0;
+static const std::string POINT_CLOUD_TOPIC = "point_cloud";
+static const std::string FREESPACE_MOTION_PLAN_SERVICE = "test_plan";
+static const std::string MANAGER_NAME = "ScanAcquisitionManager";
 
 namespace crs_application
 {
@@ -59,17 +66,33 @@ ScanAcquisitionManager::~ScanAcquisitionManager()
 common::ActionResult ScanAcquisitionManager::init()
 {
   // parameters
-  //scan_positions_ = node_->declare_parameter("scan_positions", std::vector<geometry_msgs::msg::Transform>());
   framos_frame_id_ = node_->declare_parameter("framos_frame_id", "eoat_link");
   max_time_since_last_point_cloud_ = node_->declare_parameter("max_time_since_last_point_cloud", 0.1);
+  pre_acquisition_pause_ = node_->declare_parameter("pre_acquisition_pause", 1.0);
 
   // subscribers
-  point_cloud_sub_ = node_->create_subscription<sensor_msgs::msg::PointCloud2>("/point_cloud", 1,
+  point_cloud_sub_ = node_->create_subscription<sensor_msgs::msg::PointCloud2>(POINT_CLOUD_TOPIC, 1,
     std::bind(&ScanAcquisitionManager::handlePointCloud, this, std::placeholders::_1));
 
   // service client
-  // todo(ayoungs): wait on service?
-  call_freespace_motion_client_ = node_->create_client<crs_msgs::srv::CallFreespaceMotion>("test_plan");
+  call_freespace_motion_client_ = node_->create_client<crs_msgs::srv::CallFreespaceMotion>(
+      FREESPACE_MOTION_PLAN_SERVICE);
+
+  // waiting for services
+  common::ActionResult res;
+  std::vector<rclcpp::ClientBase*> srv_clients = {call_freespace_motion_client_.get()};
+  if(!std::all_of(srv_clients.begin(), srv_clients.end(),[this, &res](rclcpp::ClientBase* c){
+    if(!c->wait_for_service(std::chrono::duration<double>(WAIT_FOR_SERVICE_PERIOD)))
+    {
+      res.succeeded = false;
+      res.err_msg = boost::str(boost::format("service '%s' was not found") % c->get_service_name());
+      return false;
+    }
+    return true;
+  }))
+  {
+    RCLCPP_ERROR(node_->get_logger(),"%s %s",MANAGER_NAME.c_str(),res.err_msg);
+  }
 
   return true;
 }
@@ -89,7 +112,9 @@ common::ActionResult ScanAcquisitionManager::configure(const ScanAcquisitionConf
 
 common::ActionResult ScanAcquisitionManager::verify()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  // resetting variables
+  scan_index_ = 0;
+  point_clouds_.clear();
   return true;
 }
 
@@ -104,29 +129,42 @@ common::ActionResult ScanAcquisitionManager::moveRobot()
   if (rclcpp::spin_until_future_complete(node_, result_future) !=
     rclcpp::executor::FutureReturnCode::SUCCESS)
   {
-    RCLCPP_ERROR(node_->get_logger(), "Call Freespace Motion service call failed");
-    // todo(ayoungs): do I need to reset the scan_index_ here and clear the point clouds?
+    RCLCPP_ERROR(node_->get_logger(), "%s Call Freespace Motion service call failed",MANAGER_NAME.c_str());
     return false;
   }
   auto result = result_future.get();
 
   if (result->success)
   {
-    scan_index_++;
     return true;
   }
   else
   {
-    // todo(ayoungs): do I need to reset the scan_index_ here and clear the point clouds?
-    RCLCPP_ERROR(node_->get_logger(), result->message);
+    RCLCPP_ERROR(node_->get_logger(), "%s %s",MANAGER_NAME.c_str(), result->message.c_str());
     return false;
   }
 }
 
 common::ActionResult ScanAcquisitionManager::capture()
 {
-  // todo(ayoungs): transform
-  // todo(ayoungs): is there a wait for topic call similar to ROS1?
+  // sleeping first
+  std::chrono::duration<double> sleep_dur(WAIT_MESSAGE_TIMEOUT);
+  rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::nanoseconds>(sleep_dur));
+
+  auto msg = common::waitForMessage<sensor_msgs::msg::PointCloud2>(node_,POINT_CLOUD_TOPIC,
+                                                                   WAIT_MESSAGE_TIMEOUT);
+  if(!msg)
+  {
+    common::ActionResult res;
+    res.succeeded =false;
+    res.err_msg = "Failed to get point cloud message";
+    return res;
+  }
+  curr_point_cloud_ = *msg;
+
+  // TODO(ayoungs): transform point cloud
+
+  // TODO asses if the logic below is still needed
   if (node_->now() - curr_point_cloud_.header.stamp <= rclcpp::Duration(max_time_since_last_point_cloud_))
   {
     point_clouds_.push_back(curr_point_cloud_);
@@ -134,14 +172,14 @@ common::ActionResult ScanAcquisitionManager::capture()
   }
   else
   {
-    // todo(ayoungs): do I need to reset the scan_index_ here and clear the point clouds?
     return false;
   }
 }
 
 common::ActionResult ScanAcquisitionManager::checkQueue()
 {
-  if (scan_index_ < scan_positions_.size())
+  scan_index_++;
+  if (scan_index_ < scan_positions_.size()-1)
   {
     return false;
   }
