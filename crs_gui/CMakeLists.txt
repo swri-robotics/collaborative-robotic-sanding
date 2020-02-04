@@ -8,6 +8,7 @@ find_package(shape_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 
 find_package(crs_area_selection REQUIRED path)
+find_package(crs_msgs REQUIRED)
 
 find_package(Qt5 REQUIRED COMPONENTS
   Core
@@ -22,18 +23,21 @@ set(crs_gui_UIS
   ui/crs_application.ui
   ui/part_selection.ui
   ui/polygon_area_selection_widget.ui
+  ui/state_machine_interface.ui
 )
 
 set(crs_gui_widget_HEADERS
   include/${PROJECT_NAME}/widgets/crs_application_widget.h
   include/${PROJECT_NAME}/widgets/part_selection_widget.h
   include/${PROJECT_NAME}/widgets/polygon_area_selection_widget.h
+  include/${PROJECT_NAME}/widgets/state_machine_interface_widget.h
 )
 
 set(crs_gui_widget_SOURCES
   src/widgets/crs_application_widget.cpp
   src/widgets/part_selection_widget.cpp
   src/widgets/polygon_area_selection_widget.cpp
+  src/widgets/state_machine_interface_widget.cpp
 )
 
 # Run the MOC on the Qt-related UIs and headers
@@ -61,7 +65,7 @@ target_link_libraries(${PROJECT_NAME}_widgets
   Qt5::Widgets
   crs_area_selection::crs_area_selection_area_selection
 )
-ament_target_dependencies(${PROJECT_NAME}_widgets crs_area_selection rclcpp shape_msgs std_srvs)
+ament_target_dependencies(${PROJECT_NAME}_widgets crs_area_selection rclcpp shape_msgs std_srvs crs_msgs)
 
 ######################
 ## Demo Executables ##
@@ -82,7 +86,6 @@ target_include_directories(${PROJECT_NAME}_part_selection_demo PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:include>")
 
-# Area selection widget demo
 add_executable(${PROJECT_NAME}_crs_application_demo src/nodes/crs_application_demo.cpp)
 target_link_libraries(${PROJECT_NAME}_crs_application_demo ${PROJECT_NAME}_widgets)
 set_target_properties(${PROJECT_NAME}_crs_application_demo PROPERTIES CXX_STANDARD 14)
@@ -90,6 +93,12 @@ target_include_directories(${PROJECT_NAME}_crs_application_demo PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:include>")
 
+add_executable(${PROJECT_NAME}_state_machine_interface_widget_demo src/nodes/state_machine_interface_widget_demo.cpp)
+target_link_libraries(${PROJECT_NAME}_state_machine_interface_widget_demo ${PROJECT_NAME}_widgets)
+set_target_properties(${PROJECT_NAME}_state_machine_interface_widget_demo PROPERTIES CXX_STANDARD 14)
+target_include_directories(${PROJECT_NAME}_state_machine_interface_widget_demo PUBLIC
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+    "$<INSTALL_INTERFACE:include>")
 
 
 #############
@@ -101,6 +110,7 @@ install(
     ${PROJECT_NAME}_area_selection_demo
     ${PROJECT_NAME}_part_selection_demo
     ${PROJECT_NAME}_crs_application_demo
+    ${PROJECT_NAME}_state_machine_interface_widget_demo
   EXPORT ${PACKAGE_NAME}-targets
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
