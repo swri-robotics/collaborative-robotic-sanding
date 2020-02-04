@@ -93,10 +93,10 @@ target_include_directories(${PROJECT_NAME}_crs_application_demo PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:include>")
 
-add_executable(${PROJECT_NAME}_state_machine_interface_widget_demo src/nodes/state_machine_interface_widget_demo.cpp)
-target_link_libraries(${PROJECT_NAME}_state_machine_interface_widget_demo ${PROJECT_NAME}_widgets)
-set_target_properties(${PROJECT_NAME}_state_machine_interface_widget_demo PROPERTIES CXX_STANDARD 14)
-target_include_directories(${PROJECT_NAME}_state_machine_interface_widget_demo PUBLIC
+add_executable(${PROJECT_NAME}_state_machine_interface_demo src/nodes/state_machine_interface_widget_demo.cpp)
+target_link_libraries(${PROJECT_NAME}_state_machine_interface_demo ${PROJECT_NAME}_widgets)
+set_target_properties(${PROJECT_NAME}_state_machine_interface_demo PROPERTIES CXX_STANDARD 14)
+target_include_directories(${PROJECT_NAME}_state_machine_interface_demo PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:include>")
 
@@ -110,7 +110,7 @@ install(
     ${PROJECT_NAME}_area_selection_demo
     ${PROJECT_NAME}_part_selection_demo
     ${PROJECT_NAME}_crs_application_demo
-    ${PROJECT_NAME}_state_machine_interface_widget_demo
+    ${PROJECT_NAME}_state_machine_interface_demo
   EXPORT ${PACKAGE_NAME}-targets
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib
@@ -123,6 +123,11 @@ ament_export_interfaces(${PACKAGE_NAME}-targets)
 install(DIRECTORY include/
   DESTINATION include
   FILES_MATCHING PATTERN "*.h"
+)
+
+install(DIRECTORY launch config
+  DESTINATION share/${PROJECT_NAME}/
+  PATTERN ".svn" EXCLUDE
 )
 
 # Mark other files for installation (e.g. launch and bag files, etc.)

@@ -18,6 +18,7 @@
   <depend>shape_msgs</depend>
   <depend>std_srvs</depend>
   <depend>crs_msgs</depend>
+  <exec_depend>xterm</exec_depend>
 
   <export>
 <!--    <rviz plugin="${prefix}/plugin_description.xml"/>-->

@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<launch>
+    <let name="state_machine_file" value="$(find-pkg-share crs_application)/resources/crs_process.scxml"/>
+
+    <group ns="crs">
+        <node pkg="crs_gui" exec="crs_gui_area_selection_demo" output="screen" />
+    </group>
+
+  <!-- rviz -->
+  <let name="rviz_config" value="$(find-pkg-share crs_gui)/config/crs_application_demo.rviz"/>
+  <node pkg="rviz2" exec="rviz2" launch-prefix="xterm -e" args="-d $(var rviz_config) --ros-args --log-level ERROR" output="log"/>
+</launch>
