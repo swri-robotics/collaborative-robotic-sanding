@@ -23,27 +23,11 @@ int main(int argc, char** argv)
 {
   // Set up ROS.
   rclcpp::init(argc, argv);
-//  rclcpp::sleep_for(std::chrono::seconds(3));
   auto node = std::make_shared<rclcpp::Node>("roi_selection_node");
 
-  std::string world_frame = "world";
-  std::string sensor_data_frame = "sensor_data_frame";
+  std::string world_frame = "map";
+  std::string sensor_data_frame = "map";
   RCLCPP_WARN(node->get_logger(), "World frame and sensor_data_frame are not being set from parameters");
-
-//  // Get ROS parameters
-//  std::string world_frame;
-//  if (!pnh.getParam("world_frame", world_frame))
-//  {
-//    ROS_FATAL("'world_frame' parameter must be set");
-//    return 1;
-//  }
-
-//  std::string sensor_data_frame;
-//  if (!pnh.getParam("sensor_data_frame", sensor_data_frame))
-//  {
-//    ROS_FATAL("'sensor_data_frame' parameter must be set");
-//    return 1;
-//  }
 
   // Set up the selection artist
   crs_area_selection::SelectionArtist artist(node, world_frame, sensor_data_frame);

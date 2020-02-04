@@ -1,13 +1,16 @@
 <?xml version="1.0"?>
 <launch>
-	<let name="state_machine_file" value="$(find-pkg-share crs_application)/resources/crs_process.scxml"/>
-	
-	<group ns="crs">
-		<node pkg="crs_application" exec="crs_application_node" output="screen" >
-			<param name="state_machine_file" value="$(var state_machine_file)"/>
-		</node>
-        <node pkg="crs_gui" exec="crs_gui_crs_application_demo" output="screen" />
-	</group>
+  <let name="state_machine_file" value="$(find-pkg-share crs_application)/resources/crs_process.scxml"/>
+
+  <group ns="crs">
+      <node pkg="crs_application" exec="crs_application_node" output="screen" >
+          <param name="state_machine_file" value="$(var state_machine_file)"/>
+      </node>
+      <node pkg="crs_gui" exec="crs_gui_crs_application_demo" output="screen" />
+  </group>
+
+  <!-- Static Transform Publisher -->
+  <node pkg="tf2_ros" exec="static_transform_publisher" args="0 0 0 0 0 0 world part_frame" />
 
   <!-- rviz -->
   <let name="rviz_config" value="$(find-pkg-share crs_gui)/config/crs_application_demo.rviz"/>
