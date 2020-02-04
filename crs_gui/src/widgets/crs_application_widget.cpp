@@ -69,15 +69,19 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node,
   }
 
   //  // Add the widgets to the UI
-  ui_->vertical_layout_part_selector->addWidget(part_selector_widget_);
-  ui_->vertical_layout_area_selection->addWidget(area_selection_widget_);
-  ui_->vertical_layout_sm_interface->addWidget(state_machine_interface_widget_);
+  ui_->vertical_layout_part_selector->addWidget(part_selector_widget_.get());
+  ui_->vertical_layout_area_selection->addWidget(area_selection_widget_.get());
+  ui_->vertical_layout_sm_interface->addWidget(state_machine_interface_widget_.get());
 
   // Connect signals and slots
-  connect(part_selector_widget_, &PartSelectionWidget::partSelected, this, &CRSApplicationWidget::onPartSelected);
-  connect(
-      part_selector_widget_, &PartSelectionWidget::partPathSelected, this, &CRSApplicationWidget::onPartPathSelected);
+  connect(part_selector_widget_.get(), &PartSelectionWidget::partSelected, this, &CRSApplicationWidget::onPartSelected);
+  connect(part_selector_widget_.get(),
+          &PartSelectionWidget::partPathSelected,
+          this,
+          &CRSApplicationWidget::onPartPathSelected);
 }
+
+CRSApplicationWidget::~CRSApplicationWidget() = default;
 
 void CRSApplicationWidget::onPartSelected(const std::string selected_part)
 {

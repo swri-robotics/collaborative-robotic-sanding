@@ -44,6 +44,8 @@ PartSelectionWidget::PartSelectionWidget(QWidget* parent, std::string database_d
   connect(ui_->push_button_load_selected_part, &QPushButton::clicked, this, &PartSelectionWidget::onPartSelected);
 }
 
+PartSelectionWidget::~PartSelectionWidget() = default;
+
 void PartSelectionWidget::refreshPartsList()
 {
   using namespace boost::filesystem;

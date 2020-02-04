@@ -46,7 +46,7 @@ public:
                        QWidget* parent = nullptr,
                        std::string database_directory = std::string(std::getenv("HOME")) + "/.local/share/"
                                                                                            "offline_generated_paths");
-
+  ~CRSApplicationWidget();
 protected Q_SLOTS:
 
   void onPartSelected(const std::string);
@@ -54,7 +54,7 @@ protected Q_SLOTS:
   void onPartPathSelected(const std::string, const std::string);
 
 protected:
-  Ui::CRSApplication* ui_;
+  std::unique_ptr<Ui::CRSApplication> ui_;
 
   rclcpp::Node::SharedPtr node_;
   std::string database_directory_;
@@ -70,9 +70,9 @@ protected:
   rclcpp::TimerBase::SharedPtr mesh_marker_timer_;
   void meshMarkerTimerCb();
 
-  PartSelectionWidget* part_selector_widget_;
-  PolygonAreaSelectionWidget* area_selection_widget_;
-  StateMachineInterfaceWidget* state_machine_interface_widget_;
+  std::unique_ptr<PartSelectionWidget> part_selector_widget_;
+  std::unique_ptr<PolygonAreaSelectionWidget> area_selection_widget_;
+  std::unique_ptr<StateMachineInterfaceWidget> state_machine_interface_widget_;
 };
 
 }  // namespace crs_gui

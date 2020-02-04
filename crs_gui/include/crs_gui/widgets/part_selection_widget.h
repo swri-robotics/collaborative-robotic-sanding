@@ -18,7 +18,7 @@
 #define CRS_GUI_WIDGETS_PART_SELECTION_WIDGET_H
 
 #include <QWidget>
-
+#include <memory>
 #include <string>
 
 class QListWidgetItem;
@@ -37,22 +37,27 @@ public:
   PartSelectionWidget(QWidget* parent = nullptr,
                       std::string database_directory = std::string(std::getenv("HOME")) + "/.local/share/"
                                                                                           "offline_generated_paths");
+  ~PartSelectionWidget();
 Q_SIGNALS:
   /** @brief Signal emitted when Load Selected Part is clicked with name of the part selected*/
   void partSelected(std::string);
-  /** @brief Signal emmited when Load Selected Part is clickd. First arg is part selected. Second arg is path to
+  /** @brief Signal emmited when Load Selected Part is clicked. First arg is part selected. Second arg is path to
    * toolpath yaml */
   void partPathSelected(std::string, std::string);
 
 protected Q_SLOTS:
 
+  /** @brief Checks for new parts and updates the list */
   void refreshPartsList();
+  /** @brief Checks the toolpaths for the selected part and populates the display*/
   void onPartSelectionChanged(QListWidgetItem* current, QListWidgetItem* previous);
+  /** @brief Gets part name of selection and triggers partSelected and partSelectedPath signals*/
   void onPartSelected();
 
 private:
-  Ui::PartSelection* ui_;
+  std::unique_ptr<Ui::PartSelection> ui_;
 
+  /** @brief Directory where the part directories are located */
   std::string database_directory_;
 };
 

@@ -37,7 +37,7 @@ class StateMachineInterfaceWidget : public QWidget
   Q_OBJECT
 public:
   StateMachineInterfaceWidget(rclcpp::Node::SharedPtr node, QWidget* parent = nullptr);
-
+  ~StateMachineInterfaceWidget();
 Q_SIGNALS:
   /** @brief emitted inside currentStateCB when the state changes with the name of new state as the argument*/
   void onStateChange(std::string);
@@ -58,7 +58,7 @@ public:
   std::string current_state_;
 
 protected:
-  Ui::StateMachineInterface* ui_;
+  std::unique_ptr<Ui::StateMachineInterface> ui_;
 
   /** @brief Node that is used for service calls and subscriber*/
   rclcpp::Node::SharedPtr node_;

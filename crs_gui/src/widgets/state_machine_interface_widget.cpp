@@ -52,6 +52,8 @@ StateMachineInterfaceWidget::StateMachineInterfaceWidget(rclcpp::Node::SharedPtr
   connect(ui_->push_button_sm_approve, &QPushButton::clicked, this, &StateMachineInterfaceWidget::onSMApprove);
 }
 
+StateMachineInterfaceWidget::~StateMachineInterfaceWidget() = default;
+
 void StateMachineInterfaceWidget::currentStateCB(const std_msgs::msg::String::ConstSharedPtr current_state)
 {
   ui_->line_edit_sm_current_state->setText(QString::fromUtf8(current_state.get()->data.c_str()));

@@ -56,7 +56,7 @@ private Q_SLOTS:
   void applySelection();
 
 private:
-  Ui::PolygonAreaSelectionWidget* ui_;
+  std::unique_ptr<Ui::PolygonAreaSelectionWidget> ui_;
 
   rclcpp::Node::SharedPtr node_;
 
