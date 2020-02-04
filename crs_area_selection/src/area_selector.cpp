@@ -98,7 +98,7 @@ boost::optional<FittedPlane> AreaSelector::fitPlaneToPoints(const std::vector<Ei
   if (!crs_area_selection::data_filtering::planeFit<pcl::PointXYZ>(
           input_cloud, *output_cloud, coefficients, params.plane_distance_threshold))
   {
-//    PCL_ERROR("Unable to fit points to plane model");  //Try this
+    //    PCL_ERROR("Unable to fit points to plane model");  //Try this
     return {};
   }
 
@@ -115,7 +115,7 @@ boost::optional<FittedPlane> AreaSelector::fitPlaneToPoints(const std::vector<Ei
   return boost::make_optional(plane);
 }
 
-//pcl::PointCloud<pcl::PointXYZ>::Ptr AreaSelector::projectPointsOntoPlane(const std::vector<Eigen::Vector3d>& points,
+// pcl::PointCloud<pcl::PointXYZ>::Ptr AreaSelector::projectPointsOntoPlane(const std::vector<Eigen::Vector3d>& points,
 //                                                                         const FittedPlane& plane)
 //{
 //  pcl::PointCloud<pcl::PointXYZ> projected_points;
@@ -143,7 +143,7 @@ boost::optional<FittedPlane> AreaSelector::fitPlaneToPoints(const std::vector<Ei
 //  return projected_points.makeShared();
 //}
 
-//std::vector<int> AreaSelector::getPointsInROI(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
+// std::vector<int> AreaSelector::getPointsInROI(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
 //                                              const pcl::PointCloud<pcl::PointXYZ>::Ptr proj_sel_points,
 //                                              const FittedPlane& plane,
 //                                              const AreaSelectorParameters& params)
@@ -199,10 +199,9 @@ boost::optional<FittedPlane> AreaSelector::fitPlaneToPoints(const std::vector<Ei
 //  std::vector<pcl::PointIndices> int_indices;
 //  reg.extract(int_indices);
 
-//  // We need to translate the indices into the prism cloud into indices into the original cloud (via selection indices)
-//  std::vector<pcl::PointIndices> cluster_indices;
-//  cluster_indices.reserve(int_indices.size());
-//  for (const auto& index_set : int_indices)
+//  // We need to translate the indices into the prism cloud into indices into the original cloud (via selection
+//  indices) std::vector<pcl::PointIndices> cluster_indices; cluster_indices.reserve(int_indices.size()); for (const
+//  auto& index_set : int_indices)
 //  {
 //    pcl::PointIndices output_set;
 //    output_set.header = index_set.header;
@@ -244,14 +243,14 @@ std::vector<int> AreaSelector::getRegionOfInterest(const pcl::PointCloud<pcl::Po
   // Check size of selection points vector
   if (points.size() < 3)
   {
-//    ROS_ERROR("Not enough points to create a closed loop");
+    //    ROS_ERROR("Not enough points to create a closed loop");
     return {};
   }
 
   // Check the size of the input point cloud
   if (input_cloud->points.size() == 0)
   {
-//    ROS_ERROR("No points to search for inside the selection polygon");
+    //    ROS_ERROR("No points to search for inside the selection polygon");
     return {};
   }
 
@@ -259,21 +258,21 @@ std::vector<int> AreaSelector::getRegionOfInterest(const pcl::PointCloud<pcl::Po
   boost::optional<FittedPlane> plane = fitPlaneToPoints(points, params);
   if (!plane)
   {
-//    ROS_ERROR("Failed to fit plane to selection points");
+    //    ROS_ERROR("Failed to fit plane to selection points");
     return {};
   }
 
-//  // Project the selection points onto the fitted plane
-//  pcl::PointCloud<pcl::PointXYZ>::Ptr proj_sel_points = projectPointsOntoPlane(points, plane.get());
+  //  // Project the selection points onto the fitted plane
+  //  pcl::PointCloud<pcl::PointXYZ>::Ptr proj_sel_points = projectPointsOntoPlane(points, plane.get());
 
-//  /* Find all of the sensor data points inside a volume whose perimeter is defined by the projected selection points
-//   * and whose depth is defined by the largest length of the bounding box of the input point cloud */
-//  std::vector<int> roi_cloud_indices = getPointsInROI(input_cloud, proj_sel_points, plane.get(), params);
-//  if (roi_cloud_indices.empty())
-//  {
-//    ROS_ERROR("Unable to identify points in the region of interest");
-//    return {};
-//  }
+  //  /* Find all of the sensor data points inside a volume whose perimeter is defined by the projected selection points
+  //   * and whose depth is defined by the largest length of the bounding box of the input point cloud */
+  //  std::vector<int> roi_cloud_indices = getPointsInROI(input_cloud, proj_sel_points, plane.get(), params);
+  //  if (roi_cloud_indices.empty())
+  //  {
+  //    ROS_ERROR("Unable to identify points in the region of interest");
+  //    return {};
+  //  }
 
   std::vector<int> roi_cloud_indices;
   return roi_cloud_indices;

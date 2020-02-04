@@ -34,6 +34,6 @@ struct AreaSelectorParameters
   double region_growing_curvature = 1.0;
 };
 
-}  // namespace opp_area_selection
+}  // namespace crs_area_selection
 
 #endif  // OPP_AREA_SELECTION_AREA_SELECTOR_PARAMETERS_H

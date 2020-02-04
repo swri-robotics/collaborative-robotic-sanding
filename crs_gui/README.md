@@ -5,7 +5,7 @@ This package contains a series of widgets that make up the system gui. Each widg
 This will likely change in the future, but current part selection relies on a specific directory structure. Set it up as follows
 1) Create this directory `~/.local/share/offline_generated_paths`
 2) Create a subdirectory per part. Example: `mkdir ~/.local/share/offline_generated_paths/part_1`
-3) In each part subdirectory anything with a .yaml extension will be treated as a toolpath. Anything with a .ply extension will be treated as the mesh
+3) In each part subdirectory anything with a .yaml extension will be treated as a toolpath. The mesh should be <part_name>.ply
 
 ## CRS Application widget
 Main application widget that contains the other widgets. Launch demo with
