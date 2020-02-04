@@ -22,12 +22,18 @@
 #include <QProgressBar>
 #include <QProgressDialog>
 
+#include <chrono>
+
 #include <crs_gui/widgets/crs_application_widget.h>
 
 #include <crs_gui/widgets/part_selection_widget.h>
 #include <crs_gui/widgets/polygon_area_selection_widget.h>
+#include <crs_gui/widgets/state_machine_interface_widget.h>
 
 const static std::string CURRENT_STATE_TOPIC = "current_state";
+const static std::string GET_AVAILABLE_ACTIONS = "get_available_actions";
+const static std::string EXECUTE_ACTION = "execute_action";
+const static double WAIT_FOR_SERVICE_PERIOD = 1.0;
 
 namespace crs_gui
 {
@@ -36,27 +42,21 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node,
                                            std::string database_directory)
   : QWidget(parent)
   , ui_(new Ui::CRSApplication)
+  , node_(node)
   , part_selector_widget_(new PartSelectionWidget())
   , area_selection_widget_(new PolygonAreaSelectionWidget(node, "", ""))
-  , node_(node)
-
+  , state_machine_interface_widget_(new StateMachineInterfaceWidget(node))
 {
   ui_->setupUi(this);
-
-  // Initialize state machine interfaces
-  auto current_state_cb = std::bind(&CRSApplicationWidget::currentStateCB, this, std::placeholders::_1);
-  current_state_sub_ = node_->create_subscription<std_msgs::msg::String>(CURRENT_STATE_TOPIC, 1, current_state_cb);
 
   //  // Add the widgets to the UI
   ui_->vertical_layout_part_selector->addWidget(part_selector_widget_);
   ui_->vertical_layout_area_selection->addWidget(area_selection_widget_);
+  ui_->vertical_layout_sm_interface->addWidget(state_machine_interface_widget_);
 
   connect(part_selector_widget_, &PartSelectionWidget::partSelected, this, &CRSApplicationWidget::onPartSelected);
-}
 
-void CRSApplicationWidget::currentStateCB(const std_msgs::msg::String::ConstSharedPtr current_state)
-{
-  std::cout << current_state << std::endl;
+  // TODO: Connect sm widget and remove ui
 }
 
 void CRSApplicationWidget::onPartSelected(const std::string selected_part) { std::cout << selected_part << std::endl; }

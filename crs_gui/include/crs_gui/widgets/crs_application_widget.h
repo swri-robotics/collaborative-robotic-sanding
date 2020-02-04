@@ -22,12 +22,9 @@
 #include <rclcpp/rclcpp.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 #include <std_msgs/msg/string.hpp>
+#include <crs_msgs/srv/get_available_actions.hpp>
+#include <crs_msgs/srv/execute_action.hpp>
 #include <string>
-
-class QPushButton;
-class QStateMachine;
-class QProgressBar;
-class QProgressDialog;
 
 namespace Ui
 {
@@ -38,6 +35,7 @@ namespace crs_gui
 {
 class PartSelectionWidget;
 class PolygonAreaSelectionWidget;
+class StateMachineInterfaceWidget;
 
 class CRSApplicationWidget : public QWidget
 {
@@ -56,11 +54,11 @@ protected:
   Ui::CRSApplication* ui_;
 
   rclcpp::Node::SharedPtr node_;
-  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr current_state_sub_;
-  void currentStateCB(const std_msgs::msg::String::ConstSharedPtr current_state);
+
 
   PartSelectionWidget* part_selector_widget_;
   PolygonAreaSelectionWidget* area_selection_widget_;
+  StateMachineInterfaceWidget* state_machine_interface_widget_;
 };
 
 }  // namespace crs_gui
