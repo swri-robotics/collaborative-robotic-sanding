@@ -92,7 +92,7 @@ void PartSelectionWidget::onPartSelectionChanged(QListWidgetItem* current, QList
     std::vector<path> part_paths;
     for (directory_iterator itr(part_paths_dir); itr != directory_iterator(); itr++)
     {
-      int t =2;
+      int t = 2;
       if (itr->path().extension() == ".yaml")
         part_paths.push_back(itr->path());
     }

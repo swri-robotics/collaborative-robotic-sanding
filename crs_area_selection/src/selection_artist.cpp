@@ -42,9 +42,10 @@ const static std::string CLICKED_POINT_TOPIC = "clicked_point";
 const static std::string CLEAR_ROI_POINTS_SERVICE = "clear_selection_points";
 const static std::string COLLECT_ROI_POINTS_SERVICE = "collect_selection_points";
 const static std::string package_share_directory = ament_index_cpp::get_package_share_directory("crs_area_selection");
-const static std::string area_selection_config_file = package_share_directory + "/config/area_selection_parameters.yaml";
+const static std::string area_selection_config_file = package_share_directory + "/config/"
+                                                                                "area_selection_parameters.yaml";
 
-}  // namespace opp_area_selection
+}  // namespace crs_area_selection
 
 namespace
 {
@@ -163,10 +164,10 @@ bool pclFromShapeMsg(const shape_msgs::msg::Mesh& mesh_msg, pcl::PolygonMesh& pc
 
 }  // namespace
 
-//namespace YAML
+// namespace YAML
 //{
-//template <>
-//struct convert<crs_area_selection::AreaSelectorParameters>
+// template <>
+// struct convert<crs_area_selection::AreaSelectorParameters>
 //{
 //  static Node encode(const crs_area_selection::AreaSelectorParameters& rhs)
 //  {
@@ -207,34 +208,43 @@ namespace crs_area_selection
 SelectionArtist::SelectionArtist(rclcpp::Node::SharedPtr node,
                                  const std::string& world_frame,
                                  const std::string& sensor_frame)
-  : node_(node), world_frame_(world_frame), sensor_frame_(sensor_frame),  clock_(std::make_shared<rclcpp::Clock>(RCL_ROS_TIME)),
-    tf_buffer_(clock_),
-    tf_listener_(tf_buffer_)
+  : node_(node)
+  , world_frame_(world_frame)
+  , sensor_frame_(sensor_frame)
+  , clock_(std::make_shared<rclcpp::Clock>(RCL_ROS_TIME))
+  , tf_buffer_(clock_)
+  , tf_listener_(tf_buffer_)
 {
   marker_pub_.reset();
   marker_pub_ = node_->create_publisher<visualization_msgs::msg::MarkerArray>(MARKER_ARRAY_TOPIC, 1);
 
   tf_buffer_.canTransform(sensor_frame_, world_frame_, tf2::TimePointZero, tf2::durationFromSec(TF_LOOKUP_TIMEOUT));
 
-  if (!tf_buffer_.canTransform(sensor_frame_, world_frame_, tf2::TimePointZero, tf2::durationFromSec(TF_LOOKUP_TIMEOUT)))
+  if (!tf_buffer_.canTransform(
+          sensor_frame_, world_frame_, tf2::TimePointZero, tf2::durationFromSec(TF_LOOKUP_TIMEOUT)))
   {
-    RCLCPP_ERROR(node_->get_logger(), "Transform lookup from %s to %s timed out", sensor_frame_.c_str(), world_frame_.c_str());
+    RCLCPP_ERROR(
+        node_->get_logger(), "Transform lookup from %s to %s timed out", sensor_frame_.c_str(), world_frame_.c_str());
     throw std::runtime_error("Transform lookup timed out");
   }
   auto clear_roi_cb = std::bind(&SelectionArtist::clearROIPointsCb, this, std::placeholders::_1, std::placeholders::_2);
   clear_roi_points_srv_ = node_->create_service<std_srvs::srv::Trigger>(CLEAR_ROI_POINTS_SERVICE, clear_roi_cb);
 
-  auto collect_roi_cb = std::bind(&SelectionArtist::collectROIPointsCb, this, std::placeholders::_1, std::placeholders::_2);
-  collect_roi_points_srv_ = node_->create_service<crs_msgs::srv::GetROISelection>(COLLECT_ROI_POINTS_SERVICE, collect_roi_cb);
+  auto collect_roi_cb =
+      std::bind(&SelectionArtist::collectROIPointsCb, this, std::placeholders::_1, std::placeholders::_2);
+  collect_roi_points_srv_ =
+      node_->create_service<crs_msgs::srv::GetROISelection>(COLLECT_ROI_POINTS_SERVICE, collect_roi_cb);
 
   // Initialize subscribers and callbacks
   auto drawn_points_cb = std::bind(&SelectionArtist::addSelectionPoint, this, std::placeholders::_1);
-  drawn_points_sub_ = node->create_subscription<geometry_msgs::msg::PointStamped>(CLICKED_POINT_TOPIC, 1, drawn_points_cb);
+  drawn_points_sub_ =
+      node->create_subscription<geometry_msgs::msg::PointStamped>(CLICKED_POINT_TOPIC, 1, drawn_points_cb);
 
   marker_array_.markers = makeVisual(sensor_frame);
 }
 
-void SelectionArtist::clearROIPointsCb(const std_srvs::srv::Trigger::Request::SharedPtr req, std_srvs::srv::Trigger::Response::SharedPtr res)
+void SelectionArtist::clearROIPointsCb(const std_srvs::srv::Trigger::Request::SharedPtr req,
+                                       std_srvs::srv::Trigger::Response::SharedPtr res)
 {
   (void)req;  // To suppress warnings, tell the compiler we will not use this parameter
 
@@ -246,7 +256,6 @@ void SelectionArtist::clearROIPointsCb(const std_srvs::srv::Trigger::Request::Sh
   marker_pub_->publish(marker_array_);
   res->success = true;
   res->message = "Selection cleared";
-
 }
 
 bool SelectionArtist::collectROIMesh(const shape_msgs::msg::Mesh& mesh_msg,
@@ -276,7 +285,8 @@ bool SelectionArtist::collectROIMesh(const shape_msgs::msg::Mesh& mesh_msg,
   return true;
 }
 
-void SelectionArtist::collectROIPointsCb(crs_msgs::srv::GetROISelection::Request::SharedPtr req, crs_msgs::srv::GetROISelection::Response::SharedPtr res)
+void SelectionArtist::collectROIPointsCb(crs_msgs::srv::GetROISelection::Request::SharedPtr req,
+                                         crs_msgs::srv::GetROISelection::Response::SharedPtr res)
 {
   auto points_it = std::find_if(marker_array_.markers.begin(),
                                 marker_array_.markers.end(),
@@ -296,12 +306,12 @@ void SelectionArtist::collectROIPointsCb(crs_msgs::srv::GetROISelection::Request
 
   AreaSelectorParameters params;
   // Fix this in order to change the parameters via yaml
-//  bool success = opp_msgs_serialization::deserialize(area_selection_config_file, params);
-//  if (!success)
-//  {
-//    ROS_ERROR_STREAM("Could not load area selection config from: " << area_selection_config_file);
-//    return false;
-//  }
+  //  bool success = opp_msgs_serialization::deserialize(area_selection_config_file, params);
+  //  if (!success)
+  //  {
+  //    ROS_ERROR_STREAM("Could not load area selection config from: " << area_selection_config_file);
+  //    return false;
+  //  }
   AreaSelector sel;
   res->cloud_indices = sel.getRegionOfInterest(cloud, points, params);
 
@@ -427,4 +437,4 @@ void SelectionArtist::filterMesh(const pcl::PolygonMesh& input_mesh,
   return;
 }
 
-}  // namespace opp_area_selection
+}  // namespace crs_area_selection

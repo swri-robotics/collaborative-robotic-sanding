@@ -57,7 +57,7 @@ StateMachineInterfaceWidget::~StateMachineInterfaceWidget() = default;
 void StateMachineInterfaceWidget::currentStateCB(const std_msgs::msg::String::ConstSharedPtr current_state)
 {
   ui_->line_edit_sm_current_state->setText(QString::fromUtf8(current_state.get()->data.c_str()));
-  if(current_state.get()->data != current_state_)
+  if (current_state.get()->data != current_state_)
   {
     current_state_ = current_state.get()->data;
     emit onStateChange(current_state_);

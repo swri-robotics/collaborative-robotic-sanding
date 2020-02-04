@@ -52,7 +52,8 @@ public:
    */
   SelectionArtist(rclcpp::Node::SharedPtr node, const std::string& world_frame, const std::string& sensor_frame);
 
-  void clearROIPointsCb(const std_srvs::srv::Trigger::Request::SharedPtr req, std_srvs::srv::Trigger::Response::SharedPtr res);
+  void clearROIPointsCb(const std_srvs::srv::Trigger::Request::SharedPtr req,
+                        std_srvs::srv::Trigger::Response::SharedPtr res);
 
   bool collectROIMesh(const shape_msgs::msg::Mesh& mesh_msg, shape_msgs::msg::Mesh& submesh_msg, std::string& message);
 
@@ -62,9 +63,11 @@ protected:
 
   void addSelectionPoint(const geometry_msgs::msg::PointStamped::ConstSharedPtr pt_stamped);
 
-  bool transformPoint(const geometry_msgs::msg::PointStamped::ConstSharedPtr pt_stamped, geometry_msgs::msg::Point& transformed_pt);
+  bool transformPoint(const geometry_msgs::msg::PointStamped::ConstSharedPtr pt_stamped,
+                      geometry_msgs::msg::Point& transformed_pt);
 
-  void collectROIPointsCb(crs_msgs::srv::GetROISelection::Request::SharedPtr req, crs_msgs::srv::GetROISelection::Response::SharedPtr res);
+  void collectROIPointsCb(crs_msgs::srv::GetROISelection::Request::SharedPtr req,
+                          crs_msgs::srv::GetROISelection::Response::SharedPtr res);
 
   void filterMesh(const pcl::PolygonMesh& input_mesh,
                   const std::vector<int>& inlying_indices,
@@ -91,6 +94,6 @@ protected:
   visualization_msgs::msg::MarkerArray marker_array_;
 };
 
-}  // namespace opp_area_selection
+}  // namespace crs_area_selection
 
 #endif  // OPP_AREA_SELECTION_SELECTION_AREA_ARTIST_H
