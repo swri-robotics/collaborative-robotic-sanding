@@ -99,6 +99,38 @@ static double compare(const sensor_msgs::msg::JointState& js1, const sensor_msgs
   return diff;
 }
 
+template <class Msg>
+static std::shared_ptr<Msg> waitForMessage(std::shared_ptr<rclcpp::Node> node, const std::string& topic_name,
+                                           double timeout)
+{
+  std::shared_ptr<Msg> msg = nullptr;
+  std::promise<Msg> promise_obj;
+  std::future<Msg> fut_obj = promise_obj.get_future();
+
+  std::shared_ptr<rclcpp::Subscription<Msg>>subs;
+  subs = node->create_subscription<Msg>(
+      topic_name,rclcpp::QoS(1),[&promise_obj]
+                                   (const std::shared_ptr<Msg> msg) -> void
+  {
+    promise_obj.set_value(*msg);
+  });
+
+  std::future_status sts = fut_obj.wait_for(std::chrono::duration<double>(timeout));
+  subs.reset();
+
+  /** @warning there's no clean way to close a subscription but according to this issue
+                           https://github.com/ros2/rclcpp/issues/205, destroying the subscription
+                           should accomplish the same */
+  if(sts != std::future_status::ready)
+  {
+    std::string err_code = sts == std::future_status::timeout ? std::string("Timeout") : std::string("Deferred");
+    RCLCPP_ERROR(node->get_logger(),"%s error while waiting for message",err_code.c_str());
+    return nullptr;
+  }
+  msg = std::make_shared<Msg>(fut_obj.get());
+  return msg;
+}
+
 static sensor_msgs::msg::JointState::SharedPtr getCurrentState(std::shared_ptr<rclcpp::Node> node,
                                                                const std::string topic_name,
                                                                double timeout)
