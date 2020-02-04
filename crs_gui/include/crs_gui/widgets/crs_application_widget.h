@@ -24,6 +24,7 @@
 #include <std_msgs/msg/string.hpp>
 #include <crs_msgs/srv/get_available_actions.hpp>
 #include <crs_msgs/srv/execute_action.hpp>
+#include <crs_msgs/srv/get_configuration.hpp>
 #include <string>
 
 namespace Ui
@@ -50,11 +51,24 @@ protected Q_SLOTS:
 
   void onPartSelected(const std::string);
 
+  void onPartPathSelected(const std::string, const std::string);
+
 protected:
   Ui::CRSApplication* ui_;
 
   rclcpp::Node::SharedPtr node_;
+  std::string database_directory_;
 
+  /** @brief Service that provides process Config when called */
+  rclcpp::Service<crs_msgs::srv::GetConfiguration>::SharedPtr get_configuration_srv_;
+  /** @brief Callback for get_configuration_srv_*/
+  void getConfigurationCb(crs_msgs::srv::GetConfiguration::Request::SharedPtr req,
+                          crs_msgs::srv::GetConfiguration::Response::SharedPtr res);
+
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr mesh_marker_pub_;
+  visualization_msgs::msg::MarkerArray current_mesh_marker_;
+  rclcpp::TimerBase::SharedPtr mesh_marker_timer_;
+  void meshMarkerTimerCb();
 
   PartSelectionWidget* part_selector_widget_;
   PolygonAreaSelectionWidget* area_selection_widget_;
