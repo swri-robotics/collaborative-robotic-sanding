@@ -40,7 +40,7 @@ PolygonAreaSelectionWidget::PolygonAreaSelectionWidget(rclcpp::Node::SharedPtr n
   connect(ui_->push_button_apply_selection, &QPushButton::clicked, this, &PolygonAreaSelectionWidget::applySelection);
 }
 
-PolygonAreaSelectionWidget::~PolygonAreaSelectionWidget() { delete ui_; }
+PolygonAreaSelectionWidget::~PolygonAreaSelectionWidget() = default;
 
 void PolygonAreaSelectionWidget::init(const shape_msgs::msg::Mesh& mesh)
 {
