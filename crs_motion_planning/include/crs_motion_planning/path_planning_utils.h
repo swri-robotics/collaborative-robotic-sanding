@@ -12,7 +12,9 @@
 #include <tesseract_common/types.h>
 #include <tesseract_motion_planners/trajopt/trajopt_motion_planner.h>
 #include <tesseract_motion_planners/trajopt/config/trajopt_planner_default_config.h>
+#include <tesseract_motion_planners/trajopt/config/trajopt_planner_freespace_config.h>
 #include <tesseract_motion_planners/descartes/descartes_collision.h>
+#include <tesseract_motion_planners/ompl/ompl_freespace_planner.h>
 #include <tesseract_environment/core/environment.h>
 #include <tesseract_environment/core/utils.h>
 #include <tesseract_rosutils/utils.h>
@@ -31,9 +33,27 @@
 
 namespace crs_motion_planning
 {
+struct descartesConfig
+{
+    using Ptr = std::shared_ptr<descartesConfig>;
+
+    double axial_step = M_PI/36;
+    double collision_safety_margin = 0.01;
+
+    bool allow_collisions = false;
+};
+
 struct pathPlanningConfig
 {
     using Ptr = std::shared_ptr<pathPlanningConfig>;
+
+    descartesConfig descartes_config;
+
+    tesseract_motion_planners::TrajOptPlannerDefaultConfig::Ptr trajopt_surface_config;
+
+    std::shared_ptr<tesseract_motion_planners::OMPLFreespacePlannerConfig<ompl::geometric::RRTConnect>> ompl_config;
+
+    tesseract_motion_planners::TrajOptPlannerFreespaceConfig::Ptr trajopt_freespace_config;
 
     tesseract::Tesseract::Ptr tesseract_local;
 
@@ -95,7 +115,7 @@ class crsMotionPlanner
 public:
     crsMotionPlanner(pathPlanningConfig::Ptr config);
 
-//    bool setConfiguration(pathPlanningConfig::Ptr config);
+    void updateConfiguration(pathPlanningConfig::Ptr config);
 
     ///
     /// \brief generateDescartesSeed Creates a seed trajectory using descartes
@@ -112,9 +132,16 @@ public:
                                std::vector<std::size_t>& failed_edges,
                                std::vector<std::size_t>& failed_vertices,
                                trajectory_msgs::msg::JointTrajectory& joint_trajectory);
+    bool generateDescartesSeed(const geometry_msgs::msg::PoseArray &waypoints,
+                               std::vector<std::size_t>& failed_edges,
+                               std::vector<std::size_t>& failed_vertices,
+                               trajectory_msgs::msg::JointTrajectory& joint_trajectory);
+
+    bool genSurfacePlans(const std::vector<geometry_msgs::msg::PoseArray> rasters);
 
 protected:
     pathPlanningConfig::Ptr config_;
+//    descartesConfig::Ptr descartes_config_;
 
 };
 

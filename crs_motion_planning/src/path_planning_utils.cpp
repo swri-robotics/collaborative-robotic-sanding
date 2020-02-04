@@ -137,6 +137,11 @@ bool generateDescartesSeed(const crs_motion_planning::pathPlanningConfig config,
 
 crsMotionPlanner::crsMotionPlanner(pathPlanningConfig::Ptr config) : config_(std::move(config)) {}
 
+void crsMotionPlanner::updateConfiguration(pathPlanningConfig::Ptr config)
+{
+    config_ = std::move(config);
+}
+
 bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray &waypoints_pose_array,
                                              const double &axial_step,
                                              const bool &allow_collisions,
@@ -204,6 +209,20 @@ bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray
 
     crs_motion_planning::tesseractRosutilsToMsg(joint_trajectory, kin->getJointNames(), joint_traj_eigen_out);
     return true;
+}
+
+bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray &waypoints_pose_array,
+                                             std::vector<std::size_t>& failed_edges,
+                                             std::vector<std::size_t>& failed_vertices,
+                                             trajectory_msgs::msg::JointTrajectory& joint_trajectory)
+{
+    return crsMotionPlanner::generateDescartesSeed(waypoints_pose_array,
+                                                   config_->descartes_config.axial_step,
+                                                   config_->descartes_config.allow_collisions,
+                                                   config_->descartes_config.collision_safety_margin,
+                                                   failed_edges,
+                                                   failed_vertices,
+                                                   joint_trajectory);
 }
 
 } // namespace crs_motion_planning
