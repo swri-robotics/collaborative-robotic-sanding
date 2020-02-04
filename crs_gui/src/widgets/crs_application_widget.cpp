@@ -47,7 +47,7 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node,
   , node_(node)
   , database_directory_(database_directory)
   , part_selector_widget_(new PartSelectionWidget(parent, database_directory))
-  , area_selection_widget_(new PolygonAreaSelectionWidget(node, "", ""))
+  , area_selection_widget_(new PolygonAreaSelectionWidget(node, "world", "world"))
   , state_machine_interface_widget_(new StateMachineInterfaceWidget(node))
 {
   ui_->setupUi(this);

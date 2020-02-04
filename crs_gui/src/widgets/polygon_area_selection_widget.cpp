@@ -60,9 +60,10 @@ void PolygonAreaSelectionWidget::clearROISelection()
     RCLCPP_ERROR_STREAM(node_->get_logger(),
                         "Tool Path Parameter Editor Widget: Area Selection error:" << res->message);
   }
-  submesh_.reset(new shape_msgs::msg::Mesh(*mesh_));
+  // This will be uncommented when mesh selection is turned back on
+  //  submesh_.reset(new shape_msgs::msg::Mesh(*mesh_));
 
-  emit(selectedSubmesh(submesh_));
+  //  emit(selectedSubmesh(submesh_));
   return;
 }
 
@@ -70,6 +71,8 @@ void PolygonAreaSelectionWidget::applySelection()
 {
   if (!mesh_)
   {
+    // TODO: Currently this will always happen because we are not setting a mesh. Basically we are just drawing on the
+    // surface an not doing anything
     QMessageBox::warning(this, "Tool Path Planning Error", "No mesh available to crop");
     return;
   }

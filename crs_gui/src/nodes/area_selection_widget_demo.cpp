@@ -28,9 +28,7 @@ int main(int argc, char** argv)
   // Create and start the Qt application
   QApplication app(argc, argv);
 
-  auto widget = std::make_unique<crs_gui::PolygonAreaSelectionWidget>(node, "world", "sensor_frame");
-  //  crs_gui::PolygonAreaSelectionWidget* widget = new crs_gui::PolygonAreaSelectionWidget(node,"world",
-  //  "sensor_frame");
+  auto widget = std::make_unique<crs_gui::PolygonAreaSelectionWidget>(node, "world", "world");
   widget->show();
 
   rclcpp::Rate throttle(100);
