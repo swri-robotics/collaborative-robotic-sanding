@@ -86,12 +86,16 @@ public:
   const datatypes::ScanAcquisitionResult& getResult() { return result_; }
 
 protected:
+
+  // support methods
+  common::ActionResult checkPreReqs();
+
   std::shared_ptr<rclcpp::Node> node_;
   datatypes::ScanAcquisitionResult result_;
 
   // parameters
   std::vector<geometry_msgs::msg::Transform> scan_positions_;
-  std::string framos_frame_id_;
+  std::string camera_frame_id_;
   double pre_acquisition_pause_;
   double max_time_since_last_point_cloud_;
 
