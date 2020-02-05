@@ -60,9 +60,9 @@ public:
     // ROS communications
     load_paths_service_ = this->create_service<std_srvs::srv::Trigger>("load_paths", std::bind(&SurfaceServer::planService, this, std::placeholders::_1, std::placeholders::_2));
     traj_publisher_ = this->create_publisher<trajectory_msgs::msg::JointTrajectory>("set_trajectory_test",1);
-    original_path_publisher_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("original_raster_paths",1);
-    corrected_path_publisher_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("fixed_raster_paths",1);
-    failed_vertex_publisher_ = this->create_publisher<visualization_msgs::msg::Marker>("failed_vertices",1);
+//    original_path_publisher_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("original_raster_paths",1);
+//    corrected_path_publisher_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("fixed_raster_paths",1);
+//    failed_vertex_publisher_ = this->create_publisher<visualization_msgs::msg::Marker>("failed_vertices",1);
     joint_state_listener_ = this->create_subscription<sensor_msgs::msg::JointState>("/joint_states", 1, std::bind(&SurfaceServer::jointCallback, this, std::placeholders::_1));
 
     std::string urdf_path, srdf_path;
@@ -102,9 +102,10 @@ private:
       }
 
       // Display rasters on part
-      visualization_msgs::msg::MarkerArray mark_array_msg;
-      crs_motion_planning::rasterStripsToMarkerArray(strip_of_interset, waypoint_origin_frame, mark_array_msg, {1.0, 0.0, 0.0, 1.0}, -0.01);
-      original_path_publisher_->publish(mark_array_msg);
+//      visualization_msgs::msg::MarkerArray mark_array_msg;
+//      crs_motion_planning::rasterStripsToMarkerArray(strip_of_interset, waypoint_origin_frame, mark_array_msg, {1.0, 0.0, 0.0, 1.0}, -0.01);
+//      original_path_publisher_->publish(mark_array_msg);
+//      mark_array_msg.markers.clear();
       strip_of_interset.poses.clear();
 
       // Get transform between world and part
@@ -144,21 +145,31 @@ private:
       descartes_config.axial_step = 0.1;
       descartes_config.collision_safety_margin = 0.0075;
 
-      auto path_plan_config_ptr = std::make_shared<crs_motion_planning::pathPlanningConfig>();
-      path_plan_config_ptr->tesseract_local = tesseract_local_;
-      path_plan_config_ptr->descartes_config = descartes_config;
-      path_plan_config_ptr->manipulator = manipulator_;
-      path_plan_config_ptr->world_frame = "world";
-      path_plan_config_ptr->robot_base_frame = "base_link";
-      path_plan_config_ptr->tool0_frame = "tool0";
-      path_plan_config_ptr->tcp_frame = "sander_center_link";
+      crs_motion_planning::pathPlanningConfig path_plan_config;
+      path_plan_config.tesseract_local = tesseract_local_;
+      path_plan_config.descartes_config = descartes_config;
+      path_plan_config.manipulator = manipulator_;
+      path_plan_config.world_frame = "world";
+      path_plan_config.robot_base_frame = "base_link";
+      path_plan_config.tool0_frame = "tool0";
+      path_plan_config.tcp_frame = "sander_center_link";
+
+//      auto path_plan_config_ptr = std::make_shared<crs_motion_planning::pathPlanningConfig>();
+//      path_plan_config_ptr->tesseract_local = tesseract_local_;
+//      path_plan_config_ptr->descartes_config = descartes_config;
+//      path_plan_config_ptr->manipulator = manipulator_;
+//      path_plan_config_ptr->world_frame = "world";
+//      path_plan_config_ptr->robot_base_frame = "base_link";
+//      path_plan_config_ptr->tool0_frame = "tool0";
+//      path_plan_config_ptr->tcp_frame = "sander_center_link";
 
       Eigen::Isometry3d tool_offset;
       tool_offset.setIdentity();
-      path_plan_config_ptr->tool_offset = tool_offset;
+//      path_plan_config_ptr->tool_offset = tool_offset;
+      path_plan_config.tool_offset = tool_offset;
 
       // Create crsMotionPlanner class
-      crs_motion_planning::crsMotionPlanner crs_motion_planner(path_plan_config_ptr);
+//      crs_motion_planning::crsMotionPlanner crs_motion_planner(path_plan_config_ptr);
 
       // Determine reachability of all rasters using descartes
       trajectory_msgs::msg::JointTrajectory joint_traj_msg_out_init, joint_traj_msg_out_final;
@@ -176,12 +187,14 @@ private:
       for (auto strip : raster_strips_world_frame)
       {
           std::vector<size_t> failed_edges, failed_vertices;
-          gen_preplan = crs_motion_planner.generateDescartesSeed(strip,
-                                                                 failed_edges,
-                                                                 failed_vertices,
-                                                                 joint_traj_msg_out_init);
-          path_plan_config_ptr->descartes_config.axial_step = 0.05;
-          crs_motion_planner.updateConfiguration(path_plan_config_ptr);
+          gen_preplan = crs_motion_planning::generateDescartesSeed(path_plan_config,
+                                                                   strip,
+                                                                   failed_edges,
+                                                                   failed_vertices,
+                                                                   joint_traj_msg_out_init);
+//          path_plan_config_ptr->descartes_config.axial_step = 0.05;
+          path_plan_config.descartes_config.axial_step = 0.05;
+//          crs_motion_planner.updateConfiguration(path_plan_config_ptr);
           std::cout << "DONE" << std::endl;
 
 
@@ -198,24 +211,25 @@ private:
                                                     curr_failed_vertex_poses);
 
               // Display failed vertices
-              failed_vertex_poses.poses.insert(failed_vertex_poses.poses.end(), curr_failed_vertex_poses.poses.begin(), curr_failed_vertex_poses.poses.end());
-              visualization_msgs::msg::Marker failed_vertex_markers;
-              std::cout << "PUBLISHING MARKER ARRAY" << std::endl;
-              crs_motion_planning::failedEdgesToMarkerArray(failed_vertex_poses,
-                                                            "world",
-                                                            failed_vertex_markers,
-                                                            {1.0, 1.0, 0.0, 0.0},
-                                                            0.01);
-              failed_vertex_publisher_->publish(failed_vertex_markers);
+//              failed_vertex_poses.poses.insert(failed_vertex_poses.poses.end(), curr_failed_vertex_poses.poses.begin(), curr_failed_vertex_poses.poses.end());
+//              visualization_msgs::msg::Marker failed_vertex_markers;
+//              std::cout << "PUBLISHING MARKER ARRAY" << std::endl;
+//              crs_motion_planning::failedEdgesToMarkerArray(failed_vertex_poses,
+//                                                            "world",
+//                                                            failed_vertex_markers,
+//                                                            {1.0, 1.0, 0.0, 0.0},
+//                                                            0.01);
+//              failed_vertex_publisher_->publish(failed_vertex_markers);
 
               for (auto split_strip : split_rasters)
               {
                   // Generate Descartes preplan
                   std::cout << "DESCARTES ROUND 2 ELECTRIC BOOGALO" << std::endl;
-                  if (crs_motion_planner.generateDescartesSeed(split_strip,
-                                                               failed_edges,
-                                                               failed_vertices,
-                                                               joint_traj_msg_out_final) && split_strip.poses.size()>1)
+                  if (crs_motion_planning::generateDescartesSeed(path_plan_config,
+                                                                 split_strip,
+                                                                 failed_edges,
+                                                                 failed_vertices,
+                                                                 joint_traj_msg_out_final) && split_strip.poses.size()>1)
                   {
                     split_traj.push_back(joint_traj_msg_out_final);
                     split_reachable_rasters.push_back(split_strip);
@@ -233,11 +247,13 @@ private:
           }
           std::cout << "Strip " << ++count_strips << " of " << raster_strips_world_frame.size() << std::endl;
       }
+      failed_vertex_poses.poses.clear();
       raster_strips_world_frame.clear();
       // Display now reachable raster points
-      visualization_msgs::msg::MarkerArray mark_array_fixed_msg;
-      crs_motion_planning::rasterStripsToMarkerArray(split_reachable_rasters, "world", mark_array_fixed_msg, {1.0, 0.0, 1.0, 0.0}, -0.025);
-      corrected_path_publisher_->publish(mark_array_fixed_msg);
+//      visualization_msgs::msg::MarkerArray mark_array_fixed_msg;
+//      crs_motion_planning::rasterStripsToMarkerArray(split_reachable_rasters, "world", mark_array_fixed_msg, {1.0, 0.0, 1.0, 0.0}, -0.025);
+//      corrected_path_publisher_->publish(mark_array_fixed_msg);
+//      mark_array_msg.markers.clear();
 
 
       // Check if successfully generated preplan with descartes
@@ -295,10 +311,12 @@ private:
                       // Generate Descartes preplan
                       std::cout << "DESCARTES ROUND 3, DESCARTES WITH A VEGENCE" << std::endl;
                       std::vector<size_t> failed_edges, failed_vertices;
-                      if (crs_motion_planner.generateDescartesSeed(modified_raster,
-                                                                   failed_edges,
-                                                                   failed_vertices,
-                                                                   modified_joint_traj_msg_out))
+
+                      if (crs_motion_planning::generateDescartesSeed(path_plan_config,
+                                                                     modified_raster,
+                                                                     failed_edges,
+                                                                     failed_vertices,
+                                                                     modified_joint_traj_msg_out))
                       {
                           std::cout << "SUCCESS" << std::endl;
                           final_split_rasters.push_back(modified_raster);
@@ -331,7 +349,6 @@ private:
           surface_coeffs << 10, 10, 10, 10, 10, 0;
           std::cout << "BUILT CONFIG SETTINGS" << std::endl;
 
-//          std::vector<std::vector<tesseract_motion_planners::Waypoint::Ptr>> waypoints;
           std::vector<trajectory_msgs::msg::JointTrajectory> trajopt_trajectories;
           trajopt_trajectories.reserve(final_split_rasters.size());
           std::vector<bool> trajopt_solved;
@@ -350,7 +367,6 @@ private:
                   surface_waypoint->setIsCritical(waypoints_critical);
                   curr_raster.push_back(std::move(surface_waypoint));
               }
-//              waypoints.push_back(curr_raster);
 
               auto traj_pc = std::make_shared<tesseract_motion_planners::TrajOptPlannerDefaultConfig>(tesseract_local_, manipulator_, target_frame, tcp_eigen);
 
@@ -399,7 +415,6 @@ private:
                   trajopt_solved.push_back(true);
               }
               traj_pc->target_waypoints.clear();
-              traj_pc->seed_trajectory.setIdentity();
           }
           final_split_rasters.clear();
           //**************************************************TRAJOPT***************************************************
@@ -435,17 +450,13 @@ private:
           {
               std::cout << "PUBLISHING TRAJECTORY " << i+1 << " OF " << trajopt_trajectories.size() << std::endl;
               traj_publisher_->publish(trajopt_trajectories[i]);
-              std::cout << "published" << std::endl;
               std::this_thread::sleep_for(std::chrono::seconds(static_cast<int>(ceil(traj_times[i]))+1));
-              std::cout << "waited" << std::endl;
           }
           std::cout << "ALL DONE" << std::endl;
           trajopt_trajectories.clear();
           response->success = true;
-          std::cout << "success stored" << std::endl;
           traj_times.clear();
           response->message = "TRAJECTORIES PUBLISHED";
-          std::cout << "message stored" << std::endl;
       }
       else
       {
@@ -455,8 +466,8 @@ private:
   }
 
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr load_paths_service_;
-  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr original_path_publisher_, corrected_path_publisher_;
-  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr failed_vertex_publisher_;
+//  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr original_path_publisher_, corrected_path_publisher_;
+//  rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr failed_vertex_publisher_;
   rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr traj_publisher_;
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_listener_;
   tesseract::Tesseract::Ptr tesseract_local_;

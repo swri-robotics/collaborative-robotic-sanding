@@ -5,7 +5,7 @@ namespace crs_motion_planning
 
 bool generateDescartesSeed(const tesseract_kinematics::ForwardKinematics::ConstPtr kin,
                                                 const std::shared_ptr<const tesseract_environment::Environment> env,
-                                                const std::vector<geometry_msgs::msg::PoseStamped> &waypoints,
+                                                const geometry_msgs::msg::PoseArray &waypoints,
                                                 const descartes_light::KinematicsInterfaceD::Ptr &kin_interface,
                                                 const double &axial_step,
                                                 const bool &allow_collisions,
@@ -22,10 +22,10 @@ bool generateDescartesSeed(const tesseract_kinematics::ForwardKinematics::ConstP
 
     std::vector<descartes_light::PositionSamplerD::Ptr> sampler_result;
 
-    for (size_t i = 0; i < waypoints.size(); ++i)
+    for (size_t i = 0; i < waypoints.poses.size(); ++i)
     {
         Eigen::Isometry3d current_waypoint_pose;
-        tf2::fromMsg(waypoints[i].pose, current_waypoint_pose);
+        tf2::fromMsg(waypoints.poses[i], current_waypoint_pose);
         sampler_result.emplace_back(std::make_shared<descartes_light::AxialSymmetricSamplerD>(current_waypoint_pose,
                                                                                                      kin_interface,
                                                                                                      axial_step,
@@ -66,7 +66,7 @@ bool generateDescartesSeed(const tesseract_kinematics::ForwardKinematics::ConstP
 
 
 bool generateDescartesSeed(const crs_motion_planning::pathPlanningConfig config,
-                           const std::vector<geometry_msgs::msg::PoseStamped> &waypoints,
+                           const geometry_msgs::msg::PoseArray &waypoints,
                            const double &axial_step,
                            const bool &allow_collisions,
                            const double &collision_safety_margin,
@@ -93,10 +93,10 @@ bool generateDescartesSeed(const crs_motion_planning::pathPlanningConfig config,
     tool0_to_sander = world_to_tool0.inverse() * world_to_sander;
     descartes_light::KinematicsInterfaceD::Ptr kin_interface = std::make_shared<ur_ikfast_kinematics::UR10eKinematicsD>(world_to_base_link, tool0_to_sander, nullptr, nullptr);
 
-    for (size_t i = 0; i < waypoints.size(); ++i)
+    for (size_t i = 0; i < waypoints.poses.size(); ++i)
     {
         Eigen::Isometry3d current_waypoint_pose;
-        tf2::fromMsg(waypoints[i].pose, current_waypoint_pose);
+        tf2::fromMsg(waypoints.poses[i], current_waypoint_pose);
         sampler_result.emplace_back(std::make_shared<descartes_light::AxialSymmetricSamplerD>(current_waypoint_pose,
                                                                                                      kin_interface,
                                                                                                      axial_step,
@@ -133,6 +133,22 @@ bool generateDescartesSeed(const crs_motion_planning::pathPlanningConfig config,
 
     crs_motion_planning::tesseractRosutilsToMsg(joint_trajectory, kin->getJointNames(), joint_traj_eigen_out);
     return true;
+}
+
+bool generateDescartesSeed(const crs_motion_planning::pathPlanningConfig config,
+                           const geometry_msgs::msg::PoseArray &waypoints,
+                           std::vector<std::size_t>& failed_edges,
+                           std::vector<std::size_t>& failed_vertices,
+                           trajectory_msgs::msg::JointTrajectory& joint_trajectory)
+{
+    return generateDescartesSeed(config,
+                                 waypoints,
+                                 config.descartes_config.axial_step,
+                                 config.descartes_config.allow_collisions,
+                                 config.descartes_config.collision_safety_margin,
+                                 failed_edges,
+                                 failed_vertices,
+                                 joint_trajectory);
 }
 
 crsMotionPlanner::crsMotionPlanner(pathPlanningConfig::Ptr config) : config_(std::move(config)) {}
