@@ -59,11 +59,11 @@ public:
 
     // ROS communications
     load_paths_service_ = this->create_service<std_srvs::srv::Trigger>("load_paths", std::bind(&SurfaceServer::planService, this, std::placeholders::_1, std::placeholders::_2));
-    traj_publisher_ = this->create_publisher<trajectory_msgs::msg::JointTrajectory>("set_trajectory_test",10);
-    original_path_publisher_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("original_raster_paths",10);
-    corrected_path_publisher_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("fixed_raster_paths",10);
-    failed_vertex_publisher_ = this->create_publisher<visualization_msgs::msg::Marker>("failed_vertices",10);
-    joint_state_listener_ = this->create_subscription<sensor_msgs::msg::JointState>("/joint_states", 2, std::bind(&SurfaceServer::jointCallback, this, std::placeholders::_1));
+    traj_publisher_ = this->create_publisher<trajectory_msgs::msg::JointTrajectory>("set_trajectory_test",1);
+    original_path_publisher_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("original_raster_paths",1);
+    corrected_path_publisher_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("fixed_raster_paths",1);
+    failed_vertex_publisher_ = this->create_publisher<visualization_msgs::msg::Marker>("failed_vertices",1);
+    joint_state_listener_ = this->create_subscription<sensor_msgs::msg::JointState>("/joint_states", 1, std::bind(&SurfaceServer::jointCallback, this, std::placeholders::_1));
 
     std::string urdf_path, srdf_path;
     urdf_path = this->get_parameter("urdf_path").as_string();
@@ -94,7 +94,7 @@ private:
       // Load rasters and get them in usable form
       std::string waypoint_origin_frame = "part";
       std::vector<geometry_msgs::msg::PoseArray> raster_strips;
-      bool success = crs_motion_planning::parsePathFromFile(toolpath_filepath_, waypoint_origin_frame, raster_strips);
+      crs_motion_planning::parsePathFromFile(toolpath_filepath_, waypoint_origin_frame, raster_strips);
       geometry_msgs::msg::PoseArray strip_of_interset;
       for (auto strip : raster_strips)
       {
@@ -105,6 +105,7 @@ private:
       visualization_msgs::msg::MarkerArray mark_array_msg;
       crs_motion_planning::rasterStripsToMarkerArray(strip_of_interset, waypoint_origin_frame, mark_array_msg, {1.0, 0.0, 0.0, 1.0}, -0.01);
       original_path_publisher_->publish(mark_array_msg);
+      strip_of_interset.poses.clear();
 
       // Get transform between world and part
       tf2::TimePoint time_point = tf2::TimePointZero;
@@ -120,18 +121,8 @@ private:
         return;
       }
 
-      // Convert rasters into world frame
-      geometry_msgs::msg::PoseArray strip_of_interest_world_frame;
-      for (size_t i = 0; i < strip_of_interset.poses.size(); ++i)
-      {
-          geometry_msgs::msg::PoseStamped surface_pose_world_frame, surface_pose_og_frame;
-          surface_pose_og_frame.pose = strip_of_interset.poses[i];
-          surface_pose_og_frame.header = strip_of_interset.header;
-          tf2::doTransform(surface_pose_og_frame, surface_pose_world_frame, world_to_goal_frame);
-          geometry_msgs::msg::Pose sf_pose_wf = surface_pose_world_frame.pose;
-          strip_of_interest_world_frame.poses.push_back(std::move(sf_pose_wf));
-      }
       std::vector<geometry_msgs::msg::PoseArray> raster_strips_world_frame;
+      raster_strips_world_frame.reserve(raster_strips.size());
       for (auto strip : raster_strips)
       {
           geometry_msgs::msg::PoseArray curr_strip;
@@ -146,6 +137,7 @@ private:
           }
           raster_strips_world_frame.push_back(curr_strip);
       }
+      raster_strips.clear();
 
       // Set up planning config variable
       crs_motion_planning::descartesConfig descartes_config;
@@ -169,20 +161,21 @@ private:
       crs_motion_planning::crsMotionPlanner crs_motion_planner(path_plan_config_ptr);
 
       // Determine reachability of all rasters using descartes
-      std::vector<size_t> failed_edges, failed_vertices;
       trajectory_msgs::msg::JointTrajectory joint_traj_msg_out_init, joint_traj_msg_out_final;
       std::cout << "RUNNING FIRST DESCARTES" << std::endl;
 
       bool gen_preplan;
-      std::vector<geometry_msgs::msg::PoseArray> successful_strips, failed_strips;
       std::vector<geometry_msgs::msg::PoseArray> split_reachable_rasters;
-      geometry_msgs::msg::PoseArray reachable_rasters;
       std::vector<trajectory_msgs::msg::JointTrajectory> split_traj;
+      split_reachable_rasters.reserve(2 * raster_strips_world_frame.size());
+      split_traj.reserve(split_reachable_rasters.size());
       bool any_successes = false;
       size_t count_strips = 0;
+      geometry_msgs::msg::PoseArray failed_vertex_poses;
 
       for (auto strip : raster_strips_world_frame)
       {
+          std::vector<size_t> failed_edges, failed_vertices;
           gen_preplan = crs_motion_planner.generateDescartesSeed(strip,
                                                                  failed_edges,
                                                                  failed_vertices,
@@ -197,14 +190,15 @@ private:
           {
               std::vector<geometry_msgs::msg::PoseArray> split_rasters;
               // Split up raster based on where planning failures occurred
-              geometry_msgs::msg::PoseArray failed_vertex_poses;
+              geometry_msgs::msg::PoseArray curr_failed_vertex_poses;
               std::cout << "CLEANING" << std::endl;
               crs_motion_planning::cleanRasterStrip(strip,
                                                     failed_vertices,
                                                     split_rasters,
-                                                    failed_vertex_poses);
+                                                    curr_failed_vertex_poses);
 
               // Display failed vertices
+              failed_vertex_poses.poses.insert(failed_vertex_poses.poses.end(), curr_failed_vertex_poses.poses.begin(), curr_failed_vertex_poses.poses.end());
               visualization_msgs::msg::Marker failed_vertex_markers;
               std::cout << "PUBLISHING MARKER ARRAY" << std::endl;
               crs_motion_planning::failedEdgesToMarkerArray(failed_vertex_poses,
@@ -237,8 +231,9 @@ private:
               split_traj.push_back(joint_traj_msg_out_init);
               split_reachable_rasters.push_back(strip);
           }
-          std::cout << "Strip " << ++count_strips << " of " << raster_strips.size() << std::endl;
+          std::cout << "Strip " << ++count_strips << " of " << raster_strips_world_frame.size() << std::endl;
       }
+      raster_strips_world_frame.clear();
       // Display now reachable raster points
       visualization_msgs::msg::MarkerArray mark_array_fixed_msg;
       crs_motion_planning::rasterStripsToMarkerArray(split_reachable_rasters, "world", mark_array_fixed_msg, {1.0, 0.0, 1.0, 0.0}, -0.025);
@@ -251,6 +246,9 @@ private:
           std::vector<trajectory_msgs::msg::JointTrajectory> final_split_traj;
           std::vector<geometry_msgs::msg::PoseArray> final_split_rasters;
           std::vector<std::vector<double>> final_time_steps;
+          final_split_traj.reserve(split_traj.size() * 2);
+          final_split_rasters.reserve(split_traj.size() * 2);
+          final_time_steps.reserve(split_traj.size() * 2);
           size_t raster_n = 0;
           std::cout << "CHECKING FOR SPLITS IN " << split_traj.size() << " TRAJECTORIES" << std::endl;
           for (auto curr_joint_traj : split_traj)
@@ -296,6 +294,7 @@ private:
                       trajectory_msgs::msg::JointTrajectory modified_joint_traj_msg_out;
                       // Generate Descartes preplan
                       std::cout << "DESCARTES ROUND 3, DESCARTES WITH A VEGENCE" << std::endl;
+                      std::vector<size_t> failed_edges, failed_vertices;
                       if (crs_motion_planner.generateDescartesSeed(modified_raster,
                                                                    failed_edges,
                                                                    failed_vertices,
@@ -318,6 +317,8 @@ private:
               }
               raster_n++;
           }
+          split_traj.clear();
+          split_reachable_rasters.clear();
           std::cout << "TIME TO OPTIMIZE" << std::endl;
 
           //**************************************************TRAJOPT***************************************************
@@ -325,31 +326,16 @@ private:
           std::string target_frame = "sander_center_link";
           Eigen::Isometry3d tcp_eigen;
           tcp_eigen.setIdentity();
-          auto traj_pc = std::make_shared<tesseract_motion_planners::TrajOptPlannerDefaultConfig>(tesseract_local_, manipulator_, target_frame, tcp_eigen);
-
-          tesseract_motion_planners::CollisionCostConfig coll_cost_config;
-          coll_cost_config.enabled = false;
-          traj_pc->collision_cost_config = coll_cost_config;
-
-          tesseract_motion_planners::CollisionConstraintConfig coll_cnt_config;
-          coll_cnt_config.enabled = true;
-          coll_cnt_config.safety_margin = 0.001;
-          traj_pc->collision_constraint_config = coll_cnt_config;
-
-          traj_pc->init_type = trajopt::InitInfo::GIVEN_TRAJ;
-          traj_pc->longest_valid_segment_fraction = 0.01;
-
-          traj_pc->smooth_velocities = false;
-          traj_pc->smooth_accelerations = false;
-          traj_pc->smooth_jerks = false;
 
           Eigen::VectorXd surface_coeffs(6);
           surface_coeffs << 10, 10, 10, 10, 10, 0;
           std::cout << "BUILT CONFIG SETTINGS" << std::endl;
 
-          std::vector<std::vector<tesseract_motion_planners::Waypoint::Ptr>> waypoints;
+//          std::vector<std::vector<tesseract_motion_planners::Waypoint::Ptr>> waypoints;
           std::vector<trajectory_msgs::msg::JointTrajectory> trajopt_trajectories;
+          trajopt_trajectories.reserve(final_split_rasters.size());
           std::vector<bool> trajopt_solved;
+          trajopt_solved.reserve(final_split_rasters.size());
           bool waypoints_critical = true;
           for (size_t i = 0; i < final_split_rasters.size(); ++i)
           {
@@ -364,7 +350,25 @@ private:
                   surface_waypoint->setIsCritical(waypoints_critical);
                   curr_raster.push_back(std::move(surface_waypoint));
               }
-              waypoints.push_back(curr_raster);
+//              waypoints.push_back(curr_raster);
+
+              auto traj_pc = std::make_shared<tesseract_motion_planners::TrajOptPlannerDefaultConfig>(tesseract_local_, manipulator_, target_frame, tcp_eigen);
+
+              tesseract_motion_planners::CollisionCostConfig coll_cost_config;
+              coll_cost_config.enabled = false;
+              traj_pc->collision_cost_config = coll_cost_config;
+
+              tesseract_motion_planners::CollisionConstraintConfig coll_cnt_config;
+              coll_cnt_config.enabled = true;
+              coll_cnt_config.safety_margin = 0.001;
+              traj_pc->collision_constraint_config = coll_cnt_config;
+
+              traj_pc->init_type = trajopt::InitInfo::GIVEN_TRAJ;
+              traj_pc->longest_valid_segment_fraction = 0.01;
+
+              traj_pc->smooth_velocities = false;
+              traj_pc->smooth_accelerations = false;
+              traj_pc->smooth_jerks = false;
               traj_pc->target_waypoints = curr_raster;
 
               Eigen::MatrixXd joint_eigen_from_jt = tesseract_rosutils::toEigen(final_split_traj[i],final_split_traj[i].joint_names);
@@ -372,6 +376,7 @@ private:
               traj_pc->seed_trajectory = joint_eigen_from_jt;
 
               trajectory_msgs::msg::JointTrajectory trajopt_result_traj;
+              trajopt_result_traj.points.reserve(curr_raster.size());
               tesseract_motion_planners::PlannerResponse planner_resp;
               tesseract_motion_planners::TrajOptMotionPlanner traj_surface_planner;
               traj_surface_planner.setConfiguration(traj_pc);
@@ -380,10 +385,7 @@ private:
 
               if (planner_resp.status.value() < 0)
               {
-                  response->success = false;
-                  response->message = planner_resp.status.message();
                   std::cout << "FAILED: " << planner_resp.status.message() << std::endl;
-//                  return;
                   trajopt_solved.push_back(false);
               }
               else
@@ -396,7 +398,10 @@ private:
                   trajopt_trajectories.push_back(trajopt_result_traj);
                   trajopt_solved.push_back(true);
               }
+              traj_pc->target_waypoints.clear();
+              traj_pc->seed_trajectory.setIdentity();
           }
+          final_split_rasters.clear();
           //**************************************************TRAJOPT***************************************************
           std::cout << "TIME TO GET THIS WHOLE TIME THING DOWN" << std::endl;
           // Assign trajectory timestamps for motion execution
@@ -420,6 +425,8 @@ private:
                   trajopt_traj_n++;
               }
           }
+          final_split_traj.clear();
+          final_time_steps.clear();
 
           std::cout << "TIMES UP WITH THE TIME THING... TIME TO SHOW OFF OUR TRAJECTORIES" << std::endl;
 
@@ -428,18 +435,23 @@ private:
           {
               std::cout << "PUBLISHING TRAJECTORY " << i+1 << " OF " << trajopt_trajectories.size() << std::endl;
               traj_publisher_->publish(trajopt_trajectories[i]);
-              std::this_thread::sleep_for(std::chrono::seconds(static_cast<int>(ceil(traj_times[i]))+2));
+              std::cout << "published" << std::endl;
+              std::this_thread::sleep_for(std::chrono::seconds(static_cast<int>(ceil(traj_times[i]))+1));
+              std::cout << "waited" << std::endl;
           }
           std::cout << "ALL DONE" << std::endl;
+          trajopt_trajectories.clear();
           response->success = true;
+          std::cout << "success stored" << std::endl;
+          traj_times.clear();
           response->message = "TRAJECTORIES PUBLISHED";
+          std::cout << "message stored" << std::endl;
       }
       else
       {
           response->success = false;
           response->message = "Failed to generate preplan";
       }
-
   }
 
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr load_paths_service_;

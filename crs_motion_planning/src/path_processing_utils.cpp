@@ -4,6 +4,7 @@ bool crs_motion_planning::parsePathFromFile(const std::string& yaml_filepath,
                                             const std::string& waypoint_origin_frame,
                                             std::vector<geometry_msgs::msg::PoseArray> &raster_strips)
 {
+    std::vector<geometry_msgs::msg::PoseArray> temp_raster_strips;
     YAML::Node full_yaml_node = YAML::LoadFile(yaml_filepath);
     YAML::Node paths = full_yaml_node[0]["paths"];
     std::double_t offset_strip = 0.0;
@@ -60,8 +61,10 @@ bool crs_motion_planning::parsePathFromFile(const std::string& yaml_filepath,
            }
 
         }
-        raster_strips.push_back(curr_pose_array);
+        temp_raster_strips.push_back(curr_pose_array);
     }
+    raster_strips.reserve(temp_raster_strips.size());
+    raster_strips = temp_raster_strips;
     return true;
 }
 

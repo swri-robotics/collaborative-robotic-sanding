@@ -114,6 +114,7 @@ class crsMotionPlanner
 {
 public:
     crsMotionPlanner(pathPlanningConfig::Ptr config);
+    ~crsMotionPlanner() = default;
 
     void updateConfiguration(pathPlanningConfig::Ptr config);
 
