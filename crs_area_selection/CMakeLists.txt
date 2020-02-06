@@ -10,7 +10,6 @@ find_package(tf2_eigen REQUIRED)
 
 find_package(Eigen3 REQUIRED)
 find_package(PCL 1.8 REQUIRED COMPONENTS sample_consensus segmentation surface)
-add_definitions(${PCL_DEFINITIONS})
 
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -26,13 +25,29 @@ set_target_properties(${PROJECT_NAME}_area_selection PROPERTIES CXX_STANDARD 14)
 target_include_directories(${PROJECT_NAME}_area_selection PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:include>")
+target_include_directories(${PROJECT_NAME}_area_selection PUBLIC ${PCL_INCLUDE_DIRS})
   target_link_libraries (${PROJECT_NAME}_area_selection ${PCL_LIBRARIES})
-  target_compile_definitions(${PROJECT_NAME}_area_selection PRIVATE ${PCL_DEFINITIONS})
+  foreach(DEF ${PCL_DEFINITIONS})
+    string(STRIP ${DEF} DEF)
+    if (NOT "${DEF}" STREQUAL "")
+       string(SUBSTRING "${DEF}" 0 2 DEF_PREFIX)
+       if ("${DEF_PREFIX}" STREQUAL "-m")
+           string(REPLACE " " ";" DEF ${DEF})
+           foreach(OPTION_DEF ${DEF})
+               target_compile_options(${PROJECT_NAME}_area_selection PUBLIC ${OPTION_DEF})
+           endforeach()
+       else()
+          target_compile_definitions(${PROJECT_NAME}_area_selection PUBLIC ${DEF})
+       endif()
+    endif()
+  endforeach()
+
 ament_target_dependencies(${PROJECT_NAME}_area_selection
   ament_index_cpp
   rclcpp
   crs_msgs
-  geometry_msgs sensor_msgs shape_msgs std_msgs std_srvs visualization_msgs PCL tf2_ros tf2_eigen)
+  geometry_msgs sensor_msgs shape_msgs std_msgs std_srvs visualization_msgs tf2_ros tf2_eigen)
+
 
 
 # Node that runs area selection service
