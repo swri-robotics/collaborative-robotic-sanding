@@ -9,7 +9,7 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_eigen REQUIRED)
 
 find_package(Eigen3 REQUIRED)
-find_package(PCL REQUIRED)
+find_package(PCL 1.8 REQUIRED COMPONENTS sample_consensus segmentation surface)
 add_definitions(${PCL_DEFINITIONS})
 
 find_package(geometry_msgs REQUIRED)
@@ -26,6 +26,8 @@ set_target_properties(${PROJECT_NAME}_area_selection PROPERTIES CXX_STANDARD 14)
 target_include_directories(${PROJECT_NAME}_area_selection PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:include>")
+  target_link_libraries (${PROJECT_NAME}_area_selection ${PCL_LIBRARIES})
+  target_compile_definitions(${PROJECT_NAME}_area_selection PRIVATE ${PCL_DEFINITIONS})
 ament_target_dependencies(${PROJECT_NAME}_area_selection
   ament_index_cpp
   rclcpp
