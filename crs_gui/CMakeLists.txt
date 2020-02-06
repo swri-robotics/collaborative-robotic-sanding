@@ -61,11 +61,27 @@ target_include_directories(${PROJECT_NAME}_widgets PUBLIC
     "$<INSTALL_INTERFACE:include>")
 # This must be added because qt5_wrap_ui creates a header in the root of the pkg build dir
 target_include_directories(${PROJECT_NAME}_widgets PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
+target_include_directories(${PROJECT_NAME}_widgets PUBLIC ${crs_area_selection_INCLUDE_DIRS})
+  target_link_libraries (${PROJECT_NAME}_widgets ${CMAKE_CURRENT_BINARY_DIR})
+  foreach(DEF ${crs_area_selection_DEFINITIONS})
+    string(STRIP ${DEF} DEF)
+    if (NOT "${DEF}" STREQUAL "")
+       string(SUBSTRING "${DEF}" 0 2 DEF_PREFIX)
+       if ("${DEF_PREFIX}" STREQUAL "-m")
+           string(REPLACE " " ";" DEF ${DEF})
+           foreach(OPTION_DEF ${DEF})
+               target_compile_options(${PROJECT_NAME}_widgets PUBLIC ${OPTION_DEF})
+           endforeach()
+       else()
+          target_compile_definitions(${PROJECT_NAME}_widgets PUBLIC ${DEF})
+       endif()
+    endif()
+  endforeach()
 target_link_libraries(${PROJECT_NAME}_widgets
   Qt5::Widgets
   crs_area_selection::crs_area_selection_area_selection
 )
-ament_target_dependencies(${PROJECT_NAME}_widgets crs_area_selection rclcpp shape_msgs std_srvs crs_msgs)
+ament_target_dependencies(${PROJECT_NAME}_widgets rclcpp shape_msgs std_srvs crs_msgs)
 
 ######################
 ## Demo Executables ##
