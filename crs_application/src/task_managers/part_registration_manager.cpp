@@ -39,33 +39,25 @@ namespace crs_application
 {
 namespace task_managers
 {
+PartRegistrationManager::PartRegistrationManager(std::shared_ptr<rclcpp::Node> node) : node_(node) {}
 
-PartRegistrationManager::PartRegistrationManager(std::shared_ptr<rclcpp::Node> node):
-    node_(node)
-{
-
-}
-
-PartRegistrationManager::~PartRegistrationManager()
-{
-
-}
+PartRegistrationManager::~PartRegistrationManager() {}
 
 common::ActionResult PartRegistrationManager::init()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   return true;
 }
 
 common::ActionResult PartRegistrationManager::configure(const PartRegistrationConfig& config)
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   return true;
 }
 
 common::ActionResult PartRegistrationManager::showPreview()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   return true;
 }
 
@@ -77,13 +69,13 @@ common::ActionResult PartRegistrationManager::setInput(const datatypes::ScanAcqu
 
 common::ActionResult PartRegistrationManager::computeTransform()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   return true;
 }
 
 common::ActionResult PartRegistrationManager::applyTransform()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   return true;
 }
 

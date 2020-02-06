@@ -39,54 +39,45 @@ namespace crs_application
 {
 namespace task_managers
 {
+ScanAcquisitionManager::ScanAcquisitionManager(std::shared_ptr<rclcpp::Node> node) : node_(node) {}
 
-ScanAcquisitionManager::ScanAcquisitionManager(std::shared_ptr<rclcpp::Node> node):
-    node_(node)
-{
-
-}
-
-ScanAcquisitionManager::~ScanAcquisitionManager()
-{
-
-}
+ScanAcquisitionManager::~ScanAcquisitionManager() {}
 
 common::ActionResult ScanAcquisitionManager::init()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   return true;
 }
 
 common::ActionResult ScanAcquisitionManager::configure(const ScanAcquisitionConfig& config)
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   return true;
 }
 
 common::ActionResult ScanAcquisitionManager::verify()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   return true;
 }
 
 common::ActionResult ScanAcquisitionManager::moveRobot()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   return true;
 }
 
 common::ActionResult ScanAcquisitionManager::capture()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   return true;
 }
 
 common::ActionResult ScanAcquisitionManager::checkQueue()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   return true;
 }
 
-} // end of namespace task_managers
-} // end of namespace crs_application
-
+}  // end of namespace task_managers
+}  // end of namespace crs_application

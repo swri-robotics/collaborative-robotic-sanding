@@ -45,10 +45,8 @@ namespace crs_application
 {
 namespace task_managers
 {
-
 struct ProcessExecutionConfig
 {
-
 };
 
 class ProcessExecutionManager
@@ -80,7 +78,6 @@ public:
   common::ActionResult execHome();
 
 protected:
-
   std::shared_ptr<rclcpp::Node> node_;
   std::shared_ptr<datatypes::ProcessExecutionData> input_ = nullptr;
 };
