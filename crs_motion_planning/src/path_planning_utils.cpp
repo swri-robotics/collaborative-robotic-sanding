@@ -65,7 +65,7 @@ bool generateDescartesSeed(const tesseract_kinematics::ForwardKinematics::ConstP
 }
 
 
-bool generateDescartesSeed(const crs_motion_planning::pathPlanningConfig config,
+bool generateDescartesSeed(const crs_motion_planning::pathPlanningConfig::Ptr config,
                            const geometry_msgs::msg::PoseArray &waypoints,
                            const double &axial_step,
                            const bool &allow_collisions,
@@ -74,11 +74,11 @@ bool generateDescartesSeed(const crs_motion_planning::pathPlanningConfig config,
                            std::vector<std::size_t>& failed_vertices,
                            trajectory_msgs::msg::JointTrajectory& joint_trajectory)
 {
-    tesseract::Tesseract::Ptr tesseract_local = config.tesseract_local;
+    tesseract::Tesseract::Ptr tesseract_local = config->tesseract_local;
     const std::shared_ptr<const tesseract_environment::Environment> env = tesseract_local->getEnvironmentConst();
     tesseract_common::TransformMap curr_transforms = env->getCurrentState()->transforms;
 
-    tesseract_kinematics::ForwardKinematics::ConstPtr kin = tesseract_local->getFwdKinematicsManagerConst()->getFwdKinematicSolver(config.manipulator);
+    tesseract_kinematics::ForwardKinematics::ConstPtr kin = tesseract_local->getFwdKinematicsManagerConst()->getFwdKinematicSolver(config->manipulator);
 
     tesseract_environment::AdjacencyMap::Ptr adjacency_map = std::make_shared<tesseract_environment::AdjacencyMap>(env->getSceneGraph(), kin->getActiveLinkNames(), curr_transforms);
 
@@ -87,9 +87,9 @@ bool generateDescartesSeed(const crs_motion_planning::pathPlanningConfig config,
     std::vector<descartes_light::PositionSamplerD::Ptr> sampler_result;
 
     Eigen::Isometry3d world_to_base_link, world_to_sander, world_to_tool0, tool0_to_sander;
-    world_to_base_link = curr_transforms.find(config.robot_base_frame)->second;
-    world_to_sander = curr_transforms.find(config.tcp_frame)->second;
-    world_to_tool0 = curr_transforms.find(config.tool0_frame)->second;
+    world_to_base_link = curr_transforms.find(config->robot_base_frame)->second;
+    world_to_sander = curr_transforms.find(config->tcp_frame)->second;
+    world_to_tool0 = curr_transforms.find(config->tool0_frame)->second;
     tool0_to_sander = world_to_tool0.inverse() * world_to_sander;
     descartes_light::KinematicsInterfaceD::Ptr kin_interface = std::make_shared<ur_ikfast_kinematics::UR10eKinematicsD>(world_to_base_link, tool0_to_sander, nullptr, nullptr);
 
@@ -135,7 +135,7 @@ bool generateDescartesSeed(const crs_motion_planning::pathPlanningConfig config,
     return true;
 }
 
-bool generateDescartesSeed(const crs_motion_planning::pathPlanningConfig config,
+bool generateDescartesSeed(const crs_motion_planning::pathPlanningConfig::Ptr config,
                            const geometry_msgs::msg::PoseArray &waypoints,
                            std::vector<std::size_t>& failed_edges,
                            std::vector<std::size_t>& failed_vertices,
@@ -143,9 +143,9 @@ bool generateDescartesSeed(const crs_motion_planning::pathPlanningConfig config,
 {
     return generateDescartesSeed(config,
                                  waypoints,
-                                 config.descartes_config.axial_step,
-                                 config.descartes_config.allow_collisions,
-                                 config.descartes_config.collision_safety_margin,
+                                 config->descartes_config.axial_step,
+                                 config->descartes_config.allow_collisions,
+                                 config->descartes_config.collision_safety_margin,
                                  failed_edges,
                                  failed_vertices,
                                  joint_trajectory);

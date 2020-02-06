@@ -101,7 +101,7 @@ bool generateDescartesSeed(const tesseract_kinematics::ForwardKinematics::ConstP
 /// \param allow_collisions
 /// \return success
 ///
-bool generateDescartesSeed(const pathPlanningConfig config,
+bool generateDescartesSeed(const pathPlanningConfig::Ptr config,
                            const geometry_msgs::msg::PoseArray &waypoints,
                            const double &axial_step,
                            const bool &allow_collisions,
@@ -117,7 +117,7 @@ bool generateDescartesSeed(const pathPlanningConfig config,
 /// \param allow_collisions
 /// \return success
 ///
-bool generateDescartesSeed(const pathPlanningConfig config,
+bool generateDescartesSeed(const pathPlanningConfig::Ptr config,
                            const geometry_msgs::msg::PoseArray &waypoints,
                            std::vector<std::size_t>& failed_edges,
                            std::vector<std::size_t>& failed_vertices,
