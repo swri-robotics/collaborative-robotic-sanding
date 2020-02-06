@@ -36,6 +36,10 @@ def generate_launch_description():
          'robot_description': urdf3,
          'robot_description_semantic': srdf}])
 
+    kill_gazebo = launch.actions.ExecuteProcess(
+        cmd=['killall', '-9', 'gazebo', '&', 'killall', '-9', 'gzserver', '&', 'killall', '-9', 'gzclient']
+    )
+
     gzserver = launch.actions.ExecuteProcess(
         cmd=['gazebo', '--verbose', '-s', 'libgazebo_ros_factory.so', '--world', gzworld],
         output='screen'
@@ -59,6 +63,9 @@ def generate_launch_description():
         'num_steps': 200}])
 
     return launch.LaunchDescription([
+        # kill_gazebo
+#        kill_gazebo,
+
         # environment
         tesseract_env,
 
