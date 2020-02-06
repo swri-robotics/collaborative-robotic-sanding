@@ -19,6 +19,7 @@
   <depend>std_srvs</depend>
   <depend>visualization_msgs</depend>
 
+  <depend>libpcl-all</depend>
   <depend>rclcpp</depend>
   <depend>tf2_eigen</depend>
   <depend>tf2_ros</depend>
