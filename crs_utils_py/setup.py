@@ -9,7 +9,7 @@ setup(
     name=package_name,
     version='0.0.0',
     # Packages to export
-    packages=[],
+    packages=find_packages(),
     # Files we want to install, specifically launch files
 #     data_files=[
 #         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
