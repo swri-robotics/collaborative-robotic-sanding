@@ -79,4 +79,10 @@ bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray
     return true;
 }
 
+bool crsMotionPlanner::genSurfacePlans(const std::vector<geometry_msgs::msg::PoseArray> rasters,
+                                       std::vector<trajectory_msgs::msg::JointTrajectory>& joint_trajectories)
+{
+
+}
+
 } // namespace crs_motion_planning

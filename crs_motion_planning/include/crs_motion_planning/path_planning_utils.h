@@ -71,6 +71,29 @@ struct pathPlanningConfig
     bool smooth_velocities = true;
     bool smooth_accelerations = true;
     bool smooth_jerks = true;
+
+    bool required_joint_vel = false;
+    double tool_speed;
+    double max_joint_vel;
+
+    size_t minimum_raster_length = 2;
+};
+
+struct pathPlanningResults
+{
+    using Ptr = std::shared_ptr<pathPlanningResults>;
+
+    geometry_msgs::msg::PoseArray reachable_waypoints;
+    geometry_msgs::msg::PoseArray unreachable_waypoints;
+
+    std::vector<trajectory_msgs::msg::JointTrajectory> descartes_trajectory_results;
+
+    std::vector<geometry_msgs::msg::PoseArray> skipped_rasters;
+    std::vector<geometry_msgs::msg::PoseArray> solved_rasters;
+    std::vector<geometry_msgs::msg::PoseArray> failed_rasters;
+
+    std::vector<trajectory_msgs::msg::JointTrajectory> final_trajectories;
+    std::vector<std::vector<double>> time_stamps;
 };
 
 class crsMotionPlanner
@@ -91,7 +114,8 @@ public:
                                std::vector<std::size_t>& failed_vertices,
                                trajectory_msgs::msg::JointTrajectory& joint_trajectory);
 
-    bool genSurfacePlans(const std::vector<geometry_msgs::msg::PoseArray> rasters);
+    bool genSurfacePlans(const std::vector<geometry_msgs::msg::PoseArray> rasters,
+                         std::vector<trajectory_msgs::msg::JointTrajectory>& joint_trajectories);
 
 protected:
     pathPlanningConfig::Ptr config_;
