@@ -93,36 +93,36 @@ private:
 
       // Load rasters and get them in usable form
       std::string waypoint_origin_frame = "part";
-      std::vector<geometry_msgs::msg::PoseArray> og_raster_strips;
-      crs_motion_planning::parsePathFromFile(toolpath_filepath_, waypoint_origin_frame, og_raster_strips);
+      std::vector<geometry_msgs::msg::PoseArray> raster_strips;
+      crs_motion_planning::parsePathFromFile(toolpath_filepath_, waypoint_origin_frame, raster_strips);
       geometry_msgs::msg::PoseArray strip_of_interset;
-      for (auto strip : og_raster_strips)
+      for (auto strip : raster_strips)
       {
           strip_of_interset.poses.insert(strip_of_interset.poses.end(), strip.poses.begin(), strip.poses.end());
       }
-      std::vector<geometry_msgs::msg::PoseArray> raster_strips;
-      size_t num_points_grouped = 3;
-      int num_repeats = 1;
-      for (size_t i = 0; i < strip_of_interset.poses.size() - num_points_grouped; i+=num_points_grouped)
-      {
-          geometry_msgs::msg::PoseArray curr_soi;
-          geometry_msgs::msg::Pose curr_pose;
-          for (size_t j = 0; j < num_points_grouped; ++j)
-          {
-              curr_pose = strip_of_interset.poses[i+j];
-              curr_soi.poses.push_back(curr_pose);
-          }
-//          curr_pose = strip_of_interset.poses[i];
-//          curr_soi.poses.push_back(curr_pose);
-//          curr_pose = strip_of_interset.poses[i+1];
-//          curr_soi.poses.push_back(curr_pose);
-//          curr_pose = strip_of_interset.poses[i+2];
-//          curr_soi.poses.push_back(curr_pose);
-          for (int j = 0; j < num_repeats; ++j)
-          {
-            raster_strips.push_back(std::move(curr_soi));
-          }
-      }
+//      std::vector<geometry_msgs::msg::PoseArray> raster_strips;
+//      size_t num_points_grouped = 3;
+//      int num_repeats = 1;
+//      for (size_t i = 0; i < strip_of_interset.poses.size() - num_points_grouped; i+=num_points_grouped)
+//      {
+//          geometry_msgs::msg::PoseArray curr_soi;
+//          geometry_msgs::msg::Pose curr_pose;
+//          for (size_t j = 0; j < num_points_grouped; ++j)
+//          {
+//              curr_pose = strip_of_interset.poses[i+j];
+//              curr_soi.poses.push_back(curr_pose);
+//          }
+////          curr_pose = strip_of_interset.poses[i];
+////          curr_soi.poses.push_back(curr_pose);
+////          curr_pose = strip_of_interset.poses[i+1];
+////          curr_soi.poses.push_back(curr_pose);
+////          curr_pose = strip_of_interset.poses[i+2];
+////          curr_soi.poses.push_back(curr_pose);
+//          for (int j = 0; j < num_repeats; ++j)
+//          {
+//            raster_strips.push_back(std::move(curr_soi));
+//          }
+//      }
 
 //      raster_strips.push_back(strip_of_interset);
       // Display rasters on part
@@ -147,7 +147,6 @@ private:
       }
 
       std::vector<geometry_msgs::msg::PoseArray> raster_strips_world_frame;
-//      raster_strips_world_frame.reserve(raster_strips.size() * 3);
       for (auto strip : raster_strips)
       {
           geometry_msgs::msg::PoseArray curr_strip;
@@ -159,7 +158,6 @@ private:
               tf2::doTransform(surface_pose_og_frame, surface_pose_world_frame, world_to_goal_frame);
               geometry_msgs::msg::Pose sf_pose_wf = surface_pose_world_frame.pose;
               curr_strip.poses.push_back(std::move(sf_pose_wf));
-//              curr_strip.poses.push_back(sf_pose_wf);
           }
           raster_strips_world_frame.push_back(curr_strip);
       }
@@ -179,18 +177,8 @@ private:
       path_plan_config->tool0_frame = "tool0";
       path_plan_config->tcp_frame = "sander_center_link";
 
-//      auto path_plan_config_ptr = std::make_shared<crs_motion_planning::pathPlanningConfig>();
-//      path_plan_config_ptr->tesseract_local = tesseract_local_;
-//      path_plan_config_ptr->descartes_config = descartes_config;
-//      path_plan_config_ptr->manipulator = manipulator_;
-//      path_plan_config_ptr->world_frame = "world";
-//      path_plan_config_ptr->robot_base_frame = "base_link";
-//      path_plan_config_ptr->tool0_frame = "tool0";
-//      path_plan_config_ptr->tcp_frame = "sander_center_link";
-
       Eigen::Isometry3d tool_offset;
       tool_offset.setIdentity();
-//      path_plan_config_ptr->tool_offset = tool_offset;
       path_plan_config->tool_offset = tool_offset;
 
       // Create crsMotionPlanner class
@@ -287,9 +275,6 @@ private:
           std::vector<trajectory_msgs::msg::JointTrajectory> final_split_traj;
           std::vector<geometry_msgs::msg::PoseArray> final_split_rasters;
           std::vector<std::vector<double>> final_time_steps;
-//          final_split_traj.reserve(split_traj.size() * 20);
-//          final_split_rasters.reserve(split_traj.size() * 20);
-//          final_time_steps.reserve(split_traj.size() * 20);
           size_t raster_n = 0;
           std::cout << "CHECKING FOR SPLITS IN " << split_traj.size() << " TRAJECTORIES" << std::endl;
           for (auto curr_joint_traj : split_traj)
@@ -381,9 +366,7 @@ private:
           std::cout << "BUILT CONFIG SETTINGS" << std::endl;
 
           std::vector<trajectory_msgs::msg::JointTrajectory> trajopt_trajectories;
-//          trajopt_trajectories.reserve(final_split_rasters.size() * 3);
           std::vector<bool> trajopt_solved;
-//          trajopt_solved.reserve(final_split_rasters.size() * 3);
           bool waypoints_critical = true;
           for (size_t i = 0; i < final_split_rasters.size(); ++i)
           {
@@ -467,7 +450,7 @@ private:
                       trajopt_trajectories[trajopt_traj_n].points[j-1].time_from_start.nanosec = static_cast<uint>(1e9 * (final_time_steps[i][j] - floor(final_time_steps[i][j])));
                       curr_traj_time += final_time_steps[i][j];
                   }
-                  trajopt_trajectories[trajopt_traj_n].points.end()->time_from_start.sec = 0;
+                  trajopt_trajectories[trajopt_traj_n].points.back().time_from_start.sec = 0;
                   traj_times.push_back(std::move(curr_traj_time));
                   trajopt_traj_n++;
               }
@@ -482,12 +465,12 @@ private:
           {
               std::cout << "PUBLISHING TRAJECTORY " << i+1 << " OF " << trajopt_trajectories.size() << std::endl;
               traj_publisher_->publish(trajopt_trajectories[i]);
-//              std::this_thread::sleep_for(std::chrono::seconds(static_cast<int>(ceil(traj_times[i]))+1));
+              std::this_thread::sleep_for(std::chrono::seconds(2));
           }
           std::cout << "ALL DONE" << std::endl;
           trajopt_trajectories.clear();
           response->success = true;
-          traj_times.clear();
+//          traj_times.clear();
           response->message = "TRAJECTORIES PUBLISHED";
       }
       else
