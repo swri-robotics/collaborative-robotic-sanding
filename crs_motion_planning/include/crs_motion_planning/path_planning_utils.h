@@ -18,6 +18,7 @@
 #include <tesseract_environment/core/environment.h>
 #include <tesseract_environment/core/utils.h>
 #include <tesseract_rosutils/utils.h>
+//#include <tesseract_rosutils/conversions.h>
 
 #include <descartes_light/descartes_light.h>
 #include <descartes_samplers/evaluators/distance_edge_evaluator.h>
@@ -43,13 +44,34 @@ struct descartesConfig
     bool allow_collisions = false;
 };
 
+struct trajoptSurfaceConfig
+{
+
+
+    bool smooth_velocities = true;
+    bool smooth_accelerations = true;
+    bool smooth_jerks = true;
+
+    tesseract_motion_planners::CollisionCostConfig coll_cst_cfg;
+    tesseract_motion_planners::CollisionConstraintConfig coll_cnt_cfg;
+
+    trajopt::InitInfo::Type init_type = trajopt::InitInfo::GIVEN_TRAJ;
+
+    double longest_valid_segment_fraction = 0.01;
+
+    Eigen::VectorXd surface_coeffs; // Defaults to 6 10s
+
+    bool waypoints_critical = true;
+};
+
 struct pathPlanningConfig
 {
     using Ptr = std::shared_ptr<pathPlanningConfig>;
 
     descartesConfig descartes_config;
 
-    tesseract_motion_planners::TrajOptPlannerDefaultConfig::Ptr trajopt_surface_config;
+//    tesseract_motion_planners::TrajOptPlannerDefaultConfig::Ptr trajopt_surface_config;
+    trajoptSurfaceConfig trajopt_surface_config;
 
     std::shared_ptr<tesseract_motion_planners::OMPLFreespacePlannerConfig<ompl::geometric::RRTConnect>> ompl_config;
 
@@ -59,22 +81,29 @@ struct pathPlanningConfig
 
     descartes_light::KinematicsInterfaceD::Ptr kin_interface;
 
+    std::vector<geometry_msgs::msg::PoseArray> rasters; // In world frame
+
     std::string manipulator = "manipulator";
 
     std::string world_frame = "world";
     std::string robot_base_frame = "base_link";
     std::string tool0_frame = "tool0";
     std::string tcp_frame;
+//    std::string waypoint_frame = "world";
 
-    Eigen::Isometry3d tool_offset;
+    Eigen::Isometry3d tool_offset = Eigen::Isometry3d::Identity();
 
     bool smooth_velocities = true;
     bool smooth_accelerations = true;
     bool smooth_jerks = true;
 
+    bool add_approach_and_retreate = false;
+    double approach_distance = 0.05;
+    double retreat_distance = 0.05;
+
     bool required_joint_vel = false;
-    double tool_speed;
-    double max_joint_vel;
+    double tool_speed = 0.03; // m/s
+    double max_joint_vel = 0.2; // rad/s
 
     size_t minimum_raster_length = 2;
 };
@@ -92,8 +121,20 @@ struct pathPlanningResults
     std::vector<geometry_msgs::msg::PoseArray> solved_rasters;
     std::vector<geometry_msgs::msg::PoseArray> failed_rasters;
 
+    std::vector<trajectory_msgs::msg::JointTrajectory> final_raster_trajectories;
+//    std::vector<std::vector<double>> raster_time_stamps;
+
+    std::vector<trajectory_msgs::msg::JointTrajectory> ompl_trajectories;
+    std::vector<trajectory_msgs::msg::JointTrajectory> final_freespace_trajectories;
+//    std::vector<std::vector<double>> freespace_time_stamps;
+
+    std::vector<trajectory_msgs::msg::JointTrajectory> ompl_start_end_trajectories;
+    std::vector<trajectory_msgs::msg::JointTrajectory> final_start_end_trajectories;
+//    std::vector<std::vector<double>> start_end_time_stamps;
+
     std::vector<trajectory_msgs::msg::JointTrajectory> final_trajectories;
-    std::vector<std::vector<double>> time_stamps;
+//    std::vector<std::vector<double>> time_stamps;
+    std::string msg_out;
 };
 
 class crsMotionPlanner
@@ -114,11 +155,21 @@ public:
                                std::vector<std::size_t>& failed_vertices,
                                trajectory_msgs::msg::JointTrajectory& joint_trajectory);
 
-    bool genSurfacePlans(const std::vector<geometry_msgs::msg::PoseArray> rasters,
-                         std::vector<trajectory_msgs::msg::JointTrajectory>& joint_trajectories);
+    ///
+    /// \brief generateSurfacePlans Creates surface trajectories given a set of rasters
+    /// \return success
+    ///
+    bool generateSurfacePlans(pathPlanningResults::Ptr& results);
+
+    ///
+    /// \brief generateProcessPlan Creates process plans given a set of rasters, including freespace and surface trajectories
+    /// \return success
+    ///
+    bool generateProcessPlan(pathPlanningResults::Ptr& results);
 
 protected:
     pathPlanningConfig::Ptr config_;
+    pathPlanningResults::Ptr results_;
 
 };
 
