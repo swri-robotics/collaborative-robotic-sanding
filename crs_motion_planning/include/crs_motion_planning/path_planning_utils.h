@@ -122,18 +122,14 @@ struct pathPlanningResults
     std::vector<geometry_msgs::msg::PoseArray> failed_rasters;
 
     std::vector<trajectory_msgs::msg::JointTrajectory> final_raster_trajectories;
-//    std::vector<std::vector<double>> raster_time_stamps;
 
     std::vector<trajectory_msgs::msg::JointTrajectory> ompl_trajectories;
     std::vector<trajectory_msgs::msg::JointTrajectory> final_freespace_trajectories;
-//    std::vector<std::vector<double>> freespace_time_stamps;
 
     std::vector<trajectory_msgs::msg::JointTrajectory> ompl_start_end_trajectories;
     std::vector<trajectory_msgs::msg::JointTrajectory> final_start_end_trajectories;
-//    std::vector<std::vector<double>> start_end_time_stamps;
 
     std::vector<trajectory_msgs::msg::JointTrajectory> final_trajectories;
-//    std::vector<std::vector<double>> time_stamps;
     std::string msg_out;
 };
 
@@ -160,6 +156,12 @@ public:
     /// \return success
     ///
     bool generateSurfacePlans(pathPlanningResults::Ptr& results);
+
+    ///
+    /// \brief generateSurfacePlans Creates surface trajectories given a set of rasters
+    /// \return success
+    ///
+    bool generateFreespacePlans(pathPlanningResults::Ptr& results);
 
     ///
     /// \brief generateProcessPlan Creates process plans given a set of rasters, including freespace and surface trajectories

@@ -103,9 +103,17 @@ void crs_motion_planning::rasterStripsToMarkerArray(const geometry_msgs::msg::Po
                                                     std::vector<float> color,
                                                     double size)
 {
-    arrows.markers.clear(); // reset marker list
+    int arrow_count;
+    if (arrows.markers.size() > 0)
+    {
+        arrow_count = static_cast<int>(arrows.markers.size()) - 1;
+    }
+    else
+    {
+        arrows.markers.clear(); // reset marker list
+        arrow_count = 0;
+    }
 
-    int arrow_count = 0;
     for (auto pose : strip.poses)
     {
         Eigen::Affine3d arrow_pose;

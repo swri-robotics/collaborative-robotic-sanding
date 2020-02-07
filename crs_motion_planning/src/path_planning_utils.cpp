@@ -120,12 +120,13 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
                                                   curr_failed_vertex_poses);
 
             // Display failed vertices
-            failed_vertex_poses.poses.insert(failed_vertex_poses.poses.end(), curr_failed_vertex_poses.poses.begin(), curr_failed_vertex_poses.poses.end());
+            results->unreachable_waypoints.poses.insert(results->unreachable_waypoints.poses.end(), curr_failed_vertex_poses.poses.begin(), curr_failed_vertex_poses.poses.end());
 
             for (auto split_strip : split_rasters)
             {
                 // Generate Descartes preplan
-                std::cout << "DESCARTES ROUND 2 ELECTRIC BOOGALO" << std::endl;
+                std::cout << "DESCARTES ROUND 2" << std::endl;
+                results->reachable_waypoints.poses.insert(results->reachable_waypoints.poses.end(), split_strip.poses.begin(), split_strip.poses.end());
                 if (generateDescartesSeed(split_strip,
                                           failed_edges,
                                           failed_vertices,
@@ -137,6 +138,10 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
                   any_successes = true;
                   std::cout << "SUCCESS" << std::endl;
                 }
+                else
+                {
+                    results->skipped_rasters.push_back(split_strip);
+                }
                 std::cout << "DONE" << std::endl;
             }
         }
@@ -144,6 +149,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
         {
             std::cout << "SUCCESS" << std::endl;
             split_traj.push_back(joint_traj_msg_out_init);
+            results->reachable_waypoints.poses.insert(results->reachable_waypoints.poses.end(), strip.poses.begin(), strip.poses.end());
             split_reachable_rasters.push_back(std::move(strip));
         }
         std::cout << "Strip " << ++count_strips << " of " << raster_strips.size() << std::endl;
@@ -152,7 +158,6 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
     // Check if successfully generated preplan with descartes
     if (any_successes)
     {
-        std::vector<trajectory_msgs::msg::JointTrajectory> final_split_traj;
         std::vector<geometry_msgs::msg::PoseArray> final_split_rasters;
         std::vector<std::vector<double>> final_time_steps;
         size_t raster_n = 0;
@@ -203,7 +208,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
 
                         trajectory_msgs::msg::JointTrajectory modified_joint_traj_msg_out;
                         // Generate Descartes preplan
-                        std::cout << "DESCARTES ROUND 3, DESCARTES WITH A VEGENCE" << std::endl;
+                        std::cout << "DESCARTES ROUND 3" << std::endl;
                         std::vector<size_t> failed_edges, failed_vertices;
 
                         if (generateDescartesSeed(modified_raster,
@@ -215,7 +220,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
                             for (int j = 0; j < 1; ++j)
                             {
                                 final_split_rasters.push_back(modified_raster);
-                                final_split_traj.push_back(modified_joint_traj_msg_out);
+                                results->descartes_trajectory_results.push_back(modified_joint_traj_msg_out);
                                 final_time_steps.push_back(modified_time_steps);
                             }
                         }
@@ -225,16 +230,17 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
             }
             else
             {
-                std::cout << "NO SPLITS FOR YOU" << std::endl;
+                std::cout << "NO SPLITS" << std::endl;
                 for (int j = 0; j < 1; ++j)
                 {
                     final_split_rasters.push_back(split_reachable_rasters[raster_n]);
-                    final_split_traj.push_back(std::move(curr_joint_traj));
+                    results->descartes_trajectory_results.push_back(std::move(curr_joint_traj));
                     final_time_steps.push_back(time_steps[0]);
                 }
             }
             raster_n++;
         }
+
         std::cout << "TIME TO OPTIMIZE" << std::endl;
 
         //**************************************************TRAJOPT***************************************************
@@ -279,7 +285,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
             traj_pc->target_waypoints = curr_raster;
 
             Eigen::MatrixXd joint_eigen_from_jt;
-            joint_eigen_from_jt = tesseract_rosutils::toEigen(final_split_traj[i],final_split_traj[i].joint_names);
+            joint_eigen_from_jt = tesseract_rosutils::toEigen(results->descartes_trajectory_results[i],results->descartes_trajectory_results[i].joint_names);
 
             traj_pc->seed_trajectory = joint_eigen_from_jt;
 
@@ -293,6 +299,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
             if (planner_resp.status.value() < 0)
             {
                 std::cout << "FAILED: " << planner_resp.status.message() << std::endl;
+                results->failed_rasters.push_back(final_split_rasters[i]);
                 trajopt_solved.push_back(false);
             }
             else
@@ -300,18 +307,18 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
                 std::cout << "SUCCEEDED" << std::endl;
                 Eigen::MatrixXd result_traj(planner_resp.joint_trajectory.trajectory.rows(), planner_resp.joint_trajectory.trajectory.cols());
                 result_traj << planner_resp.joint_trajectory.trajectory;
-                crs_motion_planning::tesseractRosutilsToMsg(trajopt_result_traj, final_split_traj[i].joint_names, result_traj);
-
+                crs_motion_planning::tesseractRosutilsToMsg(trajopt_result_traj, results->descartes_trajectory_results[i].joint_names, result_traj);
+                results->solved_rasters.push_back(final_split_rasters[i]);
                 trajopt_trajectories.push_back(std::move(trajopt_result_traj));
                 trajopt_solved.push_back(true);
             }
         }
         //**************************************************TRAJOPT***************************************************
-        std::cout << "TIME TO GET THIS WHOLE TIME THING DOWN" << std::endl;
+        std::cout << "SETTING TIMESTAMPS" << std::endl;
         // Assign trajectory timestamps for motion execution
         std::vector<double> traj_times;
         size_t trajopt_traj_n = 0;
-        for (size_t i = 0; i < final_split_traj.size(); ++i)
+        for (size_t i = 0; i < results->descartes_trajectory_results.size(); ++i)
         {
             if (trajopt_solved[i])
             {
