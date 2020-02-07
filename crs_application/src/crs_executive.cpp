@@ -318,15 +318,15 @@ bool CRSExecutive::setupMotionPlanningStates()
 
   st_callbacks_map[motion_planning::PLAN_PROCESS_PATHS] = StateCallbackInfo{
     entry_cb : std::bind(&task_managers::MotionPlanningManager::planProcessPaths, motion_planning_mngr_.get()),
-    async : false};
+    async : true};
 
   st_callbacks_map[motion_planning::PLAN_MEDIA_CHANGES] = StateCallbackInfo{
     entry_cb : std::bind(&task_managers::MotionPlanningManager::planMediaChanges, motion_planning_mngr_.get()),
-    async : false};
+    async : true};
 
   st_callbacks_map[motion_planning::PREVIEW] = StateCallbackInfo{
     entry_cb : std::bind(&task_managers::MotionPlanningManager::showPreview, motion_planning_mngr_.get()),
-    async : false,
+    async : true,
     exit_cb : std::bind(&task_managers::MotionPlanningManager::hidePreview, motion_planning_mngr_.get()),
     on_done_action : ""};
 
