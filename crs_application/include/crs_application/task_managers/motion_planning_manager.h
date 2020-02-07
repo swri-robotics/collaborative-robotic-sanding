@@ -63,11 +63,11 @@ struct MotionPlanningConfig
   std::string tool_frame;
 
   // media change
-  double media_change_time;             /** @brief time that needs to elapse for the next media change secs */
-  Eigen::Isometry3d media_change_pose;  /** @brief in world coordinates */
+  double media_change_time;            /** @brief time that needs to elapse for the next media change secs */
+  Eigen::Isometry3d media_change_pose; /** @brief in world coordinates */
 
   // preview
-  double preview_time_scaling = 1.0;            /** @brief preview will be played at a scaled speed */
+  double preview_time_scaling = 1.0; /** @brief preview will be played at a scaled speed */
 };
 
 class MotionPlanningManager
@@ -105,8 +105,8 @@ public:
 protected:
   // support methods
   common::ActionResult checkPreReq();
-  boost::optional<trajectory_msgs::msg::JointTrajectory> planFreeSpace(const std::string& plan_name,
-                                                                       crs_msgs::srv::CallFreespaceMotion::Request::SharedPtr req);
+  boost::optional<trajectory_msgs::msg::JointTrajectory>
+  planFreeSpace(const std::string& plan_name, crs_msgs::srv::CallFreespaceMotion::Request::SharedPtr req);
 
   std::shared_ptr<rclcpp::Node> node_;
   std::shared_ptr<datatypes::ProcessToolpathData> input_ = nullptr;
@@ -122,7 +122,6 @@ protected:
 
   // others
   std::atomic<bool> publish_preview_enabled_;
-
 };
 
 } /* namespace task_managers */

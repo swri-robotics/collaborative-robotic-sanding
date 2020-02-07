@@ -74,14 +74,15 @@ struct ActionResult
  * @param js2 joint state 1
  * @return A double value > 0 or -1 when a joint isn't found.
  */
-static double compare(const sensor_msgs::msg::JointState& js1, const sensor_msgs::msg::JointState& js2,
+static double compare(const sensor_msgs::msg::JointState& js1,
+                      const sensor_msgs::msg::JointState& js2,
                       std::string& err_msg)
 {
   double diff = 0.0;
-  for(std::size_t j = 0; j < js1.name.size(); j++)
+  for (std::size_t j = 0; j < js1.name.size(); j++)
   {
     std::vector<std::string>::const_iterator pos = std::find(js2.name.begin(), js2.name.end(), js1.name[j]);
-    if(pos == js2.name.end())
+    if (pos == js2.name.end())
     {
       err_msg = boost::str(boost::format("Joint %s was not found") % js1.name[j]);
       return -1.0;
@@ -94,20 +95,19 @@ static double compare(const sensor_msgs::msg::JointState& js1, const sensor_msgs
 }
 
 template <class Msg>
-static std::shared_ptr<Msg> waitForMessage(std::shared_ptr<rclcpp::Node> node, const std::string& topic_name,
+static std::shared_ptr<Msg> waitForMessage(std::shared_ptr<rclcpp::Node> node,
+                                           const std::string& topic_name,
                                            double timeout)
 {
   std::shared_ptr<Msg> msg = nullptr;
   std::promise<Msg> promise_obj;
   std::future<Msg> fut_obj = promise_obj.get_future();
 
-  std::shared_ptr<rclcpp::Subscription<Msg>>subs;
+  std::shared_ptr<rclcpp::Subscription<Msg>> subs;
   subs = node->create_subscription<Msg>(
-      topic_name,rclcpp::QoS(1),[&promise_obj]
-                                   (const std::shared_ptr<Msg> msg) -> void
-  {
-    promise_obj.set_value(*msg);
-  });
+      topic_name, rclcpp::QoS(1), [&promise_obj](const std::shared_ptr<Msg> msg) -> void {
+        promise_obj.set_value(*msg);
+      });
 
   std::future_status sts = fut_obj.wait_for(std::chrono::duration<double>(timeout));
   subs.reset();
@@ -115,10 +115,10 @@ static std::shared_ptr<Msg> waitForMessage(std::shared_ptr<rclcpp::Node> node, c
   /** @warning there's no clean way to close a subscription but according to this issue
                            https://github.com/ros2/rclcpp/issues/205, destroying the subscription
                            should accomplish the same */
-  if(sts != std::future_status::ready)
+  if (sts != std::future_status::ready)
   {
     std::string err_code = sts == std::future_status::timeout ? std::string("Timeout") : std::string("Deferred");
-    RCLCPP_ERROR(node->get_logger(),"%s error while waiting for message",err_code.c_str());
+    RCLCPP_ERROR(node->get_logger(), "%s error while waiting for message", err_code.c_str());
     return nullptr;
   }
   msg = std::make_shared<Msg>(fut_obj.get());
@@ -135,18 +135,16 @@ static sensor_msgs::msg::JointState::SharedPtr getCurrentState(std::shared_ptr<r
 
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr subs;
   subs = node->create_subscription<sensor_msgs::msg::JointState>(
-      topic_name,rclcpp::QoS(1),[&promise_obj]
-                                   (const sensor_msgs::msg::JointState::SharedPtr msg) -> void
-  {
-    promise_obj.set_value(*msg);
-  });
+      topic_name, rclcpp::QoS(1), [&promise_obj](const sensor_msgs::msg::JointState::SharedPtr msg) -> void {
+        promise_obj.set_value(*msg);
+      });
 
   std::future_status sts = fut_obj.wait_for(std::chrono::duration<double>(timeout));
   subs.reset();
   /** @warning there's no clean way to close a subscription but according to this issue
                            https://github.com/ros2/rclcpp/issues/205, destroying the subscription
                            should accomplish the same */
-  if(sts != std::future_status::ready)
+  if (sts != std::future_status::ready)
   {
     return nullptr;
   }
@@ -154,7 +152,7 @@ static sensor_msgs::msg::JointState::SharedPtr getCurrentState(std::shared_ptr<r
   return msg;
 }
 
-}
-}
+}  // namespace common
+}  // namespace crs_application
 
 #endif /* INCLUDE_CRS_APPLICATION_COMMON_COMMON_H_ */

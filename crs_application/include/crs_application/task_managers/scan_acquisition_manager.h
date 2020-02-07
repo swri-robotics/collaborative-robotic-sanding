@@ -45,7 +45,6 @@
 #include <geometry_msgs/msg/transform.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 
-
 namespace crs_application
 {
 namespace task_managers
@@ -86,7 +85,6 @@ public:
   const datatypes::ScanAcquisitionResult& getResult() { return result_; }
 
 protected:
-
   // support methods
   common::ActionResult checkPreReqs();
 

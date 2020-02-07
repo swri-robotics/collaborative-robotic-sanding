@@ -62,8 +62,7 @@ common::ActionResult PartRegistrationManager::configure(const PartRegistrationCo
   load_part_request->path_to_part = part_file_;
 
   auto result_future = load_part_client_->async_send_request(load_part_request);
-  if (rclcpp::spin_until_future_complete(node_, result_future) !=
-    rclcpp::executor::FutureReturnCode::SUCCESS)
+  if (rclcpp::spin_until_future_complete(node_, result_future) != rclcpp::executor::FutureReturnCode::SUCCESS)
   {
     RCLCPP_ERROR(node_->get_logger(), "Load Part service call failed");
     return false;
@@ -98,11 +97,10 @@ common::ActionResult PartRegistrationManager::computeTransform()
   localize_to_part_request->point_clouds = std::vector<sensor_msgs::msg::PointCloud2>();
 
   auto localize_result_future = localize_to_part_client_->async_send_request(localize_to_part_request);
-  if (rclcpp::spin_until_future_complete(node_, localize_result_future) !=
-      rclcpp::executor::FutureReturnCode::SUCCESS)
+  if (rclcpp::spin_until_future_complete(node_, localize_result_future) != rclcpp::executor::FutureReturnCode::SUCCESS)
   {
-      RCLCPP_ERROR(node_->get_logger(), "Localize to Part service call failed");
-      return false;
+    RCLCPP_ERROR(node_->get_logger(), "Localize to Part service call failed");
+    return false;
   }
   auto localize_result = localize_result_future.get();
   // todo(ayoungs) save off transform

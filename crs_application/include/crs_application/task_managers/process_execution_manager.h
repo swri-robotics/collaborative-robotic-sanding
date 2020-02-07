@@ -49,8 +49,9 @@ namespace task_managers
 struct ProcessExecutionConfig
 {
   double traj_time_tolerance = 5.0; /** @brief time tolerance on trajectory duration */
-  double wait_state_timeout = 1.0; /** @brief seconds to wait for the current joint state*/
-  double joint_tolerance = (3.1416/180.0) * 2.0; /** @brief how close the robot needs to be to the last position in radians */
+  double wait_state_timeout = 1.0;  /** @brief seconds to wait for the current joint state*/
+  double joint_tolerance =
+      (3.1416 / 180.0) * 2.0; /** @brief how close the robot needs to be to the last position in radians */
 };
 
 class ProcessExecutionManager
@@ -90,7 +91,6 @@ public:
   common::ActionResult cancelMotion();
 
 protected:
-
   // support methods
   void resetIndexes();
   common::ActionResult execTrajectory(const trajectory_msgs::msg::JointTrajectory& traj);
@@ -109,8 +109,6 @@ protected:
   int current_media_change_idx_ = 0;
 
   std::atomic<bool> executing_motion_;
-
-
 };
 
 } /* namespace task_managers */
