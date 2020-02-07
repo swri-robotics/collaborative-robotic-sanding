@@ -103,7 +103,6 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
                                             failed_edges,
                                             failed_vertices,
                                             joint_traj_msg_out_init);
-        config_->descartes_config.axial_step = 0.05;
         std::cout << "DONE" << std::endl;
 
 
@@ -179,7 +178,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
                                                          time_steps))
             {
                 std::cout << "FOUND A SPLIT" << std::endl;
-                if (config_->add_approach_and_retreate)
+                if (config_->add_approach_and_retreat)
                 {
                     for (size_t i = 0; i < resplit_rasters.size(); ++i)
                     {
@@ -343,16 +342,50 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
     }
     else
     {
-
+        results->msg_out = "Failed to create surface plans";
         return false;
     }
+}
+
+bool crsMotionPlanner::generateOMPLSeed(const Eigen::VectorXd &start_pos,
+                                        const Eigen::VectorXd &end_pos,
+                                        tesseract_common::JointTrajectory &seed_trajectory)
+{
+    // Convert ompl_config to an actual ompl config file
+    // Solve
+
+    return true;
+}
+
+bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr &results)
+{
+    // Check if start exists
+    // Generate ompl seed from start to raster.begin().begin() (convert from trajectory_msg to eigen::vectorXd)
+    // run seed through trajopt if using trajopt for freespace
+    for (size_t i = 1; i < results->final_raster_trajectories.size() - 1; ++i)
+    {
+        // Generate ompl seed from raster[i].back() to raster[i+1].begin() (convert from trajectory_msg to eigen::vectorXd)
+        // run seed through trajopt if using trajopt for freespace
+    }
+    // Check if end exists
+    // Generate ompl seed from raster.back().back() to end (convert from trajectory_msg to eigen::vectorXd)
+    // run seed through trajopt if using trajopt for freespace
+
+    return true;
 }
 
 bool crsMotionPlanner::generateProcessPlan(pathPlanningResults::Ptr& results)
 {
     std::cout << "generating surface plans" << std::endl;
     bool success_path = generateSurfacePlans(results);
-    return success_path;
+    if (success_path)
+    {
+        return generateSurfacePlans(results);
+    }
+    else
+    {
+        return false;
+    }
 }
 
 } // namespace crs_motion_planning

@@ -46,8 +46,6 @@ struct descartesConfig
 
 struct trajoptSurfaceConfig
 {
-
-
     bool smooth_velocities = true;
     bool smooth_accelerations = true;
     bool smooth_jerks = true;
@@ -64,6 +62,42 @@ struct trajoptSurfaceConfig
     bool waypoints_critical = true;
 };
 
+struct omplConfig
+{
+    double collision_safety_margin = 0.02;
+    double planning_time = 5.0; // seconds
+
+    bool simplify = true;
+    bool collision_continuous = true;
+    bool collision_check = true;
+
+    double range = 0.25;
+
+    Eigen::VectorXd weights;
+
+    int num_threads = 1;
+    int max_solutions = 10;
+
+    int n_output_states = 20;
+};
+
+struct trajoptFreespaceConfig
+{
+    bool smooth_velocities = true;
+    bool smooth_accelerations = true;
+    bool smooth_jerks = true;
+
+    tesseract_motion_planners::CollisionCostConfig coll_cst_cfg;
+    tesseract_motion_planners::CollisionConstraintConfig coll_cnt_cfg;
+
+    trajopt::InitInfo::Type init_type = trajopt::InitInfo::GIVEN_TRAJ;
+
+    double longest_valid_segment_fraction = 0.01;
+
+    tesseract_collision::ContactTestType contact_test_type = tesseract_collision::ContactTestType::CLOSEST;
+
+};
+
 struct pathPlanningConfig
 {
     using Ptr = std::shared_ptr<pathPlanningConfig>;
@@ -73,13 +107,18 @@ struct pathPlanningConfig
 //    tesseract_motion_planners::TrajOptPlannerDefaultConfig::Ptr trajopt_surface_config;
     trajoptSurfaceConfig trajopt_surface_config;
 
-    std::shared_ptr<tesseract_motion_planners::OMPLFreespacePlannerConfig<ompl::geometric::RRTConnect>> ompl_config;
+//    std::shared_ptr<tesseract_motion_planners::OMPLFreespacePlannerConfig<ompl::geometric::RRTConnect>> ompl_config;
+    omplConfig ompl_config;
 
-    tesseract_motion_planners::TrajOptPlannerFreespaceConfig::Ptr trajopt_freespace_config;
+//    tesseract_motion_planners::TrajOptPlannerFreespaceConfig::Ptr trajopt_freespace_config;
+    trajoptFreespaceConfig trajopt_freespace_config;
 
     tesseract::Tesseract::Ptr tesseract_local;
 
     descartes_light::KinematicsInterfaceD::Ptr kin_interface;
+
+    Eigen::VectorXd start_pos;
+    Eigen::VectorXd end_pos;
 
     std::vector<geometry_msgs::msg::PoseArray> rasters; // In world frame
 
@@ -89,7 +128,6 @@ struct pathPlanningConfig
     std::string robot_base_frame = "base_link";
     std::string tool0_frame = "tool0";
     std::string tcp_frame;
-//    std::string waypoint_frame = "world";
 
     Eigen::Isometry3d tool_offset = Eigen::Isometry3d::Identity();
 
@@ -97,7 +135,9 @@ struct pathPlanningConfig
     bool smooth_accelerations = true;
     bool smooth_jerks = true;
 
-    bool add_approach_and_retreate = false;
+    bool use_trajopt_for_freespace = true;
+
+    bool add_approach_and_retreat = false;
     double approach_distance = 0.05;
     double retreat_distance = 0.05;
 
@@ -158,7 +198,15 @@ public:
     bool generateSurfacePlans(pathPlanningResults::Ptr& results);
 
     ///
-    /// \brief generateSurfacePlans Creates surface trajectories given a set of rasters
+    /// \brief generateOMPLSeed Creates freespace trajectory given a start and end joint state
+    /// \return success
+    ///
+    bool generateOMPLSeed(const Eigen::VectorXd &start_pos,
+                          const Eigen::VectorXd &end_pos,
+                          tesseract_common::JointTrajectory& seed_trajectory);
+
+    ///
+    /// \brief generateFreespacePlans Creates freespace trajectories given a set of surface rasters
     /// \return success
     ///
     bool generateFreespacePlans(pathPlanningResults::Ptr& results);

@@ -136,6 +136,8 @@ private:
           raster_strips_world_frame.push_back(curr_strip);
       }
 
+      // TODO: add approach and retreat to each raster
+
       // Set up planning config variable
       crs_motion_planning::descartesConfig descartes_config;
       descartes_config.axial_step = 0.1;
@@ -156,6 +158,13 @@ private:
       surface_coeffs << 10, 10, 10, 10, 10, 0;
       trajopt_surface_config.surface_coeffs = surface_coeffs;
 
+      crs_motion_planning::omplConfig ompl_config;
+      ompl_config.collision_safety_margin = 0.001;
+
+      crs_motion_planning::trajoptFreespaceConfig trajopt_freespace_config;
+      trajopt_freespace_config.coll_cst_cfg = coll_cost_config;
+      trajopt_freespace_config.coll_cnt_cfg = coll_cnt_config;
+
       Eigen::Isometry3d tool_offset;
       tool_offset.setIdentity();
 
@@ -163,6 +172,8 @@ private:
       path_plan_config->tesseract_local = tesseract_local_;
       path_plan_config->descartes_config = descartes_config;
       path_plan_config->trajopt_surface_config = trajopt_surface_config;
+      path_plan_config->ompl_config = ompl_config;
+      path_plan_config->trajopt_freespace_config = trajopt_freespace_config;
       path_plan_config->manipulator = manipulator_;
       path_plan_config->world_frame = "world";
       path_plan_config->robot_base_frame = "base_link";
