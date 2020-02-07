@@ -49,11 +49,11 @@ struct pathPlanningConfig
 
     descartesConfig descartes_config;
 
-//    tesseract_motion_planners::TrajOptPlannerDefaultConfig::Ptr trajopt_surface_config;
+    tesseract_motion_planners::TrajOptPlannerDefaultConfig::Ptr trajopt_surface_config;
 
-//    std::shared_ptr<tesseract_motion_planners::OMPLFreespacePlannerConfig<ompl::geometric::RRTConnect>> ompl_config;
+    std::shared_ptr<tesseract_motion_planners::OMPLFreespacePlannerConfig<ompl::geometric::RRTConnect>> ompl_config;
 
-//    tesseract_motion_planners::TrajOptPlannerFreespaceConfig::Ptr trajopt_freespace_config;
+    tesseract_motion_planners::TrajOptPlannerFreespaceConfig::Ptr trajopt_freespace_config;
 
     tesseract::Tesseract::Ptr tesseract_local;
 
@@ -73,57 +73,6 @@ struct pathPlanningConfig
     bool smooth_jerks = true;
 };
 
-///
-/// \brief generateDescartesSeed Creates a seed trajectory using descartes
-/// \param kin
-/// \param env
-/// \param waypoints
-/// \param kin_interface
-/// \param axial_step
-/// \param allow_collisions
-/// \return success
-///
-bool generateDescartesSeed(const tesseract_kinematics::ForwardKinematics::ConstPtr kin,
-                           const std::shared_ptr<const tesseract_environment::Environment> env,
-                           const geometry_msgs::msg::PoseArray &waypoints,
-                           const descartes_light::KinematicsInterfaceD::Ptr &kin_interface,
-                           const double &axial_step,
-                           const bool &allow_collisions,
-                           const double &collision_safety_margin,
-                           std::vector<std::size_t>& failed_edges,
-                           std::vector<std::size_t>& failed_vertices,
-                           trajectory_msgs::msg::JointTrajectory& joint_trajectory);
-///
-/// \brief generateDescartesSeed Creates a seed trajectory using descartes
-/// \param pathPlanningConfig
-/// \param waypoints
-/// \param axial_step
-/// \param allow_collisions
-/// \return success
-///
-bool generateDescartesSeed(const pathPlanningConfig::Ptr config,
-                           const geometry_msgs::msg::PoseArray &waypoints,
-                           const double &axial_step,
-                           const bool &allow_collisions,
-                           const double &collision_safety_margin,
-                           std::vector<std::size_t>& failed_edges,
-                           std::vector<std::size_t>& failed_vertices,
-                           trajectory_msgs::msg::JointTrajectory& joint_trajectory);
-///
-/// \brief generateDescartesSeed Creates a seed trajectory using descartes
-/// \param pathPlanningConfig
-/// \param waypoints
-/// \param axial_step
-/// \param allow_collisions
-/// \return success
-///
-bool generateDescartesSeed(const pathPlanningConfig::Ptr config,
-                           const geometry_msgs::msg::PoseArray &waypoints,
-                           std::vector<std::size_t>& failed_edges,
-                           std::vector<std::size_t>& failed_vertices,
-                           trajectory_msgs::msg::JointTrajectory& joint_trajectory);
-
-
 class crsMotionPlanner
 {
 public:
@@ -134,19 +83,9 @@ public:
 
     ///
     /// \brief generateDescartesSeed Creates a seed trajectory using descartes
-    /// \param pathPlanningConfig
     /// \param waypoints
-    /// \param axial_step
-    /// \param allow_collisions
     /// \return success
     ///
-    bool generateDescartesSeed(const geometry_msgs::msg::PoseArray &waypoints,
-                               const double &axial_step,
-                               const bool &allow_collisions,
-                               const double &collision_safety_margin,
-                               std::vector<std::size_t>& failed_edges,
-                               std::vector<std::size_t>& failed_vertices,
-                               trajectory_msgs::msg::JointTrajectory& joint_trajectory);
     bool generateDescartesSeed(const geometry_msgs::msg::PoseArray &waypoints,
                                std::vector<std::size_t>& failed_edges,
                                std::vector<std::size_t>& failed_vertices,
@@ -156,7 +95,6 @@ public:
 
 protected:
     pathPlanningConfig::Ptr config_;
-//    descartesConfig::Ptr descartes_config_;
 
 };
 
