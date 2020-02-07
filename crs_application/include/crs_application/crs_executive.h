@@ -63,6 +63,9 @@ namespace action_names
 static const std::string SM_FAILURE = "sm_failure";
 static const std::string SM_NEXT = "sm_next";
 static const std::string SM_DONE = "sm_done";
+static const std::string SM_EXEC_PROC = "sm_exec_proc";
+static const std::string SM_EXEC_MDCH = "sm_exec_mdch";
+
 }  // namespace action_names
 
 class CRSExecutive : public QObject

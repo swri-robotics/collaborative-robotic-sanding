@@ -98,6 +98,7 @@ namespace process_exec
 static const std::string MOVE_START = "Move_Start";
 static const std::string EXEC_PROCESS = "Exec_Process";
 static const std::string EXEC_MEDIA_CHANGE = "Exec_Media_Change";
+static const std::string EXEC_MOVE_RETURN = "Exec_Move_Return";
 static const std::string CHECK_QUEUE = "PE_Check_Queue";
 static const std::string EXEC_HOME = "Exec_Home";
 }  // namespace process_exec
@@ -371,17 +372,22 @@ bool CRSExecutive::setupProcessExecStates()
 
   st_callbacks_map[process_exec::MOVE_START] = StateCallbackInfo{
     entry_cb : std::bind(&task_managers::ProcessExecutionManager::moveStart, process_exec_mngr_.get()),
-    async : false
+    async : true
   };
 
   st_callbacks_map[process_exec::EXEC_PROCESS] = StateCallbackInfo{
     entry_cb : std::bind(&task_managers::ProcessExecutionManager::execProcess, process_exec_mngr_.get()),
-    async : false
+    async : true
   };
 
   st_callbacks_map[process_exec::EXEC_MEDIA_CHANGE] = StateCallbackInfo{
     entry_cb : std::bind(&task_managers::ProcessExecutionManager::execMediaChange, process_exec_mngr_.get()),
-    async : false
+    async : true
+  };
+
+  st_callbacks_map[process_exec::EXEC_MOVE_RETURN] = StateCallbackInfo{
+    entry_cb : std::bind(&task_managers::ProcessExecutionManager::execMoveReturn, process_exec_mngr_.get()),
+    async : true
   };
 
   st_callbacks_map[process_exec::EXEC_HOME] = StateCallbackInfo{
@@ -389,13 +395,42 @@ bool CRSExecutive::setupProcessExecStates()
     async : false
   };
 
-  st_callbacks_map[process_exec::CHECK_QUEUE] = StateCallbackInfo{
-    entry_cb : std::bind(&task_managers::ProcessExecutionManager::checkQueue, process_exec_mngr_.get()),
-    async : false,
-    exit_cb : nullptr,
-    on_done_action : action_names::SM_DONE,
-    on_failed_action : action_names::SM_NEXT
+  // custom callback to handle process checkQueue() response with multiple options
+  auto check_queue_cb = [this](const Action& action) -> scxml_core::Response {
+    scxml_core::Response sm_res;
+    crs_application::common::ActionResult res = process_exec_mngr_->checkQueue();
+    if (!res)
+    {
+      sm_res.success = false;
+      sm_res.msg = res.err_msg;
+      sm_->postAction(Action{ .id = action_names::SM_FAILURE });
+      return sm_res;
+    }
+
+    datatypes::ProcessExecActions proc_action = boost::any_cast<datatypes::ProcessExecActions>(res.opt_data);
+    switch (proc_action)
+    {
+      case datatypes::ProcessExecActions::EXEC_MEDIA_CHANGE:
+        sm_->postAction(Action{ .id = action_names::SM_EXEC_MDCH });
+        break;
+      case datatypes::ProcessExecActions::EXEC_PROCESS:
+        sm_->postAction(Action{ .id = action_names::SM_EXEC_PROC });
+        break;
+      case datatypes::ProcessExecActions::DONE:
+        sm_->postAction(Action{ .id = action_names::SM_DONE });
+        break;
+      default:
+        sm_->postAction(Action{ .id = action_names::SM_FAILURE });
+        sm_res.success = false;
+        sm_res.msg = boost::str(boost::format("process action %i not recognized") % static_cast<int>(proc_action));
+        return sm_res;
+    }
   };
+
+  if (!sm_->addEntryCallback(process_exec::CHECK_QUEUE, check_queue_cb, false))
+  {
+    return false;
+  }
 
   // now adding functions to SM
   return addStateCallbacks(st_callbacks_map);
