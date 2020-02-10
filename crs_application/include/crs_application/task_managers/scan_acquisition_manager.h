@@ -45,12 +45,10 @@
 #include <geometry_msgs/msg/transform.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 
-
 namespace crs_application
 {
 namespace task_managers
 {
-
 struct ScanAcquisitionConfig
 {
   std::vector<std::vector<double> > scan_poses;
@@ -84,13 +82,9 @@ public:
   common::ActionResult checkQueue();
 
   // Results
-  const datatypes::ScanAcquisitionResult& getResult()
-  {
-    return result_;
-  }
+  const datatypes::ScanAcquisitionResult& getResult() { return result_; }
 
 protected:
-
   // support methods
   common::ActionResult checkPreReqs();
 
@@ -116,7 +110,7 @@ protected:
   void handlePointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr msg);
 };
 
-}
-}
+}  // namespace task_managers
+}  // namespace crs_application
 
 #endif /* INCLUDE_CRS_APPLICATION_TASK_MANAGERS_SCAN_ACQUISITION_MANAGER_H_ */

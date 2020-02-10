@@ -46,7 +46,6 @@ namespace crs_application
 {
 namespace datatypes
 {
-
 struct ScanAcquisitionResult
 {
   std::vector<sensor_msgs::msg::PointCloud2> point_clouds;
@@ -63,7 +62,7 @@ struct MediaChangeMotionPlan
   trajectory_msgs::msg::JointTrajectory return_traj;
 };
 
-enum class ProcessExecActions: int
+enum class ProcessExecActions : int
 {
   EXEC_PROCESS = 1,
   EXEC_MEDIA_CHANGE,
@@ -73,16 +72,15 @@ enum class ProcessExecActions: int
 struct ProcessExecutionData
 {
   trajectory_msgs::msg::JointTrajectory move_to_start;
-  std::vector< crs_msgs::msg::ProcessMotionPlan > process_plans;
-  std::vector< MediaChangeMotionPlan > media_change_plans;
+  std::vector<crs_msgs::msg::ProcessMotionPlan> process_plans;
+  std::vector<MediaChangeMotionPlan> media_change_plans;
 };
 
 struct PartInspectionResult
 {
-
 };
 
-}
-}
+}  // namespace datatypes
+}  // namespace crs_application
 
 #endif /* INCLUDE_CRS_APPLICATION_COMMON_DATATYPES_H_ */

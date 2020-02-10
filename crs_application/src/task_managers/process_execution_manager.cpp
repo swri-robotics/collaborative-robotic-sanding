@@ -45,17 +45,9 @@ template <class VarType, class ValType>
 class ScopeExit
 {
 public:
-  ScopeExit(VarType* var_ptr, ValType scope_exit_val):
-    val_ptr_(var_ptr),
-    scope_exit_val_(scope_exit_val)
-  {
+  ScopeExit(VarType* var_ptr, ValType scope_exit_val) : val_ptr_(var_ptr), scope_exit_val_(scope_exit_val) {}
 
-  }
-
-  ~ScopeExit()
-  {
-    *val_ptr_ = scope_exit_val_;
-  }
+  ~ScopeExit() { *val_ptr_ = scope_exit_val_; }
 
   VarType* val_ptr_;
   ValType scope_exit_val_;
@@ -65,23 +57,17 @@ namespace crs_application
 {
 namespace task_managers
 {
-
-ProcessExecutionManager::ProcessExecutionManager(std::shared_ptr<rclcpp::Node> node):
-    node_(node),
-    executing_motion_(false)
+ProcessExecutionManager::ProcessExecutionManager(std::shared_ptr<rclcpp::Node> node)
+  : node_(node), executing_motion_(false)
 {
-
 }
 
-ProcessExecutionManager::~ProcessExecutionManager()
-{
-
-}
+ProcessExecutionManager::~ProcessExecutionManager() {}
 
 common::ActionResult ProcessExecutionManager::init()
 {
-  traj_exec_pub_ = node_->create_publisher<trajectory_msgs::msg::JointTrajectory>(TRAJECTORY_EXEC_TOPIC,
-                                                                                  rclcpp::QoS(1));
+  traj_exec_pub_ =
+      node_->create_publisher<trajectory_msgs::msg::JointTrajectory>(TRAJECTORY_EXEC_TOPIC, rclcpp::QoS(1));
   executing_motion_ = false;
   return true;
 }
@@ -101,60 +87,56 @@ common::ActionResult ProcessExecutionManager::setInput(const datatypes::ProcessE
 common::ActionResult ProcessExecutionManager::execProcess()
 {
   const crs_msgs::msg::ProcessMotionPlan& process_plan = input_->process_plans[current_process_idx_];
-  RCLCPP_INFO(node_->get_logger(),"%s Executing process %i",MANAGER_NAME.c_str(), current_process_idx_);
-  if(!execTrajectory(process_plan.start))
+  RCLCPP_INFO(node_->get_logger(), "%s Executing process %i", MANAGER_NAME.c_str(), current_process_idx_);
+  if (!execTrajectory(process_plan.start))
   {
     common::ActionResult res;
-    res.err_msg = boost::str(boost::format(
-        "%s failed to execute start motion") % MANAGER_NAME.c_str());
-    RCLCPP_ERROR(node_->get_logger(),"%s", res.err_msg.c_str());
+    res.err_msg = boost::str(boost::format("%s failed to execute start motion") % MANAGER_NAME.c_str());
+    RCLCPP_ERROR(node_->get_logger(), "%s", res.err_msg.c_str());
     res.succeeded = false;
     return res;
   }
 
-  for(std::size_t i = 0; i < process_plan.process_motions.size(); i++)
+  for (std::size_t i = 0; i < process_plan.process_motions.size(); i++)
   {
-    RCLCPP_INFO(node_->get_logger(),"%s Executing process path %i",MANAGER_NAME.c_str(), i);
-    if(!execTrajectory(process_plan.process_motions[i]))
+    RCLCPP_INFO(node_->get_logger(), "%s Executing process path %i", MANAGER_NAME.c_str(), i);
+    if (!execTrajectory(process_plan.process_motions[i]))
     {
       common::ActionResult res;
-      res.err_msg = boost::str(boost::format(
-          "%s failed to execute process motion %i") % MANAGER_NAME.c_str() % i);
-      RCLCPP_ERROR(node_->get_logger(),"%s", res.err_msg.c_str());
+      res.err_msg = boost::str(boost::format("%s failed to execute process motion %i") % MANAGER_NAME.c_str() % i);
+      RCLCPP_ERROR(node_->get_logger(), "%s", res.err_msg.c_str());
       res.succeeded = false;
       return res;
     }
 
-    if(i >= process_plan.free_motions.size())
+    if (i >= process_plan.free_motions.size())
     {
-      RCLCPP_INFO(node_->get_logger(),"%s No free motion to follow process path %i, skipping",
-                  MANAGER_NAME.c_str(), i);
+      RCLCPP_INFO(
+          node_->get_logger(), "%s No free motion to follow process path %i, skipping", MANAGER_NAME.c_str(), i);
       continue;
     }
 
-    RCLCPP_INFO(node_->get_logger(),"%s Executing free motion %i",MANAGER_NAME.c_str(), i);
-    if(!execTrajectory(process_plan.free_motions[i]))
+    RCLCPP_INFO(node_->get_logger(), "%s Executing free motion %i", MANAGER_NAME.c_str(), i);
+    if (!execTrajectory(process_plan.free_motions[i]))
     {
       common::ActionResult res;
-      res.err_msg = boost::str(boost::format(
-          "%s failed to execute free motion %i") % MANAGER_NAME.c_str() % i);
-      RCLCPP_ERROR(node_->get_logger(),"%s", res.err_msg.c_str());
+      res.err_msg = boost::str(boost::format("%s failed to execute free motion %i") % MANAGER_NAME.c_str() % i);
+      RCLCPP_ERROR(node_->get_logger(), "%s", res.err_msg.c_str());
       res.succeeded = false;
       return res;
     }
   }
 
-  RCLCPP_INFO(node_->get_logger(),"%s Executing end motion",MANAGER_NAME.c_str());
-  if(!execTrajectory(process_plan.end))
+  RCLCPP_INFO(node_->get_logger(), "%s Executing end motion", MANAGER_NAME.c_str());
+  if (!execTrajectory(process_plan.end))
   {
     common::ActionResult res;
-    res.err_msg = boost::str(boost::format(
-        "%s failed to execute end motion") % MANAGER_NAME.c_str());
-    RCLCPP_ERROR(node_->get_logger(),"%s", res.err_msg.c_str());
+    res.err_msg = boost::str(boost::format("%s failed to execute end motion") % MANAGER_NAME.c_str());
+    RCLCPP_ERROR(node_->get_logger(), "%s", res.err_msg.c_str());
     res.succeeded = false;
     return res;
   }
-  RCLCPP_INFO(node_->get_logger(),"%s Completed process %i",MANAGER_NAME.c_str(), current_process_idx_);
+  RCLCPP_INFO(node_->get_logger(), "%s Completed process %i", MANAGER_NAME.c_str(), current_process_idx_);
 
   return true;
 }
@@ -162,13 +144,12 @@ common::ActionResult ProcessExecutionManager::execProcess()
 common::ActionResult ProcessExecutionManager::execMediaChange()
 {
   datatypes::MediaChangeMotionPlan& mc_motion_plan = input_->media_change_plans[current_media_change_idx_];
-  RCLCPP_INFO(node_->get_logger(),"%s Executing media change %i",MANAGER_NAME.c_str(), current_media_change_idx_);
-  if(!execTrajectory(mc_motion_plan.start_traj))
+  RCLCPP_INFO(node_->get_logger(), "%s Executing media change %i", MANAGER_NAME.c_str(), current_media_change_idx_);
+  if (!execTrajectory(mc_motion_plan.start_traj))
   {
     common::ActionResult res;
-    res.err_msg = boost::str(boost::format(
-        "%s failed to execute media change motion") % MANAGER_NAME.c_str());
-    RCLCPP_ERROR(node_->get_logger(),"%s", res.err_msg.c_str());
+    res.err_msg = boost::str(boost::format("%s failed to execute media change motion") % MANAGER_NAME.c_str());
+    RCLCPP_ERROR(node_->get_logger(), "%s", res.err_msg.c_str());
     res.succeeded = false;
     return res;
   }
@@ -178,20 +159,19 @@ common::ActionResult ProcessExecutionManager::execMediaChange()
 
 common::ActionResult ProcessExecutionManager::checkQueue()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s not implemented yet",__PRETTY_FUNCTION__);
+  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   common::ActionResult res;
-  if(current_process_idx_ >= input_->process_plans.size()-1)
+  if (current_process_idx_ >= input_->process_plans.size() - 1)
   {
     res.succeeded = true;
     res.opt_data = datatypes::ProcessExecActions::DONE;
     return res;
   }
 
-
-  if(current_process_idx_ > current_media_change_idx_)
+  if (current_process_idx_ > current_media_change_idx_)
   {
     current_media_change_idx_ = current_process_idx_;
-    if(current_media_change_idx_ < input_->media_change_plans.size())
+    if (current_media_change_idx_ < input_->media_change_plans.size())
     {
       res.succeeded = true;
       res.opt_data = datatypes::ProcessExecActions::EXEC_MEDIA_CHANGE;
@@ -207,7 +187,7 @@ common::ActionResult ProcessExecutionManager::checkQueue()
 
 common::ActionResult ProcessExecutionManager::execHome()
 {
-  RCLCPP_WARN(node_->get_logger(),"%s No home motion to execute", MANAGER_NAME.c_str());
+  RCLCPP_WARN(node_->get_logger(), "%s No home motion to execute", MANAGER_NAME.c_str());
   return true;
 }
 
@@ -215,20 +195,20 @@ common::ActionResult ProcessExecutionManager::moveStart()
 {
   // check input
   common::ActionResult res = checkPreReq();
-  if(!res)
+  if (!res)
   {
     return res;
   }
 
   resetIndexes();
 
-  if(input_->move_to_start.points.empty())
+  if (input_->move_to_start.points.empty())
   {
-    RCLCPP_WARN(node_->get_logger(),"%s No start trajectory was provided, skipping", MANAGER_NAME.c_str());
+    RCLCPP_WARN(node_->get_logger(), "%s No start trajectory was provided, skipping", MANAGER_NAME.c_str());
     return true;
   }
 
-  RCLCPP_INFO(node_->get_logger(),"%s Executing start trajectory", MANAGER_NAME.c_str());
+  RCLCPP_INFO(node_->get_logger(), "%s Executing start trajectory", MANAGER_NAME.c_str());
   res = execTrajectory(input_->move_to_start);
   return res;
 }
@@ -236,14 +216,15 @@ common::ActionResult ProcessExecutionManager::moveStart()
 common::ActionResult ProcessExecutionManager::execMoveReturn()
 {
   datatypes::MediaChangeMotionPlan& mc_motion_plan = input_->media_change_plans[current_media_change_idx_];
-  RCLCPP_INFO(node_->get_logger(),"%s Executing return move %i back to process ",MANAGER_NAME.c_str(),
+  RCLCPP_INFO(node_->get_logger(),
+              "%s Executing return move %i back to process ",
+              MANAGER_NAME.c_str(),
               current_media_change_idx_);
-  if(!execTrajectory(mc_motion_plan.return_traj))
+  if (!execTrajectory(mc_motion_plan.return_traj))
   {
     common::ActionResult res;
-    res.err_msg = boost::str(boost::format(
-        "%s failed to execute return move") % MANAGER_NAME.c_str());
-    RCLCPP_ERROR(node_->get_logger(),"%s", res.err_msg.c_str());
+    res.err_msg = boost::str(boost::format("%s failed to execute return move") % MANAGER_NAME.c_str());
+    RCLCPP_ERROR(node_->get_logger(), "%s", res.err_msg.c_str());
     res.succeeded = false;
     return res;
   }
@@ -253,7 +234,7 @@ common::ActionResult ProcessExecutionManager::execMoveReturn()
 
 common::ActionResult ProcessExecutionManager::cancelMotion()
 {
-  if(!executing_motion_)
+  if (!executing_motion_)
   {
     return true;
   }
@@ -262,22 +243,22 @@ common::ActionResult ProcessExecutionManager::cancelMotion()
 
   // attempting to send a new trajectory with just one point
   trajectory_msgs::msg::JointTrajectory traj;
-  sensor_msgs::msg::JointState::SharedPtr js = common::getCurrentState(node_,
-    CURRENT_JOINT_STATE_TOPIC,WAIT_INTERVAL_PERIOD);
+  sensor_msgs::msg::JointState::SharedPtr js =
+      common::getCurrentState(node_, CURRENT_JOINT_STATE_TOPIC, WAIT_INTERVAL_PERIOD);
   common::ActionResult res;
-  if(!js)
+  if (!js)
   {
     res.succeeded = false;
     res.err_msg = "Failed to get latest joint state";
-    RCLCPP_ERROR(node_->get_logger(),"%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
+    RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
     return res;
   }
   traj.header = js->header;
   traj.joint_names = js->name;
   traj.points.resize(1);
   traj.points.back().positions = js->position;
-  traj.points.back().velocities.resize(traj.joint_names.size(),0.0);
-  traj.points.back().effort.resize(traj.joint_names.size(),0.0);
+  traj.points.back().velocities.resize(traj.joint_names.size(), 0.0);
+  traj.points.back().effort.resize(traj.joint_names.size(), 0.0);
   traj_exec_pub_->publish(traj);
   return true;
 }
@@ -306,9 +287,9 @@ common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_ms
   traj_exec_pub_->publish(traj);
 
   // now wait for completion
-  while(rclcpp::ok())
+  while (rclcpp::ok())
   {
-    if(!executing_motion_)
+    if (!executing_motion_)
     {
       res.succeeded = false;
       res.err_msg = "Trajectory execution interrupted";
@@ -320,26 +301,26 @@ common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_ms
 
     // compute elapsed duration
     rclcpp::Duration elapsed_dur = node_->get_clock()->now() - start_time;
-    if(elapsed_dur < traj_dur)
+    if (elapsed_dur < traj_dur)
     {
       continue;
     }
 
-    if(elapsed_dur > traj_dur + rclcpp::Duration(config_->traj_time_tolerance))
+    if (elapsed_dur > traj_dur + rclcpp::Duration(config_->traj_time_tolerance))
     {
       res.succeeded = false;
       res.err_msg = "Trajectory execution timeout";
-      RCLCPP_ERROR(node_->get_logger(),"%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
+      RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
       return res;
     }
 
-    sensor_msgs::msg::JointState::SharedPtr js = common::getCurrentState(node_,
-      CURRENT_JOINT_STATE_TOPIC,WAIT_INTERVAL_PERIOD);
-    if(!js)
+    sensor_msgs::msg::JointState::SharedPtr js =
+        common::getCurrentState(node_, CURRENT_JOINT_STATE_TOPIC, WAIT_INTERVAL_PERIOD);
+    if (!js)
     {
       res.succeeded = false;
       res.err_msg = "Failed to get latest joint state";
-      RCLCPP_ERROR(node_->get_logger(),"%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
+      RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
       return res;
     }
 
@@ -347,14 +328,14 @@ common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_ms
     std::string warn_msg;
     double diff = common::compare(end_js, *js, warn_msg);
     bool at_goal = true;
-    if(diff < 0.0)
+    if (diff < 0.0)
     {
-      RCLCPP_WARN(node_->get_logger(),"%s %s", MANAGER_NAME.c_str(), warn_msg.c_str());
+      RCLCPP_WARN(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), warn_msg.c_str());
       continue;
     }
 
     at_goal = diff < config_->joint_tolerance;
-    if(at_goal)
+    if (at_goal)
     {
       break;
     }
@@ -364,35 +345,35 @@ common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_ms
 
 common::ActionResult ProcessExecutionManager::checkPreReq()
 {
-  if(!config_)
+  if (!config_)
   {
-    common::ActionResult res = { succeeded :false, err_msg: "No configuration has been provided, can not proceed"};
-    RCLCPP_ERROR(node_->get_logger(),"%s %s",MANAGER_NAME.c_str(), res.err_msg.c_str());
+    common::ActionResult res = { succeeded : false, err_msg : "No configuration has been provided, can not proceed" };
+    RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
     return res;
   }
 
-  if(!input_)
+  if (!input_)
   {
-    common::ActionResult res = { succeeded :false, err_msg: "No input data has been provided, can not proceed"};
-    RCLCPP_ERROR(node_->get_logger(),"%s %s",MANAGER_NAME.c_str(), res.err_msg.c_str());
+    common::ActionResult res = { succeeded : false, err_msg : "No input data has been provided, can not proceed" };
+    RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
     return res;
   }
 
-  if(input_->process_plans.empty())
+  if (input_->process_plans.empty())
   {
     common::ActionResult res;
     res.succeeded = false;
     res.err_msg = "Process plans buffer is empty";
-    RCLCPP_ERROR(node_->get_logger(),"%s %s",MANAGER_NAME.c_str(), res.err_msg.c_str());
+    RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
     return res;
   }
 
-  if(traj_exec_pub_->get_subscription_count() > 0)
+  if (traj_exec_pub_->get_subscription_count() > 0)
   {
     common::ActionResult res;
     res.succeeded = false;
     res.err_msg = "No trajectory execution subscribers were found";
-    RCLCPP_ERROR(node_->get_logger(),"%s %s",MANAGER_NAME.c_str(), res.err_msg.c_str());
+    RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
     return res;
   }
   return true;
@@ -400,4 +381,3 @@ common::ActionResult ProcessExecutionManager::checkPreReq()
 
 } /* namespace task_managers */
 } /* namespace crs_application */
-

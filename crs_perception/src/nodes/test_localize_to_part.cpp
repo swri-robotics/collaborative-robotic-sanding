@@ -11,7 +11,8 @@
 #include <crs_msgs/srv/localize_to_part.hpp>
 #include <rclcpp/rclcpp.hpp>
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv)
+{
   rclcpp::init(argc, argv);
   std::shared_ptr<rclcpp::Node> node = rclcpp::Node::make_shared("test_localize_to_part");
 
@@ -23,7 +24,7 @@ int main(int argc, char **argv) {
 
   std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> point_clouds;
 
-  for (auto &pcf: point_cloud_files)
+  for (auto& pcf : point_cloud_files)
   {
     pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
 
@@ -37,13 +38,13 @@ int main(int argc, char **argv) {
     point_clouds.push_back(point_cloud);
   }
 
-  rclcpp::Client<crs_msgs::srv::LoadPart>::SharedPtr load_part_client = 
-    node->create_client<crs_msgs::srv::LoadPart>("load_part");
-  rclcpp::Client<crs_msgs::srv::LocalizeToPart>::SharedPtr localize_to_part_client = 
-    node->create_client<crs_msgs::srv::LocalizeToPart>("localize_to_part");
+  rclcpp::Client<crs_msgs::srv::LoadPart>::SharedPtr load_part_client =
+      node->create_client<crs_msgs::srv::LoadPart>("load_part");
+  rclcpp::Client<crs_msgs::srv::LocalizeToPart>::SharedPtr localize_to_part_client =
+      node->create_client<crs_msgs::srv::LocalizeToPart>("localize_to_part");
 
-  while (!localize_to_part_client->wait_for_service() ||
-         !load_part_client->wait_for_service()) {
+  while (!localize_to_part_client->wait_for_service() || !load_part_client->wait_for_service())
+  {
     RCLCPP_INFO(node->get_logger(), "service not available, waiting again.");
   }
 
@@ -51,8 +52,7 @@ int main(int argc, char **argv) {
   load_part_request->path_to_part = part_file;
 
   auto result_future = load_part_client->async_send_request(load_part_request);
-  if (rclcpp::spin_until_future_complete(node, result_future) !=
-    rclcpp::executor::FutureReturnCode::SUCCESS)
+  if (rclcpp::spin_until_future_complete(node, result_future) != rclcpp::executor::FutureReturnCode::SUCCESS)
   {
     RCLCPP_ERROR(node->get_logger(), "service call failed :(");
     rclcpp::shutdown();
@@ -61,16 +61,15 @@ int main(int argc, char **argv) {
   auto result = result_future.get();
   RCLCPP_INFO(node->get_logger(), "%d", result->success);
 
-  //pcl::transformPointcloud
-  std::pair<Eigen::Vector3d, Eigen::Quaterniond> transform = 
-    std::make_pair<Eigen::Vector3d,
-                   Eigen::Quaterniond>(Eigen::Vector3d(1, 10, 3),
-                                       Eigen::Quaterniond(Eigen::AngleAxisf(0, Eigen::Vector3f::UnitX()) *
-                                                          Eigen::AngleAxisf(0, Eigen::Vector3f::UnitY()) *
-                                                          Eigen::AngleAxisf(0, Eigen::Vector3f::UnitZ())));
+  // pcl::transformPointcloud
+  std::pair<Eigen::Vector3d, Eigen::Quaterniond> transform = std::make_pair<Eigen::Vector3d, Eigen::Quaterniond>(
+      Eigen::Vector3d(1, 10, 3),
+      Eigen::Quaterniond(Eigen::AngleAxisf(0, Eigen::Vector3f::UnitX()) *
+                         Eigen::AngleAxisf(0, Eigen::Vector3f::UnitY()) *
+                         Eigen::AngleAxisf(0, Eigen::Vector3f::UnitZ())));
 
   auto localize_to_part_request = std::make_shared<crs_msgs::srv::LocalizeToPart::Request>();
-  for(auto &point_cloud: point_clouds)
+  for (auto& point_cloud : point_clouds)
   {
     pcl::PointCloud<pcl::PointXYZ> tf_point_cloud;
     pcl::transformPointCloud(*point_cloud, tf_point_cloud, transform.first, transform.second);
@@ -80,18 +79,19 @@ int main(int argc, char **argv) {
   }
 
   auto localize_result_future = localize_to_part_client->async_send_request(localize_to_part_request);
-  if (rclcpp::spin_until_future_complete(node, localize_result_future) !=
-      rclcpp::executor::FutureReturnCode::SUCCESS)
+  if (rclcpp::spin_until_future_complete(node, localize_result_future) != rclcpp::executor::FutureReturnCode::SUCCESS)
   {
-      RCLCPP_ERROR(node->get_logger(), "service call failed :(");
-      rclcpp::shutdown();
-      return 1;
+    RCLCPP_ERROR(node->get_logger(), "service call failed :(");
+    rclcpp::shutdown();
+    return 1;
   }
   auto localize_result = localize_result_future.get();
   RCLCPP_INFO(node->get_logger(), "%d", localize_result->success);
-  RCLCPP_INFO(node->get_logger(), "Transform : (%f, %f, %f)", localize_result->transform.transform.translation.x,
-                                                              localize_result->transform.transform.translation.y,
-                                                              localize_result->transform.transform.translation.z);
+  RCLCPP_INFO(node->get_logger(),
+              "Transform : (%f, %f, %f)",
+              localize_result->transform.transform.translation.x,
+              localize_result->transform.transform.translation.y,
+              localize_result->transform.transform.translation.z);
 
   rclcpp::shutdown();
   return 0;

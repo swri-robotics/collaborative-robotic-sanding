@@ -46,22 +46,17 @@ namespace crs_application
 {
 namespace task_managers
 {
-
-ScanAcquisitionManager::ScanAcquisitionManager(std::shared_ptr<rclcpp::Node> node):
-    node_(node),
-    scan_positions_(std::vector<geometry_msgs::msg::Transform>()),
-    camera_frame_id_(""),
-    max_time_since_last_point_cloud_(0.1),
-    point_clouds_(std::vector<sensor_msgs::msg::PointCloud2>()),
-    scan_index_(0)
+ScanAcquisitionManager::ScanAcquisitionManager(std::shared_ptr<rclcpp::Node> node)
+  : node_(node)
+  , scan_positions_(std::vector<geometry_msgs::msg::Transform>())
+  , camera_frame_id_("")
+  , max_time_since_last_point_cloud_(0.1)
+  , point_clouds_(std::vector<sensor_msgs::msg::PointCloud2>())
+  , scan_index_(0)
 {
-
 }
 
-ScanAcquisitionManager::~ScanAcquisitionManager()
-{
-
-}
+ScanAcquisitionManager::~ScanAcquisitionManager() {}
 
 common::ActionResult ScanAcquisitionManager::init()
 {
@@ -71,27 +66,27 @@ common::ActionResult ScanAcquisitionManager::init()
   pre_acquisition_pause_ = node_->declare_parameter("pre_acquisition_pause", 1.0);
 
   // subscribers
-  point_cloud_sub_ = node_->create_subscription<sensor_msgs::msg::PointCloud2>(POINT_CLOUD_TOPIC, 1,
-    std::bind(&ScanAcquisitionManager::handlePointCloud, this, std::placeholders::_1));
+  point_cloud_sub_ = node_->create_subscription<sensor_msgs::msg::PointCloud2>(
+      POINT_CLOUD_TOPIC, 1, std::bind(&ScanAcquisitionManager::handlePointCloud, this, std::placeholders::_1));
 
   // service client
-  call_freespace_motion_client_ = node_->create_client<crs_msgs::srv::CallFreespaceMotion>(
-      FREESPACE_MOTION_PLAN_SERVICE);
+  call_freespace_motion_client_ =
+      node_->create_client<crs_msgs::srv::CallFreespaceMotion>(FREESPACE_MOTION_PLAN_SERVICE);
 
   // waiting for services
   common::ActionResult res;
-  std::vector<rclcpp::ClientBase*> srv_clients = {call_freespace_motion_client_.get()};
-  if(!std::all_of(srv_clients.begin(), srv_clients.end(),[this, &res](rclcpp::ClientBase* c){
-    if(!c->wait_for_service(std::chrono::duration<double>(WAIT_FOR_SERVICE_PERIOD)))
-    {
-      res.succeeded = false;
-      res.err_msg = boost::str(boost::format("service '%s' was not found") % c->get_service_name());
-      return false;
-    }
-    return true;
-  }))
+  std::vector<rclcpp::ClientBase*> srv_clients = { call_freespace_motion_client_.get() };
+  if (!std::all_of(srv_clients.begin(), srv_clients.end(), [this, &res](rclcpp::ClientBase* c) {
+        if (!c->wait_for_service(std::chrono::duration<double>(WAIT_FOR_SERVICE_PERIOD)))
+        {
+          res.succeeded = false;
+          res.err_msg = boost::str(boost::format("service '%s' was not found") % c->get_service_name());
+          return false;
+        }
+        return true;
+      }))
   {
-    RCLCPP_ERROR(node_->get_logger(),"%s %s",MANAGER_NAME.c_str(),res.err_msg);
+    RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg);
   }
 
   return true;
@@ -113,7 +108,7 @@ common::ActionResult ScanAcquisitionManager::configure(const ScanAcquisitionConf
 common::ActionResult ScanAcquisitionManager::verify()
 {
   common::ActionResult res = checkPreReqs();
-  if(!res)
+  if (!res)
   {
     return res;
   }
@@ -132,10 +127,9 @@ common::ActionResult ScanAcquisitionManager::moveRobot()
   freespace_motion_request->execute = true;
 
   auto result_future = call_freespace_motion_client_->async_send_request(freespace_motion_request);
-  if (rclcpp::spin_until_future_complete(node_, result_future) !=
-    rclcpp::executor::FutureReturnCode::SUCCESS)
+  if (rclcpp::spin_until_future_complete(node_, result_future) != rclcpp::executor::FutureReturnCode::SUCCESS)
   {
-    RCLCPP_ERROR(node_->get_logger(), "%s Call Freespace Motion service call failed",MANAGER_NAME.c_str());
+    RCLCPP_ERROR(node_->get_logger(), "%s Call Freespace Motion service call failed", MANAGER_NAME.c_str());
     return false;
   }
   auto result = result_future.get();
@@ -146,7 +140,7 @@ common::ActionResult ScanAcquisitionManager::moveRobot()
   }
   else
   {
-    RCLCPP_ERROR(node_->get_logger(), "%s %s",MANAGER_NAME.c_str(), result->message.c_str());
+    RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), result->message.c_str());
     return false;
   }
 }
@@ -157,12 +151,11 @@ common::ActionResult ScanAcquisitionManager::capture()
   std::chrono::duration<double> sleep_dur(WAIT_MESSAGE_TIMEOUT);
   rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::nanoseconds>(sleep_dur));
 
-  auto msg = common::waitForMessage<sensor_msgs::msg::PointCloud2>(node_,POINT_CLOUD_TOPIC,
-                                                                   WAIT_MESSAGE_TIMEOUT);
-  if(!msg)
+  auto msg = common::waitForMessage<sensor_msgs::msg::PointCloud2>(node_, POINT_CLOUD_TOPIC, WAIT_MESSAGE_TIMEOUT);
+  if (!msg)
   {
     common::ActionResult res;
-    res.succeeded =false;
+    res.succeeded = false;
     res.err_msg = "Failed to get point cloud message";
     return res;
   }
@@ -185,7 +178,7 @@ common::ActionResult ScanAcquisitionManager::capture()
 common::ActionResult ScanAcquisitionManager::checkQueue()
 {
   scan_index_++;
-  if (scan_index_ < scan_positions_.size()-1)
+  if (scan_index_ < scan_positions_.size() - 1)
   {
     return false;
   }
@@ -202,19 +195,19 @@ common::ActionResult ScanAcquisitionManager::checkQueue()
 common::ActionResult ScanAcquisitionManager::checkPreReqs()
 {
   common::ActionResult res;
-  if(scan_positions_.empty())
+  if (scan_positions_.empty())
   {
-    res.succeeded =false;
+    res.succeeded = false;
     res.err_msg = "No scan positions available, cannot proceed";
-    RCLCPP_ERROR(node_->get_logger(),"%s %s",MANAGER_NAME.c_str(), res.err_msg.c_str());
+    RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
     return res;
   }
 
-  if(camera_frame_id_.empty())
+  if (camera_frame_id_.empty())
   {
-    res.succeeded =false;
+    res.succeeded = false;
     res.err_msg = "No camera frame has been specified, cannot proceed";
-    RCLCPP_ERROR(node_->get_logger(),"%s %s",MANAGER_NAME.c_str(), res.err_msg.c_str());
+    RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
     return res;
   }
   return true;
@@ -225,6 +218,5 @@ void ScanAcquisitionManager::handlePointCloud(const sensor_msgs::msg::PointCloud
   curr_point_cloud_ = *msg;
 }
 
-} // end of namespace task_managers
-} // end of namespace crs_application
-
+}  // end of namespace task_managers
+}  // end of namespace crs_application

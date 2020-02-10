@@ -54,41 +54,34 @@
 
 namespace crs_application
 {
-
 /**
  * @namespace action_names
  * @brief actions allowed by the SM
  */
 namespace action_names
 {
-  static const std::string SM_FAILURE = "sm_failure";
-  static const std::string SM_NEXT = "sm_next";
-  static const std::string SM_DONE = "sm_done";
-  static const std::string SM_EXEC_PROC = "sm_exec_proc";
-  static const std::string SM_EXEC_MDCH = "sm_exec_mdch";
+static const std::string SM_FAILURE = "sm_failure";
+static const std::string SM_NEXT = "sm_next";
+static const std::string SM_DONE = "sm_done";
+static const std::string SM_EXEC_PROC = "sm_exec_proc";
+static const std::string SM_EXEC_MDCH = "sm_exec_mdch";
 
-}
+}  // namespace action_names
 
-class CRSExecutive: public QObject
+class CRSExecutive : public QObject
 {
 public:
   CRSExecutive(std::shared_ptr<rclcpp::Node> node);
   virtual ~CRSExecutive();
 
-  std::shared_ptr<scxml_core::StateMachine> getSM()
-  {
-    return sm_;
-  }
+  std::shared_ptr<scxml_core::StateMachine> getSM() { return sm_; }
 
 protected:
-
-
   struct StateCallbackInfo
   {
-
-    std::function< crs_application::common::ActionResult () > entry_cb = nullptr;
+    std::function<crs_application::common::ActionResult()> entry_cb = nullptr;
     bool async = false;
-    std::function< crs_application::common::ActionResult () > exit_cb = nullptr;
+    std::function<crs_application::common::ActionResult()> exit_cb = nullptr;
     std::string on_done_action = action_names::SM_DONE;
     std::string on_failed_action = action_names::SM_FAILURE;
   };
@@ -107,9 +100,8 @@ protected:
   bool setupPartReworkStates();
 
   // support methods
-  bool addStateCallbacks(const std::map<std::string, StateCallbackInfo >& st_callbacks_map);
+  bool addStateCallbacks(const std::map<std::string, StateCallbackInfo>& st_callbacks_map);
   bool configureManagers();
-
 
   std::shared_ptr<scxml_core::StateMachine> sm_;
   std::string current_state_;
@@ -134,6 +126,6 @@ protected:
   crs_msgs::msg::ProcessConfiguration process_config_;
 };
 
-}
+}  // namespace crs_application
 
 #endif /* INCLUDE_CRS_APPLICATION_CRS_EXECUTIVE_H_ */

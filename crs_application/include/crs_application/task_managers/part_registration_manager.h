@@ -49,10 +49,8 @@ namespace crs_application
 {
 namespace task_managers
 {
-
 struct PartRegistrationConfig
 {
-
 };
 
 class PartRegistrationManager
@@ -72,13 +70,9 @@ public:
   common::ActionResult applyTransform();
 
   // Results
-  const datatypes::ProcessToolpathData& getResult()
-  {
-    return result_;
-  }
+  const datatypes::ProcessToolpathData& getResult() { return result_; }
 
 protected:
-
   std::shared_ptr<rclcpp::Node> node_;
   std::shared_ptr<datatypes::ScanAcquisitionResult> input_ = nullptr;
   datatypes::ProcessToolpathData result_;
