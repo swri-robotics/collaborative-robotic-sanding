@@ -150,6 +150,10 @@ struct pathPlanningConfig
     double max_joint_vel = 0.2; // rad/s
 
     size_t minimum_raster_length = 2;
+
+    bool simplify_start_end_freespace = true;
+
+    bool trajopt_verbose_output = false;
 };
 
 struct pathPlanningResults
@@ -210,6 +214,14 @@ public:
                           tesseract_common::JointTrajectory& seed_trajectory);
 
     ///
+    /// \brief trajoptFreespace Uses ompl seed to generate a trajopt plan
+    /// \return success
+    ///
+    bool trajoptFreespaceFromOMPL(const Eigen::VectorXd &start_pose,
+                          const Eigen::VectorXd &end_pose,
+                          const tesseract_common::JointTrajectory &seed_trajectory,
+                          trajectory_msgs::msg::JointTrajectory& joint_trajectory);
+    ///
     /// \brief generateFreespacePlans Creates freespace trajectories given a set of surface rasters
     /// \return success
     ///
@@ -221,9 +233,24 @@ public:
     ///
     bool generateProcessPlan(pathPlanningResults::Ptr& results);
 
+    ///
+    /// \brief generateFreespacePlan Creates a freespace plans given a start and end joint position
+    /// \return success
+    ///
+    bool generateFreespacePlan(const Eigen::VectorXd &start_pose,
+                               const Eigen::VectorXd &end_pose,
+                               trajectory_msgs::msg::JointTrajectory& joint_trajectory);
+
+    ///
+    /// \brief generateFreespacePlan Creates a freespace plans given a start joint position and end cartesian position
+    /// \return success
+    ///
+    bool generateFreespacePlan(const Eigen::VectorXd &start_pose,
+                               const geometry_msgs::msg::Pose &end_pose,
+                               trajectory_msgs::msg::JointTrajectory& joint_trajectory);
+
 protected:
     pathPlanningConfig::Ptr config_;
-    pathPlanningResults::Ptr results_;
 
 };
 

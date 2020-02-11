@@ -110,8 +110,9 @@ private:
               geometry_msgs::msg::Pose sf_pose_wf = surface_pose_world_frame.pose;
               curr_strip.poses.push_back(std::move(sf_pose_wf));
           }
-          crs_motion_planning::addApproachAndRetreat(curr_strip, 0.05, 0.05, ar_strip);
-          raster_strips_world_frame.push_back(ar_strip);
+//          crs_motion_planning::addApproachAndRetreat(curr_strip, 0.05, 0.05, ar_strip);
+//          raster_strips_world_frame.push_back(ar_strip);
+          raster_strips_world_frame.push_back(curr_strip);
       }
       // Display rasters on part
       visualization_msgs::msg::MarkerArray mark_array_msg;
@@ -139,6 +140,7 @@ private:
       Eigen::VectorXd surface_coeffs(6);
       surface_coeffs << 10, 10, 10, 10, 10, 0;
       trajopt_surface_config.surface_coeffs = surface_coeffs;
+      trajopt_surface_config.waypoints_critical = false;
 
       crs_motion_planning::omplConfig ompl_config;
       ompl_config.collision_safety_margin = 0.02;
@@ -147,10 +149,13 @@ private:
 
       crs_motion_planning::trajoptFreespaceConfig trajopt_freespace_config;
       coll_cost_config_fs = coll_cost_config_srfc;
+      coll_cost_config_fs.enabled = true;
+      coll_cost_config_fs.buffer_margin = 0.025;
       coll_cnt_config_fs = coll_cnt_config_srfc;
       coll_cnt_config_fs.safety_margin = 0.01;
       trajopt_freespace_config.coll_cst_cfg = coll_cost_config_fs;
       trajopt_freespace_config.coll_cnt_cfg = coll_cnt_config_fs;
+      trajopt_freespace_config.longest_valid_segment_fraction = 0.005;
 
       Eigen::Isometry3d tool_offset;
       tool_offset.setIdentity();
@@ -173,8 +178,8 @@ private:
       path_plan_config->smooth_velocities = false;
       path_plan_config->smooth_accelerations = false;
       path_plan_config->smooth_jerks = false;
-      path_plan_config->max_joint_vel = 1.5;//5.0;//1.5;
-      path_plan_config->tool_speed = 0.3; //0.4;
+      path_plan_config->max_joint_vel = 5.0;//1.5;
+      path_plan_config->tool_speed = 0.4;//0.3;
       path_plan_config->tool_offset = tool_offset;
       path_plan_config->minimum_raster_length = 4;
       path_plan_config->add_approach_and_retreat = true;
@@ -195,7 +200,7 @@ private:
 //      trajopt_trajectories = path_plan_results->final_raster_trajectories;
       trajopt_trajectories = path_plan_results->final_trajectories;
 
-      if (success)
+      if (success || trajopt_trajectories.size() > 0)
       {
           visualization_msgs::msg::MarkerArray temp_mark_array_msg, pub_mark_array_msg;
           crs_motion_planning::rasterStripsToMarkerArray(path_plan_results->solved_rasters, path_plan_config->world_frame, temp_mark_array_msg, {1.0, 0.0, 1.0, 0.0}, -0.025);
@@ -216,7 +221,7 @@ private:
               {
                   std::this_thread::sleep_for(std::chrono::seconds(3));
               }
-              std::this_thread::sleep_for(std::chrono::seconds(2));
+              std::this_thread::sleep_for(std::chrono::seconds(5));
           }
           std::cout << "ALL DONE" << std::endl;
           response->success = true;

@@ -130,14 +130,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
 
                     if (config_->add_approach_and_retreat)
                     {
-                        if(split_strip.poses[0] != strip.poses[0])
-                        {
-                            crs_motion_planning::addApproachAndRetreat(split_strip, config_->approach_distance, 0, split_strip_ar);
-                        }
-                        if(split_strip.poses.back() != strip.poses.back())
-                        {
-                            crs_motion_planning::addApproachAndRetreat(split_strip, 0, config_->retreat_distance, split_strip_ar);
-                        }
+                        crs_motion_planning::addApproachAndRetreat(split_strip, config_->approach_distance, config_->retreat_distance, split_strip_ar);
                     }
                     else
                     {
@@ -166,9 +159,18 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
         else
         {
             std::cout << "SUCCESS" << std::endl;
+            geometry_msgs::msg::PoseArray split_strip_ar;
+            if (config_->add_approach_and_retreat)
+            {
+                crs_motion_planning::addApproachAndRetreat(strip, config_->approach_distance, config_->retreat_distance, split_strip_ar);
+            }
+            else
+            {
+                split_strip_ar = strip;
+            }
             split_traj.push_back(joint_traj_msg_out_init);
             results->reachable_waypoints.poses.insert(results->reachable_waypoints.poses.end(), strip.poses.begin(), strip.poses.end());
-            split_reachable_rasters.push_back(std::move(strip));
+            split_reachable_rasters.push_back(std::move(split_strip_ar));
         }
         std::cout << "Strip " << ++count_strips << " of " << raster_strips.size() << std::endl;
     }
@@ -272,7 +274,6 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
 
         std::cout << "TIME TO OPTIMIZE" << std::endl;
 
-        //**************************************************TRAJOPT***************************************************
         // Run trajectories through trajopt
         std::string target_frame = config_->tcp_frame;
 
@@ -325,7 +326,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
             tesseract_motion_planners::TrajOptMotionPlanner traj_surface_planner;
             traj_surface_planner.setConfiguration(traj_pc);
             std::cout << "Solving raster: " << i+1 << " of " << final_split_rasters.size() << std::endl;
-            traj_surface_planner.solve(planner_resp);
+            traj_surface_planner.solve(planner_resp, config_->trajopt_verbose_output);
 
             if (planner_resp.status.value() < 0)
             {
@@ -344,7 +345,6 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
                 trajopt_solved.push_back(true);
             }
         }
-        //**************************************************TRAJOPT***************************************************
         std::cout << "SETTING TIMESTAMPS" << std::endl;
         // Assign trajectory timestamps for motion execution
         std::vector<double> traj_times;
@@ -388,8 +388,6 @@ bool crsMotionPlanner::generateOMPLSeed(const Eigen::VectorXd &start_pose,
     // Convert ompl_config to an actual ompl config file
     auto ompl_planner_config = std::make_shared<tesseract_motion_planners::OMPLPlannerFreespaceConfig<ompl::geometric::RRTConnect>>(config_->tesseract_local, config_->manipulator);
     tesseract_kinematics::ForwardKinematics::ConstPtr kin = config_->tesseract_local->getFwdKinematicsManagerConst()->getFwdKinematicSolver(config_->manipulator);
-//    ompl_planner_config->tesseract = config_->tesseract_local;
-//    ompl_planner_config->manipulator = config_->manipulator;
     ompl_planner_config->start_waypoint = std::make_shared<tesseract_motion_planners::JointWaypoint>(start_pose, kin->getJointNames());
     ompl_planner_config->end_waypoint = std::make_shared<tesseract_motion_planners::JointWaypoint>(end_pose, kin->getJointNames());
     ompl_planner_config->collision_safety_margin = config_->ompl_config.collision_safety_margin;
@@ -424,9 +422,11 @@ bool crsMotionPlanner::generateOMPLSeed(const Eigen::VectorXd &start_pose,
     return true;
 }
 
-bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr &results)
+bool crsMotionPlanner::trajoptFreespaceFromOMPL(const Eigen::VectorXd &start_pose,
+                                                const Eigen::VectorXd &end_pose,
+                                                const tesseract_common::JointTrajectory &seed_trajectory,
+                                                trajectory_msgs::msg::JointTrajectory &joint_trajectory)
 {
-    // Set up trajopt config if necessary
     std::cout << "SETTING UP TRAJOPT CONFIG" << std::endl;
     auto traj_pc = std::make_shared<tesseract_motion_planners::TrajOptPlannerFreespaceConfig>(config_->tesseract_local, config_->manipulator, config_->tcp_frame, config_->tool_offset);
     if (config_->use_trajopt_freespace)
@@ -440,6 +440,37 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr &results)
         traj_pc->init_type = config_->trajopt_freespace_config.init_type;
         traj_pc->contact_test_type = config_->trajopt_freespace_config.contact_test_type;
     }
+    std::cout << "OPTIMIZING WITH TRAJOPT" << std::endl;
+    tesseract_motion_planners::JointWaypoint::Ptr start_waypoint = std::make_shared<tesseract_motion_planners::JointWaypoint>(start_pose, seed_trajectory.joint_names);
+    tesseract_motion_planners::JointWaypoint::Ptr end_waypoint = std::make_shared<tesseract_motion_planners::JointWaypoint>(end_pose, seed_trajectory.joint_names);
+    std::vector<tesseract_motion_planners::Waypoint::Ptr> trgt_wypts;
+    trgt_wypts.push_back(start_waypoint);
+    trgt_wypts.push_back(end_waypoint);
+    traj_pc->target_waypoints = trgt_wypts;
+    traj_pc->seed_trajectory = seed_trajectory.trajectory;
+    traj_pc->num_steps = seed_trajectory.trajectory.rows();
+    tesseract_motion_planners::TrajOptMotionPlanner traj_motion_planner;
+    tesseract_motion_planners::PlannerResponse plan_resp;
+    traj_motion_planner.setConfiguration(traj_pc);
+    traj_motion_planner.solve(plan_resp, false);
+    if (plan_resp.status.value() != 0)
+    {
+        std::cout << "FAILED TO OPTIMIZE WITH TRAJOPT" << std::endl;
+        std::cout << plan_resp.status.message() << std::endl;
+        return false;
+    }
+    std::cout << "OPTIMIZED WITH TRAJOPT" << std::endl;
+    // Store generated trajectory
+    tesseract_common::TrajArray traj_array = plan_resp.joint_trajectory.trajectory;
+    Eigen::MatrixXd traj_cumulative_trajectory(traj_array.rows(), traj_array.cols());
+    traj_cumulative_trajectory << traj_array;
+    // Convert trajectory to ROSmsg
+    crs_motion_planning::tesseractRosutilsToMsg(joint_trajectory, seed_trajectory.joint_names, traj_cumulative_trajectory);
+    return true;
+}
+
+bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr &results)
+{
     // Check if start exists
     // Generate ompl seed from start to raster.begin().begin() (convert from trajectory_msg to eigen::vectorXd)
     if (config_->use_start)
@@ -447,11 +478,14 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr &results)
         std::cout << "SETTING UP FIRST OMPL PROBLEM" << std::endl;
         Eigen::VectorXd begin_raster = tesseract_rosutils::toEigen(results->final_raster_trajectories[0].points[0].positions);
         tesseract_common::JointTrajectory seed_trajectory;
+        bool ompl_simplify = config_->ompl_config.simplify;
+        config_->ompl_config.simplify = config_->simplify_start_end_freespace;
         if (!generateOMPLSeed(config_->start_pose, begin_raster, seed_trajectory))
         {
             results->msg_out = "Failed to generate ompl seed";
             return false;
         }
+        config_->ompl_config.simplify = ompl_simplify;
         trajectory_msgs::msg::JointTrajectory curr_joint_traj, ompl_joint_traj;
         Eigen::MatrixXd cumulative_trajectory(seed_trajectory.trajectory.rows(), seed_trajectory.trajectory.cols());
         cumulative_trajectory << seed_trajectory.trajectory;
@@ -459,39 +493,19 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr &results)
         ompl_joint_traj.header.frame_id = config_->world_frame;
         if (config_->use_trajopt_freespace)
         {
-            std::cout << "OPTIMIZING WITH TRAJOPT" << std::endl;
-            tesseract_motion_planners::JointWaypoint::Ptr start_waypoint = std::make_shared<tesseract_motion_planners::JointWaypoint>(config_->start_pose, seed_trajectory.joint_names);
-            tesseract_motion_planners::JointWaypoint::Ptr end_waypoint = std::make_shared<tesseract_motion_planners::JointWaypoint>(begin_raster, seed_trajectory.joint_names);
-            std::vector<tesseract_motion_planners::Waypoint::Ptr> trgt_wypts;
-            trgt_wypts.push_back(start_waypoint);
-            trgt_wypts.push_back(end_waypoint);
-            traj_pc->target_waypoints = trgt_wypts;
-            traj_pc->seed_trajectory = seed_trajectory.trajectory;
-            traj_pc->num_steps = seed_trajectory.trajectory.rows();
-            tesseract_motion_planners::TrajOptMotionPlanner traj_motion_planner;
-            tesseract_motion_planners::PlannerResponse plan_resp;
-            traj_motion_planner.setConfiguration(traj_pc);
-            traj_motion_planner.solve(plan_resp, false);
-            if (plan_resp.status.value() != 0)
+            if (!trajoptFreespaceFromOMPL(config_->start_pose, begin_raster, seed_trajectory, curr_joint_traj))
             {
-                std::cout << "FAILED TO OPTIMIZE WITH TRAJOPT" << std::endl;
                 results->msg_out = "Failed to perform trajopt on first freespace motion";
                 return false;
             }
-            std::cout << "OPTIMIZED WITH TRAJOPT" << std::endl;
-            // Store generated trajectory
-            tesseract_common::TrajArray traj_array = plan_resp.joint_trajectory.trajectory;
-            Eigen::MatrixXd traj_cumulative_trajectory(traj_array.rows(), traj_array.cols());
-            traj_cumulative_trajectory << traj_array;
-            // Convert trajectory to ROSmsg
-            crs_motion_planning::tesseractRosutilsToMsg(curr_joint_traj, seed_trajectory.joint_names, cumulative_trajectory);
+
             curr_joint_traj.header.frame_id = config_->world_frame;
             // Modify time
             std::cout << "MODIFYING TRAJECTORY TIME OUTPUT" << std::endl;
-            for (int i = 0; i < traj_pc->num_steps; ++i)
+            for (int i = 0; i < curr_joint_traj.points.size(); ++i)
             {
               curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.sec = 0;
-              curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.nanosec = 2e8;
+              curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.nanosec = 1e8;
             }
         }
         else
@@ -511,24 +525,10 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr &results)
         std::cout << "SOLVING FREESPACE IN BETWEEN RASTERS " << i << " AND " << i+1 << std::endl;
         // Generate ompl seed from raster[i].back() to raster[i+1].begin() (convert from trajectory_msg to eigen::vectorXd)
         // run seed through trajopt if using trajopt for freespace
-//        if (!generateOMPLSeed())
-//        {
-//            results->msg_out = "Failed to generate freespace seed";
-//        }
-
-        std::cout << "STORING RASTER " << i+1 << std::endl;
-        results->final_trajectories.push_back(results->final_raster_trajectories[i+1]);
-    }
-    std::cout << "FINAL FREESPACE MOTION" << std::endl;
-    // Check if end exists
-    // Generate ompl seed from raster.back().back() to end (convert from trajectory_msg to eigen::vectorXd)
-    // run seed through trajopt if using trajopt for freespace
-    if (config_->use_end)
-    {
-        std::cout << "SETTING UP LAST OMPL PROBLEM" << std::endl;
-        Eigen::VectorXd end_raster = tesseract_rosutils::toEigen(results->final_raster_trajectories.back().points.back().positions);
+        Eigen::VectorXd end_raster_i = tesseract_rosutils::toEigen(results->final_raster_trajectories[i].points.back().positions);
+        Eigen::VectorXd start_raster_ip1 = tesseract_rosutils::toEigen(results->final_raster_trajectories[i+1].points[0].positions);
         tesseract_common::JointTrajectory seed_trajectory;
-        if (!generateOMPLSeed(end_raster, config_->end_pose, seed_trajectory))
+        if (!generateOMPLSeed(end_raster_i, start_raster_ip1, seed_trajectory))
         {
             results->msg_out = "Failed to generate ompl seed";
             return false;
@@ -540,39 +540,69 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr &results)
         ompl_joint_traj.header.frame_id = config_->world_frame;
         if (config_->use_trajopt_freespace)
         {
-            std::cout << "OPTIMIZING WITH TRAJOPT" << std::endl;
-            tesseract_motion_planners::JointWaypoint::Ptr end_waypoint = std::make_shared<tesseract_motion_planners::JointWaypoint>(config_->end_pose, seed_trajectory.joint_names);
-            tesseract_motion_planners::JointWaypoint::Ptr start_waypoint = std::make_shared<tesseract_motion_planners::JointWaypoint>(end_raster, seed_trajectory.joint_names);
-            std::vector<tesseract_motion_planners::Waypoint::Ptr> trgt_wypts;
-            trgt_wypts.push_back(start_waypoint);
-            trgt_wypts.push_back(end_waypoint);
-            traj_pc->target_waypoints = trgt_wypts;
-            traj_pc->seed_trajectory = seed_trajectory.trajectory;
-            traj_pc->num_steps = seed_trajectory.trajectory.rows();
-            tesseract_motion_planners::TrajOptMotionPlanner traj_motion_planner;
-            tesseract_motion_planners::PlannerResponse plan_resp;
-            traj_motion_planner.setConfiguration(traj_pc);
-            traj_motion_planner.solve(plan_resp, false);
-            if (plan_resp.status.value() != 0)
+            if (!trajoptFreespaceFromOMPL(end_raster_i, start_raster_ip1, seed_trajectory, curr_joint_traj))
             {
-                std::cout << "FAILED TO OPTIMIZE WITH TRAJOPT" << std::endl;
                 results->msg_out = "Failed to perform trajopt on first freespace motion";
                 return false;
             }
-            std::cout << "OPTIMIZED WITH TRAJOPT" << std::endl;
-            // Store generated trajectory
-            tesseract_common::TrajArray traj_array = plan_resp.joint_trajectory.trajectory;
-            Eigen::MatrixXd traj_cumulative_trajectory(traj_array.rows(), traj_array.cols());
-            traj_cumulative_trajectory << traj_array;
-            // Convert trajectory to ROSmsg
-            crs_motion_planning::tesseractRosutilsToMsg(curr_joint_traj, seed_trajectory.joint_names, cumulative_trajectory);
+
             curr_joint_traj.header.frame_id = config_->world_frame;
             // Modify time
             std::cout << "MODIFYING TRAJECTORY TIME OUTPUT" << std::endl;
-            for (int i = 0; i < traj_pc->num_steps; ++i)
+            for (int i = 0; i < curr_joint_traj.points.size(); ++i)
             {
               curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.sec = 0;
-              curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.nanosec = 2e8;
+              curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.nanosec = 1e8;
+            }
+        }
+        else
+        {
+            curr_joint_traj = ompl_joint_traj;
+        }
+        std::cout << "STORING FREESPACE JOINT TRAJECTORIES" << std::endl;
+        results->ompl_trajectories.push_back(ompl_joint_traj);
+        results->final_freespace_trajectories.push_back(curr_joint_traj);
+        results->final_trajectories.push_back(curr_joint_traj);
+
+        std::cout << "STORING RASTER " << i+1 << std::endl;
+        results->final_trajectories.push_back(results->final_raster_trajectories[i+1]);
+    }
+    std::cout << "FINAL FREESPACE MOTION" << std::endl;
+
+    // Check if end exists
+    if (config_->use_end)
+    {
+        std::cout << "SETTING UP LAST OMPL PROBLEM" << std::endl;
+        Eigen::VectorXd end_raster = tesseract_rosutils::toEigen(results->final_raster_trajectories.back().points.back().positions);
+        tesseract_common::JointTrajectory seed_trajectory;
+        bool ompl_simplify = config_->ompl_config.simplify;
+        config_->ompl_config.simplify = config_->simplify_start_end_freespace;
+        if (!generateOMPLSeed(end_raster, config_->end_pose, seed_trajectory))
+        {
+            results->msg_out = "Failed to generate ompl seed";
+            return false;
+        }
+        config_->ompl_config.simplify = ompl_simplify;
+        trajectory_msgs::msg::JointTrajectory curr_joint_traj, ompl_joint_traj;
+        Eigen::MatrixXd cumulative_trajectory(seed_trajectory.trajectory.rows(), seed_trajectory.trajectory.cols());
+        cumulative_trajectory << seed_trajectory.trajectory;
+        crs_motion_planning::tesseractRosutilsToMsg(ompl_joint_traj, seed_trajectory.joint_names, cumulative_trajectory);
+        ompl_joint_traj.header.frame_id = config_->world_frame;
+        if (config_->use_trajopt_freespace)
+        {
+            if (!trajoptFreespaceFromOMPL(end_raster, config_->end_pose, seed_trajectory, curr_joint_traj))
+            {
+                results->msg_out = "Failed to perform trajopt on first freespace motion";
+                return false;
+            }
+
+            curr_joint_traj.header.frame_id = config_->world_frame;
+            // Modify time
+            std::cout << "MODIFYING TRAJECTORY TIME OUTPUT" << std::endl;
+            for (int i = 0; i < curr_joint_traj.points.size(); ++i)
+            {
+              curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.sec = 0;
+              curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.nanosec = 1e8;
             }
         }
         else
@@ -601,6 +631,49 @@ bool crsMotionPlanner::generateProcessPlan(pathPlanningResults::Ptr& results)
         return false;
     }
     return true;
+}
+
+bool crsMotionPlanner::generateFreespacePlan(const Eigen::VectorXd &start_pose, const Eigen::VectorXd &end_pose, trajectory_msgs::msg::JointTrajectory &joint_trajectory)
+{
+    std::cout << "SETTING UP OMPL PROBLEM" << std::endl;
+    tesseract_common::JointTrajectory seed_trajectory;
+    if (!generateOMPLSeed(start_pose, end_pose, seed_trajectory))
+    {
+        return false;
+    }
+    trajectory_msgs::msg::JointTrajectory ompl_joint_traj;
+    Eigen::MatrixXd cumulative_trajectory(seed_trajectory.trajectory.rows(), seed_trajectory.trajectory.cols());
+    cumulative_trajectory << seed_trajectory.trajectory;
+    crs_motion_planning::tesseractRosutilsToMsg(ompl_joint_traj, seed_trajectory.joint_names, cumulative_trajectory);
+    ompl_joint_traj.header.frame_id = config_->world_frame;
+    if (config_->use_trajopt_freespace)
+    {
+        if (!trajoptFreespaceFromOMPL(start_pose, end_pose, seed_trajectory, joint_trajectory))
+        {
+            return false;
+        }
+
+        joint_trajectory.header.frame_id = config_->world_frame;
+        // Modify time
+        std::cout << "MODIFYING TRAJECTORY TIME OUTPUT" << std::endl;
+        for (int i = 0; i < joint_trajectory.points.size(); ++i)
+        {
+          joint_trajectory.points[static_cast<size_t>(i)].time_from_start.sec = 0;
+          joint_trajectory.points[static_cast<size_t>(i)].time_from_start.nanosec = 2e8;
+        }
+    }
+    else
+    {
+        joint_trajectory = ompl_joint_traj;
+    }
+
+    return true;
+}
+
+bool crsMotionPlanner::generateFreespacePlan(const Eigen::VectorXd &start_pose, const geometry_msgs::msg::Pose &end_pose, trajectory_msgs::msg::JointTrajectory &joint_trajectory)
+{
+    std::cout << "THIS IS NOT YET IMPLEMENTED" << std::endl;
+    return false;
 }
 
 } // namespace crs_motion_planning
