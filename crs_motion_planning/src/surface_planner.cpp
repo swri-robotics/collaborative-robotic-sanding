@@ -15,28 +15,9 @@
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/buffer.h>
 
-//#include <tesseract_motion_planners/trajopt/trajopt_motion_planner.h>
-//#include <tesseract_motion_planners/trajopt/config/trajopt_planner_default_config.h>
-//#include <tesseract_motion_planners/trajopt/config/trajopt_planner_freespace_config.h>
-//#include <tesseract_motion_planners/descartes/descartes_collision.h>
-//#include <tesseract_environment/core/environment.h>
-//#include <tesseract_environment/core/utils.h>
-
-//#include <trajopt/problem_description.hpp>
-
-//#include <tesseract_rosutils/utils.h>
-//#include <tesseract_rosutils/conversions.h>
-
 #include <ament_index_cpp/get_package_share_directory.hpp>
 
 #include <geometry_msgs/msg/pose.hpp>
-
-//#include <descartes_light/descartes_light.h>
-//#include <descartes_samplers/evaluators/distance_edge_evaluator.h>
-//#include <descartes_samplers/evaluators/euclidean_distance_edge_evaluator.h>
-//#include <descartes_samplers/samplers/axial_symmetric_sampler.h>
-//#include <descartes_samplers/samplers/fixed_joint_pose_sampler.h>
-//#include <ur_ikfast_kinematics/descartes_ikfast_ur10e.h>
 
 static const std::vector<double> COEFFICIENTS {10, 10, 10, 10, 10, 10};
 
@@ -101,10 +82,6 @@ private:
           strip_of_interset.poses.insert(strip_of_interset.poses.end(), strip.poses.begin(), strip.poses.end());
       }
 
-      // Display rasters on part
-      visualization_msgs::msg::MarkerArray mark_array_msg;
-      crs_motion_planning::rasterStripsToMarkerArray(strip_of_interset, waypoint_origin_frame, mark_array_msg, {1.0, 0.0, 0.0, 1.0}, -0.01);
-      original_path_publisher_->publish(mark_array_msg);
 
       // Get transform between world and part
       tf2::TimePoint time_point = tf2::TimePointZero;
@@ -123,7 +100,7 @@ private:
       std::vector<geometry_msgs::msg::PoseArray> raster_strips_world_frame;
       for (auto strip : raster_strips)
       {
-          geometry_msgs::msg::PoseArray curr_strip;
+          geometry_msgs::msg::PoseArray curr_strip, ar_strip;
           for (size_t i = 0; i < strip.poses.size(); ++i)
           {
               geometry_msgs::msg::PoseStamped surface_pose_world_frame, surface_pose_og_frame;
@@ -133,8 +110,13 @@ private:
               geometry_msgs::msg::Pose sf_pose_wf = surface_pose_world_frame.pose;
               curr_strip.poses.push_back(std::move(sf_pose_wf));
           }
-          raster_strips_world_frame.push_back(curr_strip);
+          crs_motion_planning::addApproachAndRetreat(curr_strip, 0.05, 0.05, ar_strip);
+          raster_strips_world_frame.push_back(ar_strip);
       }
+      // Display rasters on part
+      visualization_msgs::msg::MarkerArray mark_array_msg;
+      crs_motion_planning::rasterStripsToMarkerArray(raster_strips_world_frame, "world", mark_array_msg, {1.0, 0.0, 0.0, 1.0}, -0.01);
+      original_path_publisher_->publish(mark_array_msg);
 
       // TODO: add approach and retreat to each raster
 
@@ -147,26 +129,34 @@ private:
       trajopt_surface_config.smooth_velocities = false;
       trajopt_surface_config.smooth_accelerations = false;
       trajopt_surface_config.smooth_jerks = false;
-      tesseract_motion_planners::CollisionCostConfig coll_cost_config;
-      coll_cost_config.enabled = false;
-      trajopt_surface_config.coll_cst_cfg = coll_cost_config;
-      tesseract_motion_planners::CollisionConstraintConfig coll_cnt_config;
-      coll_cnt_config.enabled = true;
-      coll_cnt_config.safety_margin = 0.001;
-      trajopt_surface_config.coll_cnt_cfg = coll_cnt_config;
+      tesseract_motion_planners::CollisionCostConfig coll_cost_config_srfc, coll_cost_config_fs;
+      coll_cost_config_srfc.enabled = false;
+      trajopt_surface_config.coll_cst_cfg = coll_cost_config_srfc;
+      tesseract_motion_planners::CollisionConstraintConfig coll_cnt_config_srfc, coll_cnt_config_fs;
+      coll_cnt_config_srfc.enabled = true;
+      coll_cnt_config_srfc.safety_margin = 0.001;
+      trajopt_surface_config.coll_cnt_cfg = coll_cnt_config_srfc;
       Eigen::VectorXd surface_coeffs(6);
       surface_coeffs << 10, 10, 10, 10, 10, 0;
       trajopt_surface_config.surface_coeffs = surface_coeffs;
 
       crs_motion_planning::omplConfig ompl_config;
-      ompl_config.collision_safety_margin = 0.001;
+      ompl_config.collision_safety_margin = 0.02;
+      ompl_config.planning_time = 10;
+      ompl_config.simplify = false;
 
       crs_motion_planning::trajoptFreespaceConfig trajopt_freespace_config;
-      trajopt_freespace_config.coll_cst_cfg = coll_cost_config;
-      trajopt_freespace_config.coll_cnt_cfg = coll_cnt_config;
+      coll_cost_config_fs = coll_cost_config_srfc;
+      coll_cnt_config_fs = coll_cnt_config_srfc;
+      coll_cnt_config_fs.safety_margin = 0.01;
+      trajopt_freespace_config.coll_cst_cfg = coll_cost_config_fs;
+      trajopt_freespace_config.coll_cnt_cfg = coll_cnt_config_fs;
 
       Eigen::Isometry3d tool_offset;
       tool_offset.setIdentity();
+      Eigen::VectorXd start_pose(6), end_pose(6);
+      start_pose << 0, 0, 0, 0, 0, 0;
+      end_pose = start_pose;
 
       auto path_plan_config = std::make_shared<crs_motion_planning::pathPlanningConfig>();
       path_plan_config->tesseract_local = tesseract_local_;
@@ -183,10 +173,17 @@ private:
       path_plan_config->smooth_velocities = false;
       path_plan_config->smooth_accelerations = false;
       path_plan_config->smooth_jerks = false;
-      path_plan_config->max_joint_vel = 4.0;
-      path_plan_config->tool_speed = 0.2;
+      path_plan_config->max_joint_vel = 1.5;//5.0;//1.5;
+      path_plan_config->tool_speed = 0.3; //0.4;
       path_plan_config->tool_offset = tool_offset;
       path_plan_config->minimum_raster_length = 4;
+      path_plan_config->add_approach_and_retreat = true;
+      path_plan_config->approach_distance = 0.05;
+      path_plan_config->retreat_distance = 0.05;
+      path_plan_config->use_start = true;
+      path_plan_config->start_pose = start_pose;
+      path_plan_config->use_end = true;
+      path_plan_config->end_pose = end_pose;
 
       // Create crsMotionPlanner class
       crs_motion_planning::crsMotionPlanner crs_motion_planner(path_plan_config);
@@ -195,12 +192,12 @@ private:
       bool success = crs_motion_planner.generateProcessPlan(path_plan_results);
 
       std::vector<trajectory_msgs::msg::JointTrajectory> trajopt_trajectories;
-      trajopt_trajectories = path_plan_results->final_raster_trajectories;
+//      trajopt_trajectories = path_plan_results->final_raster_trajectories;
+      trajopt_trajectories = path_plan_results->final_trajectories;
 
       if (success)
       {
           visualization_msgs::msg::MarkerArray temp_mark_array_msg, pub_mark_array_msg;
-          std::cout << path_plan_results->solved_rasters.size() << " <- solved raster size" << std::endl;
           crs_motion_planning::rasterStripsToMarkerArray(path_plan_results->solved_rasters, path_plan_config->world_frame, temp_mark_array_msg, {1.0, 0.0, 1.0, 0.0}, -0.025);
           crs_motion_planning::rasterStripsToMarkerArray(path_plan_results->failed_rasters, path_plan_config->world_frame, temp_mark_array_msg, {1.0, 1.0, 0.0, 0.0}, -0.025);
           crs_motion_planning::rasterStripsToMarkerArray(path_plan_results->skipped_rasters, path_plan_config->world_frame, temp_mark_array_msg, {1.0, 1.0, 1.0, 0.0}, -0.025);
@@ -215,6 +212,10 @@ private:
           {
               std::cout << "PUBLISHING TRAJECTORY " << i+1 << " OF " << trajopt_trajectories.size() << std::endl;
               traj_publisher_->publish(trajopt_trajectories[i]);
+              if (i == 0)
+              {
+                  std::this_thread::sleep_for(std::chrono::seconds(3));
+              }
               std::this_thread::sleep_for(std::chrono::seconds(2));
           }
           std::cout << "ALL DONE" << std::endl;

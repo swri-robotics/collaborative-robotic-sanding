@@ -15,6 +15,9 @@
 #include <tesseract_motion_planners/trajopt/config/trajopt_planner_freespace_config.h>
 #include <tesseract_motion_planners/descartes/descartes_collision.h>
 #include <tesseract_motion_planners/ompl/ompl_freespace_planner.h>
+#include <tesseract_motion_planners/ompl/ompl_motion_planner.h>
+#include <tesseract_motion_planners/ompl/config/ompl_planner_freespace_config.h>
+#include <tesseract_motion_planners/ompl/ompl_settings.h>
 #include <tesseract_environment/core/environment.h>
 #include <tesseract_environment/core/utils.h>
 #include <tesseract_rosutils/utils.h>
@@ -112,13 +115,16 @@ struct pathPlanningConfig
 
 //    tesseract_motion_planners::TrajOptPlannerFreespaceConfig::Ptr trajopt_freespace_config;
     trajoptFreespaceConfig trajopt_freespace_config;
+    bool use_trajopt_freespace = true;
 
     tesseract::Tesseract::Ptr tesseract_local;
 
     descartes_light::KinematicsInterfaceD::Ptr kin_interface;
 
-    Eigen::VectorXd start_pos;
-    Eigen::VectorXd end_pos;
+    bool use_start = false;
+    Eigen::VectorXd start_pose;
+    bool use_end = false;
+    Eigen::VectorXd end_pose;
 
     std::vector<geometry_msgs::msg::PoseArray> rasters; // In world frame
 
@@ -134,8 +140,6 @@ struct pathPlanningConfig
     bool smooth_velocities = true;
     bool smooth_accelerations = true;
     bool smooth_jerks = true;
-
-    bool use_trajopt_for_freespace = true;
 
     bool add_approach_and_retreat = false;
     double approach_distance = 0.05;
@@ -201,8 +205,8 @@ public:
     /// \brief generateOMPLSeed Creates freespace trajectory given a start and end joint state
     /// \return success
     ///
-    bool generateOMPLSeed(const Eigen::VectorXd &start_pos,
-                          const Eigen::VectorXd &end_pos,
+    bool generateOMPLSeed(const Eigen::VectorXd &start_pose,
+                          const Eigen::VectorXd &end_pose,
                           tesseract_common::JointTrajectory& seed_trajectory);
 
     ///

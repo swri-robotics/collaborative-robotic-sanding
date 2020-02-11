@@ -94,7 +94,7 @@ target_link_libraries(${PROJECT_NAME}_path_planning_utils
   ur_ikfast_kinematics::ur10e_ikfast
   tesseract::tesseract
   tesseract::tesseract_motion_planners_trajopt
-  tesseract::tesseract_motion_planners_ompl_freespace
+  tesseract::tesseract_motion_planners_ompl
   tesseract::tesseract_motion_planners_descartes
   tesseract::tesseract_rosutils
   Eigen3::Eigen
@@ -135,7 +135,7 @@ target_link_libraries(${PROJECT_NAME}_freespace_planning_server
   ${tf2_ros_LIBRARIES}
   tesseract::tesseract
   tesseract::tesseract_motion_planners_trajopt
-  tesseract::tesseract_motion_planners_ompl_freespace
+  tesseract::tesseract_motion_planners_ompl
   tesseract::tesseract_rosutils
   )
 
@@ -174,7 +174,7 @@ target_link_libraries(${PROJECT_NAME}_surface_planner
   ur_ikfast_kinematics::ur10e_ikfast
   tesseract::tesseract
   tesseract::tesseract_motion_planners_trajopt
-  tesseract::tesseract_motion_planners_ompl_freespace
+  tesseract::tesseract_motion_planners_ompl
   tesseract::tesseract_motion_planners_descartes
   tesseract::tesseract_rosutils
   descartes::descartes_light

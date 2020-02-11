@@ -291,5 +291,20 @@ void crs_motion_planning::addApproachAndRetreat(const geometry_msgs::msg::PoseAr
                                                 const double& retreat_dist,
                                                 geometry_msgs::msg::PoseArray &returned_raster)
 {
-    returned_raster = given_raster;
+    Eigen::Isometry3d start_pose, end_pose, approach_pose, retreat_pose;
+    tf2::fromMsg(given_raster.poses[0], start_pose);
+    approach_pose = start_pose * Eigen::Translation3d(0.0, 0.0, -1 * approach_dist);
+    tf2::fromMsg(given_raster.poses.back(), end_pose);
+    retreat_pose = end_pose * Eigen::Translation3d(0.0, 0.0, -1 * retreat_dist);
+    geometry_msgs::msg::Pose approach_pose_msg  = tf2::toMsg(approach_pose);
+    geometry_msgs::msg::Pose retreat_pose_msg  = tf2::toMsg(retreat_pose);
+    if (approach_dist != 0)
+    {
+        returned_raster.poses.push_back(approach_pose_msg);
+    }
+    returned_raster.poses.insert(returned_raster.poses.end(), given_raster.poses.begin(), given_raster.poses.end());
+    if (retreat_dist != 0)
+    {
+        returned_raster.poses.push_back(retreat_pose_msg);
+    }
 }
