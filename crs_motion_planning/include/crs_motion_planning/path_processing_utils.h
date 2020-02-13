@@ -29,7 +29,7 @@ namespace crs_motion_planning
 ///
 bool parsePathFromFile(const std::string& yaml_filepath,
                        const std::string& waypoint_origin_frame,
-                       std::vector<geometry_msgs::msg::PoseArray> &raster_strips);
+                       std::vector<geometry_msgs::msg::PoseArray>& raster_strips);
 
 ///
 /// \brief tesseract_rosutils_toMsg converts tesserarct TrajArray to trajectory msg
@@ -38,8 +38,8 @@ bool parsePathFromFile(const std::string& yaml_filepath,
 /// \param traj
 ///
 void tesseractRosutilsToMsg(trajectory_msgs::msg::JointTrajectory& traj_msg,
-                              const std::vector<std::string>& joint_names,
-                              const Eigen::Ref<const tesseract_common::TrajArray>& traj);
+                            const std::vector<std::string>& joint_names,
+                            const Eigen::Ref<const tesseract_common::TrajArray>& traj);
 
 ///
 /// \brief rasterStripsToMarkerArray Generates marker array from vector of poseStampeds
@@ -51,8 +51,8 @@ void tesseractRosutilsToMsg(trajectory_msgs::msg::JointTrajectory& traj_msg,
 ///
 void rasterStripsToMarkerArray(const geometry_msgs::msg::PoseArray& strips,
                                const std::string& frame,
-                               visualization_msgs::msg::MarkerArray &arrows,
-                               std::vector<float> color = {1.0, 0.0, 1.0, 0.0},
+                               visualization_msgs::msg::MarkerArray& arrows,
+                               std::vector<float> color = { 1.0, 0.0, 1.0, 0.0 },
                                double size = -0.025);
 
 ///
@@ -65,8 +65,8 @@ void rasterStripsToMarkerArray(const geometry_msgs::msg::PoseArray& strips,
 ///
 void rasterStripsToMarkerArray(const std::vector<geometry_msgs::msg::PoseArray>& strips,
                                const std::string& frame,
-                               visualization_msgs::msg::MarkerArray &arrows,
-                               std::vector<float> color = {1.0, 0.0, 1.0, 0.0},
+                               visualization_msgs::msg::MarkerArray& arrows,
+                               std::vector<float> color = { 1.0, 0.0, 1.0, 0.0 },
                                double size = -0.025);
 
 /// \brief rasterStripsToMarkerArray Generates marker array from vector of poseStampeds
@@ -77,32 +77,31 @@ void rasterStripsToMarkerArray(const std::vector<geometry_msgs::msg::PoseArray>&
 /// \param size
 ///
 void failedEdgesToMarkerArray(const geometry_msgs::msg::PoseArray& vertices,
-                               const std::string& frame,
-                               visualization_msgs::msg::Marker &markers,
-                               std::vector<float> color = {1.0, 1.0, 0.0, 0.0},
-                               double size = -0.025);
+                              const std::string& frame,
+                              visualization_msgs::msg::Marker& markers,
+                              std::vector<float> color = { 1.0, 1.0, 0.0, 0.0 },
+                              double size = -0.025);
 
 ///
 /// \brief cleanRasterStrip Removes unreachable points from raster strips
 ///
 void cleanRasterStrip(const geometry_msgs::msg::PoseArray& original_strip,
                       const std::vector<std::size_t>& failed_vertices,
-                      std::vector<geometry_msgs::msg::PoseArray> &fixed_strips,
-                      geometry_msgs::msg::PoseArray &failed_vertex_poses);
-
+                      std::vector<geometry_msgs::msg::PoseArray>& fixed_strips,
+                      geometry_msgs::msg::PoseArray& failed_vertex_poses);
 
 bool splitRastersByJointDist(const trajectory_msgs::msg::JointTrajectory& given_traj,
                              const geometry_msgs::msg::PoseArray& given_raster,
                              const double& desired_ee_vel,
                              const double& max_joint_vel,
-                             std::vector<trajectory_msgs::msg::JointTrajectory> &split_traj,
-                             std::vector<geometry_msgs::msg::PoseArray> &split_rasters,
-                             std::vector<std::vector<double>> &time_steps);
+                             std::vector<trajectory_msgs::msg::JointTrajectory>& split_traj,
+                             std::vector<geometry_msgs::msg::PoseArray>& split_rasters,
+                             std::vector<std::vector<double>>& time_steps);
 
 void addApproachAndRetreat(const geometry_msgs::msg::PoseArray& given_raster,
                            const double& approach_dist,
                            const double& retreat_dist,
-                           geometry_msgs::msg::PoseArray &returned_raster);
-}
+                           geometry_msgs::msg::PoseArray& returned_raster);
+}  // namespace crs_motion_planning
 
-#endif // CRS_MOTION_PLANNING_PATH_PROCESSING_UTILS_H
+#endif  // CRS_MOTION_PLANNING_PATH_PROCESSING_UTILS_H
