@@ -14,7 +14,6 @@
 #include <tesseract_motion_planners/trajopt/config/trajopt_planner_default_config.h>
 #include <tesseract_motion_planners/trajopt/config/trajopt_planner_freespace_config.h>
 #include <tesseract_motion_planners/descartes/descartes_collision.h>
-#include <tesseract_motion_planners/ompl/ompl_freespace_planner.h>
 #include <tesseract_motion_planners/ompl/ompl_motion_planner.h>
 #include <tesseract_motion_planners/ompl/config/ompl_planner_freespace_config.h>
 #include <tesseract_motion_planners/ompl/ompl_settings.h>

@@ -441,9 +441,8 @@ bool crsMotionPlanner::generateOMPLSeed(const tesseract_motion_planners::JointWa
 
   tesseract_motion_planners::PlannerResponse ompl_planner_response;
   tesseract_common::StatusCode status = ompl_planner.solve(ompl_planner_response);
-  if (status.value() != tesseract_motion_planners::OMPLFreespacePlannerStatusCategory::SolutionFound &&
-      status.value() !=
-          tesseract_motion_planners::OMPLFreespacePlannerStatusCategory::ErrorFoundValidSolutionInCollision)
+  if (status.value() != tesseract_motion_planners::OMPLMotionPlannerStatusCategory::SolutionFound &&
+      status.value() != tesseract_motion_planners::OMPLMotionPlannerStatusCategory::ErrorFoundValidSolutionInCollision)
   {
     std::cout << "FAILED TO GENERATE OMPL SEED" << std::endl;
     return false;
