@@ -36,10 +36,6 @@ def generate_launch_description():
          'robot_description': urdf3,
          'robot_description_semantic': srdf}])
 
-    kill_gazebo = launch.actions.ExecuteProcess(
-        cmd=['killall', '-9', 'gazebo', '&', 'killall', '-9', 'gzserver', '&', 'killall', '-9', 'gzclient']
-    )
-
     gzserver = launch.actions.ExecuteProcess(
         cmd=['gazebo', '--verbose', '-s', 'libgazebo_ros_factory.so', '--world', gzworld],
         output='screen'
@@ -50,17 +46,6 @@ def generate_launch_description():
         package='gazebo_ros',
         node_executable='spawn_entity.py',
         arguments=['-entity', 'robot', '-x', '0', '-y', '0', '-z', '0.05', '-file', urdf3])
-
-    freespace_planner = launch_ros.actions.Node(
-        node_executable='crs_motion_planning_freespace_planning_server',
-        package='crs_motion_planning',
-        node_name='freespace_planning_server',
-        output='screen',
-        parameters=[{'urdf_path': urdf3,
-        'srdf_path': srdf,
-        'base_link_frame': "world",
-        'manipulator_group': "manipulator",
-        'num_steps': 200}])
 
     motion_planning_server = launch_ros.actions.Node(
         node_executable='crs_motion_planning_motion_planning_server',
@@ -84,9 +69,6 @@ def generate_launch_description():
 
 
     return launch.LaunchDescription([
-        # kill_gazebo
-#        kill_gazebo,
-
         # environment
         tesseract_env,
 
@@ -95,7 +77,6 @@ def generate_launch_description():
         spawner1,
 
         # planning
-#        freespace_planner
         motion_planning_server,
 
 ])
