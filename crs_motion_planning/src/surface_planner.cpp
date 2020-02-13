@@ -8,6 +8,9 @@
 //#include <crs_motion_planning/path_processing_utils.h>
 #include <crs_motion_planning/path_planning_utils.h>
 
+#include <crs_msgs/srv/call_freespace_motion.hpp>
+#include <crs_msgs/srv/plan_process_motions.hpp>
+
 #include <tf2/transform_storage.h>
 #include <tf2/transform_datatypes.h>
 #include <tf2_eigen/tf2_eigen.h>
@@ -45,6 +48,7 @@ public:
     corrected_path_publisher_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("fixed_raster_paths",1);
     failed_vertex_publisher_ = this->create_publisher<visualization_msgs::msg::Marker>("failed_vertices",1);
     joint_state_listener_ = this->create_subscription<sensor_msgs::msg::JointState>("/joint_states", 1, std::bind(&SurfaceServer::jointCallback, this, std::placeholders::_1));
+    call_process_plan_client_ = this->create_client<crs_msgs::srv::PlanProcessMotions>("plan_process_motion");
 
     std::string urdf_path, srdf_path;
     urdf_path = this->get_parameter("urdf_path").as_string();
@@ -110,131 +114,77 @@ private:
               geometry_msgs::msg::Pose sf_pose_wf = surface_pose_world_frame.pose;
               curr_strip.poses.push_back(std::move(sf_pose_wf));
           }
-//          crs_motion_planning::addApproachAndRetreat(curr_strip, 0.05, 0.05, ar_strip);
-//          raster_strips_world_frame.push_back(ar_strip);
           raster_strips_world_frame.push_back(curr_strip);
       }
-      // Display rasters on part
-      visualization_msgs::msg::MarkerArray mark_array_msg;
-      crs_motion_planning::rasterStripsToMarkerArray(raster_strips_world_frame, "world", mark_array_msg, {1.0, 0.0, 0.0, 1.0}, -0.01);
-      original_path_publisher_->publish(mark_array_msg);
 
-      // TODO: add approach and retreat to each raster
+      auto proc_req = std::make_shared<crs_msgs::srv::PlanProcessMotions::Request>();
+      proc_req->tool_link = "sander_center_link";
+      proc_req->tool_speed = 0.4;
+      proc_req->approach_dist = 0.05;
+      proc_req->retreat_dist = 0.05;
+      proc_req->start_position = curr_joint_state_;
+      proc_req->end_position = curr_joint_state_;
+      Eigen::Isometry3d tool_offset_req = Eigen::Isometry3d::Identity();
+      geometry_msgs::msg::Pose geom_tool_offset;
+      tesseract_rosutils::toMsg(geom_tool_offset, tool_offset_req);
+      proc_req->tool_offset = geom_tool_offset;
+      std::vector<crs_msgs::msg::ToolProcessPath> path_requests;
+      crs_msgs::msg::ToolProcessPath path_wf;
+      path_wf.rasters = raster_strips_world_frame;
+      path_requests.push_back(path_wf);
+      proc_req->process_paths = path_requests;
 
-      // Set up planning config variable
-      crs_motion_planning::descartesConfig descartes_config;
-      descartes_config.axial_step = 0.1;
-      descartes_config.collision_safety_margin = 0.0075;
+      auto process_plan_cb = std::bind(&SurfaceServer::processPlanCallback, this, std::placeholders::_1);
+      call_process_plan_client_->async_send_request(proc_req, process_plan_cb);
 
-      crs_motion_planning::trajoptSurfaceConfig trajopt_surface_config;
-      trajopt_surface_config.smooth_velocities = false;
-      trajopt_surface_config.smooth_accelerations = false;
-      trajopt_surface_config.smooth_jerks = false;
-      tesseract_motion_planners::CollisionCostConfig coll_cost_config_srfc, coll_cost_config_fs;
-      coll_cost_config_srfc.enabled = false;
-      trajopt_surface_config.coll_cst_cfg = coll_cost_config_srfc;
-      tesseract_motion_planners::CollisionConstraintConfig coll_cnt_config_srfc, coll_cnt_config_fs;
-      coll_cnt_config_srfc.enabled = true;
-      coll_cnt_config_srfc.safety_margin = 0.001;
-      trajopt_surface_config.coll_cnt_cfg = coll_cnt_config_srfc;
-      Eigen::VectorXd surface_coeffs(6);
-      surface_coeffs << 10, 10, 10, 10, 10, 0;
-      trajopt_surface_config.surface_coeffs = surface_coeffs;
-      trajopt_surface_config.waypoints_critical = false;
+      response->success = true;
+      response->message = "TRAJECTORIES PUBLISHED";
+  }
 
-      crs_motion_planning::omplConfig ompl_config;
-      ompl_config.collision_safety_margin = 0.02;
-      ompl_config.planning_time = 10;
-      ompl_config.simplify = false;
+  void processPlanCallback(const rclcpp::Client<crs_msgs::srv::PlanProcessMotions>::SharedFuture future)
+  {
+      bool success = future.get()->succeeded;
 
-      crs_motion_planning::trajoptFreespaceConfig trajopt_freespace_config;
-      coll_cost_config_fs = coll_cost_config_srfc;
-      coll_cost_config_fs.enabled = true;
-      coll_cost_config_fs.buffer_margin = 0.025;
-      coll_cnt_config_fs = coll_cnt_config_srfc;
-      coll_cnt_config_fs.safety_margin = 0.01;
-      trajopt_freespace_config.coll_cst_cfg = coll_cost_config_fs;
-      trajopt_freespace_config.coll_cnt_cfg = coll_cnt_config_fs;
-      trajopt_freespace_config.longest_valid_segment_fraction = 0.005;
-
-      Eigen::Isometry3d tool_offset;
-      tool_offset.setIdentity();
-      Eigen::VectorXd start_pose(6), end_pose(6);
-      start_pose << 0, 0, 0, 0, 0, 0;
-      end_pose = start_pose;
-
-      auto path_plan_config = std::make_shared<crs_motion_planning::pathPlanningConfig>();
-      path_plan_config->tesseract_local = tesseract_local_;
-      path_plan_config->descartes_config = descartes_config;
-      path_plan_config->trajopt_surface_config = trajopt_surface_config;
-      path_plan_config->ompl_config = ompl_config;
-      path_plan_config->trajopt_freespace_config = trajopt_freespace_config;
-      path_plan_config->manipulator = manipulator_;
-      path_plan_config->world_frame = "world";
-      path_plan_config->robot_base_frame = "base_link";
-      path_plan_config->tool0_frame = "tool0";
-      path_plan_config->tcp_frame = "sander_center_link";
-      path_plan_config->rasters = raster_strips_world_frame;
-      path_plan_config->smooth_velocities = false;
-      path_plan_config->smooth_accelerations = false;
-      path_plan_config->smooth_jerks = false;
-      path_plan_config->max_joint_vel = 5.0;//1.5;
-      path_plan_config->tool_speed = 0.4;//0.3;
-      path_plan_config->tool_offset = tool_offset;
-      path_plan_config->minimum_raster_length = 4;
-      path_plan_config->add_approach_and_retreat = true;
-      path_plan_config->approach_distance = 0.05;
-      path_plan_config->retreat_distance = 0.05;
-      path_plan_config->use_start = true;
-      path_plan_config->start_pose = start_pose;
-      path_plan_config->use_end = true;
-      path_plan_config->end_pose = end_pose;
-
-      // Create crsMotionPlanner class
-      crs_motion_planning::crsMotionPlanner crs_motion_planner(path_plan_config);
-
-      auto path_plan_results = std::make_shared<crs_motion_planning::pathPlanningResults>();
-      bool success = crs_motion_planner.generateProcessPlan(path_plan_results);
-
-      std::vector<trajectory_msgs::msg::JointTrajectory> trajopt_trajectories;
-//      trajopt_trajectories = path_plan_results->final_raster_trajectories;
-      trajopt_trajectories = path_plan_results->final_trajectories;
-
-      if (success || trajopt_trajectories.size() > 0)
+      if (success)
       {
-          visualization_msgs::msg::MarkerArray temp_mark_array_msg, pub_mark_array_msg;
-          crs_motion_planning::rasterStripsToMarkerArray(path_plan_results->solved_rasters, path_plan_config->world_frame, temp_mark_array_msg, {1.0, 0.0, 1.0, 0.0}, -0.025);
-          crs_motion_planning::rasterStripsToMarkerArray(path_plan_results->failed_rasters, path_plan_config->world_frame, temp_mark_array_msg, {1.0, 1.0, 0.0, 0.0}, -0.025);
-          crs_motion_planning::rasterStripsToMarkerArray(path_plan_results->skipped_rasters, path_plan_config->world_frame, temp_mark_array_msg, {1.0, 1.0, 1.0, 0.0}, -0.025);
-          pub_mark_array_msg.markers.insert(pub_mark_array_msg.markers.end(), temp_mark_array_msg.markers.begin(), temp_mark_array_msg.markers.end());
-          corrected_path_publisher_->publish(pub_mark_array_msg);
-
-          visualization_msgs::msg::Marker failed_vertex_markers;
-          crs_motion_planning::failedEdgesToMarkerArray(path_plan_results->unreachable_waypoints, path_plan_config->world_frame, failed_vertex_markers, {1.0, 0.0, 1.0, 1.0}, 0.01);
-          failed_vertex_publisher_->publish(failed_vertex_markers);
-
-          for (size_t i = 0; i < trajopt_trajectories.size(); ++i)
+          std::vector<crs_msgs::msg::ProcessMotionPlan> process_plans = future.get()->plans;
+          for (size_t j = 0; j < process_plans.size(); ++j)
           {
-              std::cout << "PUBLISHING TRAJECTORY " << i+1 << " OF " << trajopt_trajectories.size() << std::endl;
-              traj_publisher_->publish(trajopt_trajectories[i]);
-              if (i == 0)
+              std::cout << "PUBLISHING PROCESS\t" << j+1 << " OF " << process_plans.size() << std::endl;
+              trajectory_msgs::msg::JointTrajectory start_traj = process_plans[j].start;
+              trajectory_msgs::msg::JointTrajectory end_traj = process_plans[j].end;
+              std::vector<trajectory_msgs::msg::JointTrajectory> process_motions = process_plans[j].process_motions;
+              std::vector<trajectory_msgs::msg::JointTrajectory> freespace_motions = process_plans[j].free_motions;
+              traj_publisher_->publish(start_traj);
+              std::this_thread::sleep_for(std::chrono::seconds(start_traj.points.size()/10 + 1));
+
+              for (size_t i = 0; i < freespace_motions.size(); ++i)
               {
-                  std::this_thread::sleep_for(std::chrono::seconds(3));
+                  std::cout << "PUBLISHING SURFACE\t" << i+1 << " OF " << process_motions.size() << std::endl;
+                  traj_publisher_->publish(process_motions[i]);
+                  std::this_thread::sleep_for(std::chrono::seconds(2));
+                  std::cout << "PUBLISHING FREESPACE\t" << i+1 << " OF " << freespace_motions.size() << std::endl;
+                  traj_publisher_->publish(freespace_motions[i]);
+                  std::this_thread::sleep_for(std::chrono::seconds(freespace_motions[i].points.size()/10 + 1));
               }
-              std::this_thread::sleep_for(std::chrono::seconds(5));
+              std::cout << "PUBLISHING SURFACE\t" << process_motions.size() << " OF " << process_motions.size() << std::endl;
+              traj_publisher_->publish(process_motions.back());
+              std::this_thread::sleep_for(std::chrono::seconds(2));
+              traj_publisher_->publish(end_traj);
           }
+
           std::cout << "ALL DONE" << std::endl;
-          response->success = true;
-          response->message = "TRAJECTORIES PUBLISHED";
       }
       else
       {
-          response->success = false;
-          response->message = "Failed to generate preplan";
+          std::cout << future.get()->err_msg << std::endl;
       }
+
+
   }
 
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr load_paths_service_;
+  rclcpp::Client<crs_msgs::srv::PlanProcessMotions>::SharedPtr call_process_plan_client_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr original_path_publisher_, corrected_path_publisher_;
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr failed_vertex_publisher_;
   rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr traj_publisher_;

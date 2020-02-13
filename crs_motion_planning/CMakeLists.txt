@@ -183,6 +183,39 @@ target_link_libraries(${PROJECT_NAME}_surface_planner
   descartes::descartes_ikfast
   )
 
+add_executable(${PROJECT_NAME}_motion_planning_server src/motion_planning_server.cpp)
+
+target_include_directories(${PROJECT_NAME}_motion_planning_server PUBLIC
+  include
+  ${rclcpp_INCLUDE_DIRS}
+  ${rclcpp_action_INCLUDE_DIRS}
+  ${crs_msgs_INCLUDE_DIRS}
+  ${tesseract_msgs_INCLUDE_DIRS}
+  ${trajectory_msgs_INCLUDE_DIRS}
+  ${geometry_msgs_INCLUDE_DIRS}
+  ${sensor_msgs_INCLUDE_DIRS}
+  ${visualization_msgs_INCLUDE_DIRS}
+  ${std_srvs_INCLUDE_DIRS}
+  ${tf2_INCLUDE_DIRS}
+  ${tf2_eigen_INCLUDE_DIRS}
+  ${tf2_ros_INCLUDE_DIRS}
+  )
+target_link_libraries(${PROJECT_NAME}_motion_planning_server
+  ${PROJECT_NAME}_path_planning_utils
+  ${rclcpp_LIBRARIES}
+  ${rclcpp_action_LIBRARIES}
+  ${crs_msgs_LIBRARIES}
+  ${tesseract_msgs_LIBRARIES}
+  ${trajectory_msgs_LIBRARIES}
+  ${geometry_msgs_LIBRARIES}
+  ${sensor_msgs_LIBRARIES}
+  ${std_srvs_LIBRARIES}
+  ${tf2_LIBRARIES}
+  ${tf2_eigen_LIBRARIES}
+  ${tf2_ros_LIBRARIES}
+  ${visualization_msgs_LIBRARIES}
+  )
+
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
@@ -216,6 +249,7 @@ install(TARGETS
   ${PROJECT_NAME}_path_planning_utils
   ${PROJECT_NAME}_freespace_planning_server
   ${PROJECT_NAME}_surface_planner
+  ${PROJECT_NAME}_motion_planning_server
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}

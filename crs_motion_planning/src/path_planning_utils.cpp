@@ -143,10 +143,15 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
                                               failed_vertices,
                                               joint_traj_msg_out_final))
                     {
-                      split_traj.push_back(joint_traj_msg_out_final);
-                      split_reachable_rasters.push_back(std::move(split_strip_ar));
-                      any_successes = true;
-                      std::cout << "SUCCESS" << std::endl;
+                        split_traj.push_back(joint_traj_msg_out_final);
+                        split_reachable_rasters.push_back(std::move(split_strip_ar));
+                        any_successes = true;
+                        std::cout << "SUCCESS" << std::endl;
+                    }
+                    else
+                    {
+                        results->unreachable_waypoints.poses.insert(results->unreachable_waypoints.poses.end(), split_strip_ar.poses.begin(), split_strip_ar.poses.end());
+                        std::cout << "ADDED APPROACH AND/OR RETREAT MADE RASTER UNREACHABLE" << std::endl;
                     }
                 }
                 else
@@ -168,9 +173,23 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
             {
                 split_strip_ar = strip;
             }
-            split_traj.push_back(joint_traj_msg_out_init);
             results->reachable_waypoints.poses.insert(results->reachable_waypoints.poses.end(), strip.poses.begin(), strip.poses.end());
-            split_reachable_rasters.push_back(std::move(split_strip_ar));
+            std::cout << "DESCARTES ROUND 2" << std::endl;
+            if (generateDescartesSeed(split_strip_ar,
+                                      failed_edges,
+                                      failed_vertices,
+                                      joint_traj_msg_out_final))
+            {
+                split_traj.push_back(joint_traj_msg_out_final);
+                split_reachable_rasters.push_back(std::move(split_strip_ar));
+                any_successes = true;
+                std::cout << "SUCCESS" << std::endl;
+            }
+            else
+            {
+                results->unreachable_waypoints.poses.insert(results->unreachable_waypoints.poses.end(), split_strip_ar.poses.begin(), split_strip_ar.poses.end());
+                std::cout << "ADDED APPROACH AND/OR RETREAT MADE RASTER UNREACHABLE" << std::endl;
+            }
         }
         std::cout << "Strip " << ++count_strips << " of " << raster_strips.size() << std::endl;
     }
@@ -190,13 +209,14 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
             double desired_ee_val = config_->tool_speed;
             double max_joint_vel = config_->max_joint_vel;
             std::vector<std::vector<double>> time_steps;
-            if(crs_motion_planning::splitRastersByJointDist(curr_joint_traj,
-                                                         split_reachable_rasters[raster_n],
-                                                         desired_ee_val,
-                                                         max_joint_vel,
-                                                         double_split_traj,
-                                                         resplit_rasters,
-                                                         time_steps))
+            if(config_->required_tool_vel &&
+                    crs_motion_planning::splitRastersByJointDist(curr_joint_traj,
+                                                                 split_reachable_rasters[raster_n],
+                                                                 desired_ee_val,
+                                                                 max_joint_vel,
+                                                                 double_split_traj,
+                                                                 resplit_rasters,
+                                                                 time_steps))
             {
                 std::cout << "FOUND A SPLIT" << std::endl;
                 if (config_->add_approach_and_retreat)
@@ -243,12 +263,9 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
                                                       modified_joint_traj_msg_out))
                             {
                                 std::cout << "SUCCESS" << std::endl;
-                                for (int j = 0; j < 1; ++j)
-                                {
-                                    final_split_rasters.push_back(modified_raster);
-                                    results->descartes_trajectory_results.push_back(modified_joint_traj_msg_out);
-                                    final_time_steps.push_back(modified_time_steps);
-                                }
+                                final_split_rasters.push_back(modified_raster);
+                                results->descartes_trajectory_results.push_back(modified_joint_traj_msg_out);
+                                final_time_steps.push_back(modified_time_steps);
                             }
                             std::cout << "DONE" << std::endl;
                         }
@@ -262,10 +279,10 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
             else
             {
                 std::cout << "NO SPLITS" << std::endl;
-                for (int j = 0; j < 1; ++j)
+                final_split_rasters.push_back(split_reachable_rasters[raster_n]);
+                results->descartes_trajectory_results.push_back(std::move(curr_joint_traj));
+                if (config_->required_tool_vel)
                 {
-                    final_split_rasters.push_back(split_reachable_rasters[raster_n]);
-                    results->descartes_trajectory_results.push_back(std::move(curr_joint_traj));
                     final_time_steps.push_back(time_steps[0]);
                 }
             }
@@ -355,16 +372,24 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
             {
                 std::cout << "Raster: " << trajopt_traj_n + 1 << " of " << trajopt_trajectories.size() << " with " << trajopt_trajectories[trajopt_traj_n].points.size() << " waypoints " << std::endl;
                 trajopt_trajectories[trajopt_traj_n].header.frame_id  = config_->world_frame;
-                double curr_traj_time = 0;
-                for (size_t j = 1; j < trajopt_trajectories[trajopt_traj_n].points.size(); ++j)
+                if (config_->required_tool_vel)
                 {
-                    trajopt_trajectories[trajopt_traj_n].points[j-1].time_from_start.sec = static_cast<int>(floor(final_time_steps[i][j]));
-                    trajopt_trajectories[trajopt_traj_n].points[j-1].time_from_start.nanosec = static_cast<uint>(1e9 * (final_time_steps[i][j] - floor(final_time_steps[i][j])));
-                    curr_traj_time += final_time_steps[i][j];
+                    double curr_traj_time = 0;
+                    for (size_t j = 1; j < trajopt_trajectories[trajopt_traj_n].points.size(); ++j)
+                    {
+                        double added_time = 0;
+                        if (!config_->use_gazebo_sim_timing)
+                        {
+                            added_time = curr_traj_time;
+                        }
+                        trajopt_trajectories[trajopt_traj_n].points[j-1].time_from_start.sec = static_cast<int>(floor(final_time_steps[i][j] + added_time));
+                        trajopt_trajectories[trajopt_traj_n].points[j-1].time_from_start.nanosec = static_cast<uint>(1e9 * (final_time_steps[i][j] + added_time - floor(final_time_steps[i][j] + added_time)));
+                        curr_traj_time += final_time_steps[i][j];
+                    }
+                    trajopt_trajectories[trajopt_traj_n].points.back().time_from_start.sec = 0;
+                    traj_times.push_back(std::move(curr_traj_time));
+                    trajopt_traj_n++;
                 }
-                trajopt_trajectories[trajopt_traj_n].points.back().time_from_start.sec = 0;
-                traj_times.push_back(std::move(curr_traj_time));
-                trajopt_traj_n++;
             }
         }
 
@@ -379,8 +404,8 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
     }
 }
 
-bool crsMotionPlanner::generateOMPLSeed(const Eigen::VectorXd &start_pose,
-                                        const Eigen::VectorXd &end_pose,
+bool crsMotionPlanner::generateOMPLSeed(const tesseract_motion_planners::JointWaypoint::Ptr &start_pose,
+                                        const tesseract_motion_planners::JointWaypoint::Ptr &end_pose,
                                         tesseract_common::JointTrajectory &seed_trajectory)
 {
     tesseract_motion_planners::OMPLMotionPlanner<ompl::geometric::RRTConnect> ompl_planner;
@@ -388,8 +413,8 @@ bool crsMotionPlanner::generateOMPLSeed(const Eigen::VectorXd &start_pose,
     // Convert ompl_config to an actual ompl config file
     auto ompl_planner_config = std::make_shared<tesseract_motion_planners::OMPLPlannerFreespaceConfig<ompl::geometric::RRTConnect>>(config_->tesseract_local, config_->manipulator);
     tesseract_kinematics::ForwardKinematics::ConstPtr kin = config_->tesseract_local->getFwdKinematicsManagerConst()->getFwdKinematicSolver(config_->manipulator);
-    ompl_planner_config->start_waypoint = std::make_shared<tesseract_motion_planners::JointWaypoint>(start_pose, kin->getJointNames());
-    ompl_planner_config->end_waypoint = std::make_shared<tesseract_motion_planners::JointWaypoint>(end_pose, kin->getJointNames());
+    ompl_planner_config->start_waypoint = start_pose;
+    ompl_planner_config->end_waypoint = end_pose;
     ompl_planner_config->collision_safety_margin = config_->ompl_config.collision_safety_margin;
     ompl_planner_config->planning_time = config_->ompl_config.planning_time;
     ompl_planner_config->simplify = config_->ompl_config.simplify;
@@ -400,7 +425,7 @@ bool crsMotionPlanner::generateOMPLSeed(const Eigen::VectorXd &start_pose,
     ompl_planner_config->max_solutions = config_->ompl_config.max_solutions;
     ompl_planner_config->n_output_states = config_->ompl_config.n_output_states;
     std::cout << "OUTPUT STATES: " << config_->ompl_config.n_output_states << std::endl;
-    std::cout << "GENERATING OMPL SEED FROM \n" << start_pose << "\nTO\n" << end_pose << std::endl;
+    std::cout << "GENERATING OMPL SEED FROM \n" << start_pose->getPositions().matrix() << "\nTO\n" << end_pose->getPositions().matrix() << std::endl;
 
     // Solve
     if (!ompl_planner.setConfiguration(ompl_planner_config))
@@ -422,8 +447,8 @@ bool crsMotionPlanner::generateOMPLSeed(const Eigen::VectorXd &start_pose,
     return true;
 }
 
-bool crsMotionPlanner::trajoptFreespaceFromOMPL(const Eigen::VectorXd &start_pose,
-                                                const Eigen::VectorXd &end_pose,
+bool crsMotionPlanner::trajoptFreespaceFromOMPL(const tesseract_motion_planners::JointWaypoint::Ptr &start_pose,
+                                                const tesseract_motion_planners::JointWaypoint::Ptr &end_pose,
                                                 const tesseract_common::JointTrajectory &seed_trajectory,
                                                 trajectory_msgs::msg::JointTrajectory &joint_trajectory)
 {
@@ -441,11 +466,11 @@ bool crsMotionPlanner::trajoptFreespaceFromOMPL(const Eigen::VectorXd &start_pos
         traj_pc->contact_test_type = config_->trajopt_freespace_config.contact_test_type;
     }
     std::cout << "OPTIMIZING WITH TRAJOPT" << std::endl;
-    tesseract_motion_planners::JointWaypoint::Ptr start_waypoint = std::make_shared<tesseract_motion_planners::JointWaypoint>(start_pose, seed_trajectory.joint_names);
-    tesseract_motion_planners::JointWaypoint::Ptr end_waypoint = std::make_shared<tesseract_motion_planners::JointWaypoint>(end_pose, seed_trajectory.joint_names);
+//    tesseract_motion_planners::JointWaypoint::Ptr start_waypoint = std::make_shared<tesseract_motion_planners::JointWaypoint>(start_pose, seed_trajectory.joint_names);
+//    tesseract_motion_planners::JointWaypoint::Ptr end_waypoint = std::make_shared<tesseract_motion_planners::JointWaypoint>(end_pose, seed_trajectory.joint_names);
     std::vector<tesseract_motion_planners::Waypoint::Ptr> trgt_wypts;
-    trgt_wypts.push_back(start_waypoint);
-    trgt_wypts.push_back(end_waypoint);
+    trgt_wypts.push_back(start_pose);
+    trgt_wypts.push_back(end_pose);
     traj_pc->target_waypoints = trgt_wypts;
     traj_pc->seed_trajectory = seed_trajectory.trajectory;
     traj_pc->num_steps = seed_trajectory.trajectory.rows();
@@ -476,10 +501,11 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr &results)
     if (config_->use_start)
     {
         std::cout << "SETTING UP FIRST OMPL PROBLEM" << std::endl;
-        Eigen::VectorXd begin_raster = tesseract_rosutils::toEigen(results->final_raster_trajectories[0].points[0].positions);
+        auto begin_raster = std::make_shared<tesseract_motion_planners::JointWaypoint>(results->final_raster_trajectories[0].points[0].positions, results->final_raster_trajectories[0].joint_names);
         tesseract_common::JointTrajectory seed_trajectory;
         bool ompl_simplify = config_->ompl_config.simplify;
         config_->ompl_config.simplify = config_->simplify_start_end_freespace;
+        Eigen::VectorXd start_pose = config_->start_pose->getPositions();
         if (!generateOMPLSeed(config_->start_pose, begin_raster, seed_trajectory))
         {
             results->msg_out = "Failed to generate ompl seed";
@@ -501,11 +527,14 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr &results)
 
             curr_joint_traj.header.frame_id = config_->world_frame;
             // Modify time
-            std::cout << "MODIFYING TRAJECTORY TIME OUTPUT" << std::endl;
-            for (int i = 0; i < curr_joint_traj.points.size(); ++i)
+            if (config_->use_gazebo_sim_timing)
             {
-              curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.sec = 0;
-              curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.nanosec = 1e8;
+                std::cout << "MODIFYING TRAJECTORY TIME OUTPUT" << std::endl;
+                for (int i = 0; i < curr_joint_traj.points.size(); ++i)
+                {
+                  curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.sec = 0;
+                  curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.nanosec = 1e8;
+                }
             }
         }
         else
@@ -525,8 +554,8 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr &results)
         std::cout << "SOLVING FREESPACE IN BETWEEN RASTERS " << i << " AND " << i+1 << std::endl;
         // Generate ompl seed from raster[i].back() to raster[i+1].begin() (convert from trajectory_msg to eigen::vectorXd)
         // run seed through trajopt if using trajopt for freespace
-        Eigen::VectorXd end_raster_i = tesseract_rosutils::toEigen(results->final_raster_trajectories[i].points.back().positions);
-        Eigen::VectorXd start_raster_ip1 = tesseract_rosutils::toEigen(results->final_raster_trajectories[i+1].points[0].positions);
+        auto end_raster_i = std::make_shared<tesseract_motion_planners::JointWaypoint>(results->final_raster_trajectories[i].points.back().positions, results->final_raster_trajectories[i].joint_names);
+        auto start_raster_ip1 = std::make_shared<tesseract_motion_planners::JointWaypoint>(results->final_raster_trajectories[i+1].points[0].positions, results->final_raster_trajectories[i+1].joint_names);
         tesseract_common::JointTrajectory seed_trajectory;
         if (!generateOMPLSeed(end_raster_i, start_raster_ip1, seed_trajectory))
         {
@@ -548,11 +577,14 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr &results)
 
             curr_joint_traj.header.frame_id = config_->world_frame;
             // Modify time
-            std::cout << "MODIFYING TRAJECTORY TIME OUTPUT" << std::endl;
-            for (int i = 0; i < curr_joint_traj.points.size(); ++i)
+            if (config_->use_gazebo_sim_timing)
             {
-              curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.sec = 0;
-              curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.nanosec = 1e8;
+                std::cout << "MODIFYING TRAJECTORY TIME OUTPUT" << std::endl;
+                for (int i = 0; i < curr_joint_traj.points.size(); ++i)
+                {
+                  curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.sec = 0;
+                  curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.nanosec = 1e8;
+                }
             }
         }
         else
@@ -573,7 +605,7 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr &results)
     if (config_->use_end)
     {
         std::cout << "SETTING UP LAST OMPL PROBLEM" << std::endl;
-        Eigen::VectorXd end_raster = tesseract_rosutils::toEigen(results->final_raster_trajectories.back().points.back().positions);
+        auto end_raster = std::make_shared<tesseract_motion_planners::JointWaypoint>(results->final_raster_trajectories.back().points.back().positions, results->final_raster_trajectories.back().joint_names);
         tesseract_common::JointTrajectory seed_trajectory;
         bool ompl_simplify = config_->ompl_config.simplify;
         config_->ompl_config.simplify = config_->simplify_start_end_freespace;
@@ -598,11 +630,14 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr &results)
 
             curr_joint_traj.header.frame_id = config_->world_frame;
             // Modify time
-            std::cout << "MODIFYING TRAJECTORY TIME OUTPUT" << std::endl;
-            for (int i = 0; i < curr_joint_traj.points.size(); ++i)
+            if (config_->use_gazebo_sim_timing)
             {
-              curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.sec = 0;
-              curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.nanosec = 1e8;
+                std::cout << "MODIFYING TRAJECTORY TIME OUTPUT" << std::endl;
+                for (int i = 0; i < curr_joint_traj.points.size(); ++i)
+                {
+                  curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.sec = 0;
+                  curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.nanosec = 1e8;
+                }
             }
         }
         else
@@ -633,7 +668,9 @@ bool crsMotionPlanner::generateProcessPlan(pathPlanningResults::Ptr& results)
     return true;
 }
 
-bool crsMotionPlanner::generateFreespacePlan(const Eigen::VectorXd &start_pose, const Eigen::VectorXd &end_pose, trajectory_msgs::msg::JointTrajectory &joint_trajectory)
+bool crsMotionPlanner::generateFreespacePlan(const tesseract_motion_planners::JointWaypoint::Ptr &start_pose,
+                                             const tesseract_motion_planners::JointWaypoint::Ptr &end_pose,
+                                             trajectory_msgs::msg::JointTrajectory &joint_trajectory)
 {
     std::cout << "SETTING UP OMPL PROBLEM" << std::endl;
     tesseract_common::JointTrajectory seed_trajectory;
@@ -655,11 +692,14 @@ bool crsMotionPlanner::generateFreespacePlan(const Eigen::VectorXd &start_pose, 
 
         joint_trajectory.header.frame_id = config_->world_frame;
         // Modify time
-        std::cout << "MODIFYING TRAJECTORY TIME OUTPUT" << std::endl;
-        for (int i = 0; i < joint_trajectory.points.size(); ++i)
+        if (config_->use_gazebo_sim_timing)
         {
-          joint_trajectory.points[static_cast<size_t>(i)].time_from_start.sec = 0;
-          joint_trajectory.points[static_cast<size_t>(i)].time_from_start.nanosec = 2e8;
+            std::cout << "MODIFYING TRAJECTORY TIME OUTPUT" << std::endl;
+            for (int i = 0; i < joint_trajectory.points.size(); ++i)
+            {
+              joint_trajectory.points[static_cast<size_t>(i)].time_from_start.sec = 0;
+              joint_trajectory.points[static_cast<size_t>(i)].time_from_start.nanosec = 1e8;
+            }
         }
     }
     else
@@ -670,10 +710,70 @@ bool crsMotionPlanner::generateFreespacePlan(const Eigen::VectorXd &start_pose, 
     return true;
 }
 
-bool crsMotionPlanner::generateFreespacePlan(const Eigen::VectorXd &start_pose, const geometry_msgs::msg::Pose &end_pose, trajectory_msgs::msg::JointTrajectory &joint_trajectory)
+bool crsMotionPlanner::generateFreespacePlan(const tesseract_motion_planners::JointWaypoint::Ptr &start_pose,
+                                             const tesseract_motion_planners::CartesianWaypoint::Ptr &end_pose,
+                                             trajectory_msgs::msg::JointTrajectory& joint_trajectory)
 {
-    std::cout << "THIS IS NOT YET IMPLEMENTED" << std::endl;
-    return false;
+    const bool allow_collisions = false;
+    const double collision_safety_margin = config_->ompl_config.collision_safety_margin;
+    tesseract::Tesseract::Ptr tesseract_local = config_->tesseract_local;
+    const std::shared_ptr<const tesseract_environment::Environment> env = tesseract_local->getEnvironmentConst();
+    tesseract_common::TransformMap curr_transforms = env->getCurrentState()->transforms;
+
+    tesseract_kinematics::ForwardKinematics::ConstPtr kin = tesseract_local->getFwdKinematicsManagerConst()->getFwdKinematicSolver(config_->manipulator);
+
+    tesseract_environment::AdjacencyMap::Ptr adjacency_map = std::make_shared<tesseract_environment::AdjacencyMap>(env->getSceneGraph(), kin->getActiveLinkNames(), curr_transforms);
+
+    auto collision_checker = std::make_shared<tesseract_motion_planners::DescartesCollisionD>(env, adjacency_map->getActiveLinkNames(), kin->getJointNames(), collision_safety_margin);
+
+    Eigen::Isometry3d world_to_base_link, world_to_sander, world_to_tool0, tool0_to_sander;
+    world_to_base_link = curr_transforms.find(config_->robot_base_frame)->second;
+    world_to_sander = curr_transforms.find(config_->tcp_frame)->second;
+    world_to_tool0 = curr_transforms.find(config_->tool0_frame)->second;
+    tool0_to_sander = world_to_tool0.inverse() * world_to_sander;
+    descartes_light::KinematicsInterfaceD::Ptr kin_interface = std::make_shared<ur_ikfast_kinematics::UR10eKinematicsD>(world_to_base_link, tool0_to_sander, nullptr, nullptr);
+
+    Eigen::Isometry3d goal_pose = end_pose->getTransform();
+    descartes_light::PositionSamplerD::Ptr sampler_result;
+
+    sampler_result = std::make_shared<descartes_light::CartesianPointSamplerD>(goal_pose,
+                                                                               kin_interface,
+                                                                               std::shared_ptr<descartes_light::CollisionInterface<double>>(collision_checker->clone()),
+                                                                               allow_collisions);
+
+    std::vector<double> soln_set;
+    sampler_result->sample(soln_set);
+    size_t j_num = start_pose->getNames().size();
+    size_t num_sols = soln_set.size()/j_num;
+    std::cout << "FOUND " << num_sols << " viable positions" << std::endl;
+    if (num_sols < 1)
+    {
+        return false;
+    }
+    Eigen::VectorXd start_eig = start_pose->getPositions(kin->getJointNames());
+    double min_j_dist = 999999;
+    Eigen::VectorXd end_eig = start_eig;
+    for (size_t i = 0; i < num_sols; ++i)
+    {
+        Eigen::VectorXd curr_sol(6), start_to_end(6);
+        curr_sol << soln_set[0 + i*j_num], soln_set[1 + i*j_num], soln_set[2 + i*j_num], soln_set[3 + i*j_num], soln_set[4 + i*j_num], soln_set[5 + i*j_num];
+        start_to_end = curr_sol - start_eig;
+        double j_dist = start_to_end.norm();
+        if (j_dist <= min_j_dist)
+        {
+            std::cout << "FOUND A BETTER JOINT CONFIG" << std::endl;
+            min_j_dist = j_dist;
+            end_eig = curr_sol;
+        }
+    }
+    tesseract_motion_planners::JointWaypoint::Ptr goal_waypoint = std::make_shared<tesseract_motion_planners::JointWaypoint>(
+              end_eig, kin->getJointNames());
+
+    std::cout << "PLANNING OMPL VIA JOINT WAYPOINTS" << std::endl;
+    bool success = generateFreespacePlan(start_pose, goal_waypoint, joint_trajectory);
+
+//    std::cout << "THIS IS NOT YET IMPLEMENTED" << std::endl;
+    return success;
 }
 
 } // namespace crs_motion_planning

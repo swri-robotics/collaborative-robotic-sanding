@@ -27,6 +27,7 @@
 #include <descartes_samplers/evaluators/distance_edge_evaluator.h>
 #include <descartes_samplers/evaluators/euclidean_distance_edge_evaluator.h>
 #include <descartes_samplers/samplers/axial_symmetric_sampler.h>
+#include <descartes_samplers/samplers/cartesian_point_sampler.h>
 
 #include <crs_motion_planning/path_processing_utils.h>
 
@@ -107,13 +108,10 @@ struct pathPlanningConfig
 
     descartesConfig descartes_config;
 
-//    tesseract_motion_planners::TrajOptPlannerDefaultConfig::Ptr trajopt_surface_config;
     trajoptSurfaceConfig trajopt_surface_config;
 
-//    std::shared_ptr<tesseract_motion_planners::OMPLFreespacePlannerConfig<ompl::geometric::RRTConnect>> ompl_config;
     omplConfig ompl_config;
 
-//    tesseract_motion_planners::TrajOptPlannerFreespaceConfig::Ptr trajopt_freespace_config;
     trajoptFreespaceConfig trajopt_freespace_config;
     bool use_trajopt_freespace = true;
 
@@ -122,9 +120,10 @@ struct pathPlanningConfig
     descartes_light::KinematicsInterfaceD::Ptr kin_interface;
 
     bool use_start = false;
-    Eigen::VectorXd start_pose;
+    tesseract_motion_planners::JointWaypoint::Ptr start_pose;
     bool use_end = false;
-    Eigen::VectorXd end_pose;
+    tesseract_motion_planners::JointWaypoint::Ptr end_pose;
+    bool simplify_start_end_freespace = true;
 
     std::vector<geometry_msgs::msg::PoseArray> rasters; // In world frame
 
@@ -137,23 +136,19 @@ struct pathPlanningConfig
 
     Eigen::Isometry3d tool_offset = Eigen::Isometry3d::Identity();
 
-    bool smooth_velocities = true;
-    bool smooth_accelerations = true;
-    bool smooth_jerks = true;
-
     bool add_approach_and_retreat = false;
     double approach_distance = 0.05;
     double retreat_distance = 0.05;
 
-    bool required_joint_vel = false;
+    bool required_tool_vel = false;
     double tool_speed = 0.03; // m/s
     double max_joint_vel = 0.2; // rad/s
 
     size_t minimum_raster_length = 2;
 
-    bool simplify_start_end_freespace = true;
-
     bool trajopt_verbose_output = false;
+
+    bool use_gazebo_sim_timing = false;
 };
 
 struct pathPlanningResults
@@ -209,18 +204,18 @@ public:
     /// \brief generateOMPLSeed Creates freespace trajectory given a start and end joint state
     /// \return success
     ///
-    bool generateOMPLSeed(const Eigen::VectorXd &start_pose,
-                          const Eigen::VectorXd &end_pose,
+    bool generateOMPLSeed(const tesseract_motion_planners::JointWaypoint::Ptr &start_pose,
+                          const tesseract_motion_planners::JointWaypoint::Ptr &end_pose,
                           tesseract_common::JointTrajectory& seed_trajectory);
 
     ///
     /// \brief trajoptFreespace Uses ompl seed to generate a trajopt plan
     /// \return success
     ///
-    bool trajoptFreespaceFromOMPL(const Eigen::VectorXd &start_pose,
-                          const Eigen::VectorXd &end_pose,
-                          const tesseract_common::JointTrajectory &seed_trajectory,
-                          trajectory_msgs::msg::JointTrajectory& joint_trajectory);
+    bool trajoptFreespaceFromOMPL(const tesseract_motion_planners::JointWaypoint::Ptr &start_pose,
+                                  const tesseract_motion_planners::JointWaypoint::Ptr &end_pose,
+                                  const tesseract_common::JointTrajectory &seed_trajectory,
+                                  trajectory_msgs::msg::JointTrajectory& joint_trajectory);
     ///
     /// \brief generateFreespacePlans Creates freespace trajectories given a set of surface rasters
     /// \return success
@@ -237,16 +232,16 @@ public:
     /// \brief generateFreespacePlan Creates a freespace plans given a start and end joint position
     /// \return success
     ///
-    bool generateFreespacePlan(const Eigen::VectorXd &start_pose,
-                               const Eigen::VectorXd &end_pose,
+    bool generateFreespacePlan(const tesseract_motion_planners::JointWaypoint::Ptr &start_pose,
+                               const tesseract_motion_planners::JointWaypoint::Ptr &end_pose,
                                trajectory_msgs::msg::JointTrajectory& joint_trajectory);
 
     ///
     /// \brief generateFreespacePlan Creates a freespace plans given a start joint position and end cartesian position
     /// \return success
     ///
-    bool generateFreespacePlan(const Eigen::VectorXd &start_pose,
-                               const geometry_msgs::msg::Pose &end_pose,
+    bool generateFreespacePlan(const tesseract_motion_planners::JointWaypoint::Ptr &start_pose,
+                               const tesseract_motion_planners::CartesianWaypoint::Ptr &end_pose,
                                trajectory_msgs::msg::JointTrajectory& joint_trajectory);
 
 protected:
