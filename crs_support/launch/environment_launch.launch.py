@@ -41,6 +41,26 @@ def generate_launch_description():
         arguments=['-entity', 'robot', '-x', '0', '-y', '0', '-z', '0.05', '-file', urdf],
         condition = launch.conditions.IfCondition(launch.substitutions.LaunchConfiguration('sim_robot'))
         )
+
+    motion_planning_server = launch_ros.actions.Node(
+        node_executable='crs_motion_planning_motion_planning_server',
+        package='crs_motion_planning',
+        node_name='motion_planning_server',
+        output='screen',
+        parameters=[{'urdf_path': urdf,
+        'srdf_path': srdf,
+        'process_planner_service': "plan_process_motion",
+        'freespace_motion_service': "plan_freespace_motion",
+        'trajectory_topic': "crs/set_trajectory_test",
+        'base_link_frame': "base_link",
+        'world_frame': "world",
+        'tool0_frame': "tool0",
+        'manipulator_group': "manipulator",
+        'num_steps': 20,
+        'max_joint_velocity': 5.0,
+        'min_raster_length': 4,
+        'use_gazebo_simulation_time': True,
+        'set_trajopt_verbose': False}])
     
     return launch.LaunchDescription([
         # arguments
@@ -61,5 +81,8 @@ def generate_launch_description():
         
         # gazebo
         gzserver,
-        spawner1
+        spawner1,
+
+        # planning
+        motion_planning_server,
 ])
