@@ -18,6 +18,7 @@
   <depend>shape_msgs</depend>
   <depend>std_srvs</depend>
   <depend>crs_msgs</depend>
+  <depend>crs_motion_planning</depend>
   <exec_depend>xterm</exec_depend>
 
   <export>
