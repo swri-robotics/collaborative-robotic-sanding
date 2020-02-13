@@ -21,7 +21,6 @@
 #include <tesseract_environment/core/environment.h>
 #include <tesseract_environment/core/utils.h>
 #include <tesseract_rosutils/utils.h>
-//#include <tesseract_rosutils/conversions.h>
 
 #include <descartes_light/descartes_light.h>
 #include <descartes_samplers/evaluators/distance_edge_evaluator.h>
@@ -68,7 +67,7 @@ struct trajoptSurfaceConfig
 
 struct omplConfig
 {
-    double collision_safety_margin = 0.02;
+    double collision_safety_margin = 0.01;
     double planning_time = 5.0; // seconds
 
     bool simplify = true;
@@ -116,8 +115,6 @@ struct pathPlanningConfig
     bool use_trajopt_freespace = true;
 
     tesseract::Tesseract::Ptr tesseract_local;
-
-    descartes_light::KinematicsInterfaceD::Ptr kin_interface;
 
     bool use_start = false;
     tesseract_motion_planners::JointWaypoint::Ptr start_pose;

@@ -466,8 +466,6 @@ bool crsMotionPlanner::trajoptFreespaceFromOMPL(const tesseract_motion_planners:
         traj_pc->contact_test_type = config_->trajopt_freespace_config.contact_test_type;
     }
     std::cout << "OPTIMIZING WITH TRAJOPT" << std::endl;
-//    tesseract_motion_planners::JointWaypoint::Ptr start_waypoint = std::make_shared<tesseract_motion_planners::JointWaypoint>(start_pose, seed_trajectory.joint_names);
-//    tesseract_motion_planners::JointWaypoint::Ptr end_waypoint = std::make_shared<tesseract_motion_planners::JointWaypoint>(end_pose, seed_trajectory.joint_names);
     std::vector<tesseract_motion_planners::Waypoint::Ptr> trgt_wypts;
     trgt_wypts.push_back(start_pose);
     trgt_wypts.push_back(end_pose);

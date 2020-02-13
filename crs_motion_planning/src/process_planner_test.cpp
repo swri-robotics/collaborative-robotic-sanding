@@ -19,19 +19,19 @@
 
 #include <geometry_msgs/msg/pose.hpp>
 
-class SurfaceServer: public rclcpp::Node
+class ProcessPlannerTestServer: public rclcpp::Node
 {
 public:
-  SurfaceServer()
-    : Node("surface_server_node"),
+  ProcessPlannerTestServer()
+    : Node("process_planner_test_node"),
       clock_(std::make_shared<rclcpp::Clock>(RCL_SYSTEM_TIME)),
       tf_buffer_(clock_),
       tf_listener_(tf_buffer_)
   {
     // ROS communications
-    test_process_planner_service_ = this->create_service<std_srvs::srv::Trigger>("test_process_planner", std::bind(&SurfaceServer::planService, this, std::placeholders::_1, std::placeholders::_2));
+    test_process_planner_service_ = this->create_service<std_srvs::srv::Trigger>("test_process_planner", std::bind(&ProcessPlannerTestServer::planService, this, std::placeholders::_1, std::placeholders::_2));
     traj_publisher_ = this->create_publisher<trajectory_msgs::msg::JointTrajectory>("set_trajectory_test",1);
-    joint_state_listener_ = this->create_subscription<sensor_msgs::msg::JointState>("/joint_states", 1, std::bind(&SurfaceServer::jointCallback, this, std::placeholders::_1));
+    joint_state_listener_ = this->create_subscription<sensor_msgs::msg::JointState>("/joint_states", 1, std::bind(&ProcessPlannerTestServer::jointCallback, this, std::placeholders::_1));
     call_process_plan_client_ = this->create_client<crs_msgs::srv::PlanProcessMotions>("plan_process_motion");
 
     toolpath_filepath_ = ament_index_cpp::get_package_share_directory("crs_support") + "/toolpaths/scanned_part1/job_90degrees.yaml";
@@ -103,7 +103,7 @@ private:
       path_requests.push_back(path_wf);
       proc_req->process_paths = path_requests;
 
-      auto process_plan_cb = std::bind(&SurfaceServer::processPlanCallback, this, std::placeholders::_1);
+      auto process_plan_cb = std::bind(&ProcessPlannerTestServer::processPlanCallback, this, std::placeholders::_1);
       call_process_plan_client_->async_send_request(proc_req, process_plan_cb);
 
       response->success = true;
@@ -176,7 +176,7 @@ private:
 int main(int argc, char **argv)
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<SurfaceServer>());
+  rclcpp::spin(std::make_shared<ProcessPlannerTestServer>());
   rclcpp::shutdown();
   return 0;
 }

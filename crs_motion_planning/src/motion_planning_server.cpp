@@ -20,15 +20,14 @@
 
 #include <geometry_msgs/msg/pose.hpp>
 
-static const std::vector<double> DEFAULT_COEFFICIENTS {10, 10, 10, 10, 10, 10};
 static const std::string RESOURCES_PACKAGE_NAME = "crs_support";
-static const std::string DEFAULT_URDF_PATH = "urdf/crs_v3.urdf";
+static const std::string DEFAULT_URDF_PATH = "urdf/crs.urdf";
 static const std::string DEFAULT_SRDF_PATH = "urdf/ur10e_robot.srdf";
 
-static const std::string FREESPACE_MOTION_PLANNING_SERVICE = "plan_freespace_motion";
-static const std::string FREESPACE_TRAJECTORY_TOPIC = "set_trajectory_test";//"planned_freespace_trajectory";
+static const std::string DEFAULT_PROCESS_MOTION_PLANNING_SERVICE = "plan_process_motion";
+static const std::string DEFAULT_FREESPACE_MOTION_PLANNING_SERVICE = "plan_freespace_motion";
+static const std::string DEFAULT_FREESPACE_TRAJECTORY_TOPIC = "planned_freespace_trajectory";
 static const std::string JOINT_STATES_TOPIC = "joint_states";
-static const std::string PROCESS_MOTION_PLANNING_SERVICE = "plan_process_motion";
 static const std::string LOADED_RASTER_PATHS_TOPIC = "original_raster_paths";
 static const std::string FINAL_RASTER_PATHS_TOPIC = "fixed_raster_paths";
 static const std::string UNREACHABLE_VERTICES_TOPIC = "failed_vertices";
@@ -37,12 +36,18 @@ namespace param_names
 {
   static const std::string URDF_PATH = "urdf_path";
   static const std::string SRDF_PATH = "srdf_path";
+  static const std::string PROCESS_MOTION_PLANNING_SERVICE = "process_planner_service";
+  static const std::string FREESPACE_MOTION_PLANNING_SERVICE = "freespace_motion_service";
+  static const std::string FREESPACE_TRAJECTORY_TOPIC = "trajectory_topic";
   static const std::string ROOT_LINK_FRAME = "base_link_frame";
+  static const std::string WORLD_FRAME = "world_frame";
+  static const std::string TOOL0_FRAME = "tool0_frame";
   static const std::string MANIPULATOR_GROUP = "manipulator_group";
   static const std::string NUM_FREEPSACE_STEPS = "num_steps";
-  static const std::string CART_WEIGHT_COEFFS = "cartesian_coeffs";
   static const std::string MAX_JOINT_VELOCITY = "max_joint_velocity";
   static const std::string MIN_RASTER_LENGTH = "min_raster_length";
+  static const std::string GAZEBO_SIM_TIMING = "use_gazebo_simulation_time";
+  static const std::string TRAJOPT_VERBOSE = "set_trajopt_verbose";
 }
 
 class MotionPlanningServer: public rclcpp::Node
@@ -60,34 +65,56 @@ public:
     this->declare_parameter(param_names::SRDF_PATH, (fs::path(ament_index_cpp::get_package_share_directory(RESOURCES_PACKAGE_NAME)) /
                                                      fs::path(DEFAULT_SRDF_PATH)).string());
 
+    this->declare_parameter(param_names::FREESPACE_MOTION_PLANNING_SERVICE, DEFAULT_FREESPACE_MOTION_PLANNING_SERVICE);
+    this->declare_parameter(param_names::FREESPACE_TRAJECTORY_TOPIC, DEFAULT_FREESPACE_TRAJECTORY_TOPIC);
+    this->declare_parameter(param_names::PROCESS_MOTION_PLANNING_SERVICE, DEFAULT_PROCESS_MOTION_PLANNING_SERVICE);
     this->declare_parameter(param_names::ROOT_LINK_FRAME, "base_link");
+    this->declare_parameter(param_names::WORLD_FRAME, "world");
+    this->declare_parameter(param_names::TOOL0_FRAME, "tool0");
     this->declare_parameter(param_names::MANIPULATOR_GROUP, "manipulator");
     this->declare_parameter(param_names::NUM_FREEPSACE_STEPS, 20);
-    this->declare_parameter(param_names::CART_WEIGHT_COEFFS, DEFAULT_COEFFICIENTS);
     this->declare_parameter(param_names::MAX_JOINT_VELOCITY, 0.5);
     this->declare_parameter(param_names::MIN_RASTER_LENGTH, 3);
+    this->declare_parameter(param_names::GAZEBO_SIM_TIMING, false);
+    this->declare_parameter(param_names::TRAJOPT_VERBOSE, false);
+
+    std::string process_planner_service = this->get_parameter(param_names::PROCESS_MOTION_PLANNING_SERVICE).as_string();
+    std::string freespace_motion_service = this->get_parameter(param_names::FREESPACE_MOTION_PLANNING_SERVICE).as_string();
+    std::string freespace_trajectory_topic = this->get_parameter(param_names::FREESPACE_TRAJECTORY_TOPIC).as_string();
 
     // ROS communications
-    plan_process_service_ = this->create_service<crs_msgs::srv::PlanProcessMotions>(PROCESS_MOTION_PLANNING_SERVICE, std::bind(&MotionPlanningServer::planProcess, this, std::placeholders::_1, std::placeholders::_2));
-    plan_freespace_service_ = this->create_service<crs_msgs::srv::CallFreespaceMotion>(FREESPACE_MOTION_PLANNING_SERVICE, std::bind(&MotionPlanningServer::planFreespace, this, std::placeholders::_1, std::placeholders::_2));
-    traj_publisher_ = this->create_publisher<trajectory_msgs::msg::JointTrajectory>(FREESPACE_TRAJECTORY_TOPIC,1);
+    plan_process_service_ = this->create_service<crs_msgs::srv::PlanProcessMotions>(process_planner_service, std::bind(&MotionPlanningServer::planProcess, this, std::placeholders::_1, std::placeholders::_2));
+    plan_freespace_service_ = this->create_service<crs_msgs::srv::CallFreespaceMotion>(freespace_motion_service, std::bind(&MotionPlanningServer::planFreespace, this, std::placeholders::_1, std::placeholders::_2));
+    traj_publisher_ = this->create_publisher<trajectory_msgs::msg::JointTrajectory>(freespace_trajectory_topic,1);
     original_path_publisher_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(LOADED_RASTER_PATHS_TOPIC,1);
     corrected_path_publisher_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(FINAL_RASTER_PATHS_TOPIC,1);
     failed_vertex_publisher_ = this->create_publisher<visualization_msgs::msg::Marker>(UNREACHABLE_VERTICES_TOPIC,1);
     joint_state_listener_ = this->create_subscription<sensor_msgs::msg::JointState>(JOINT_STATES_TOPIC, 1, std::bind(&MotionPlanningServer::jointCallback, this, std::placeholders::_1));
 
+    // openning files
     std::string urdf_path, srdf_path;
     urdf_path = this->get_parameter(param_names::URDF_PATH).as_string();
     srdf_path = this->get_parameter(param_names::SRDF_PATH).as_string();
-    std::stringstream urdf_xml_string, srdf_xml_string;
-    std::ifstream urdf_in(urdf_path);
-    urdf_xml_string << urdf_in.rdbuf();
-    std::ifstream srdf_in(srdf_path);
-    srdf_xml_string << srdf_in.rdbuf();
+    std::vector<std::string> file_paths = {urdf_path, srdf_path};
+    std::vector<std::string> file_string_contents;
+    for(const auto& f : file_paths)
+    {
+      std::ifstream ifs(f);
+      if(!ifs.is_open())
+      {
+        throw std::runtime_error(boost::str( boost::format("File '%s' could not be opened" ) % f));
+      }
+      std::stringstream ss;
+      ss << ifs.rdbuf();
+      file_string_contents.push_back(ss.str());
+    }
+
+    const std::string urdf_content = file_string_contents[0];
+    const std::string srdf_content = file_string_contents[1];
 
     tesseract::Tesseract::Ptr tesseract_local = std::make_shared<tesseract::Tesseract>();
     tesseract_scene_graph::ResourceLocator::Ptr locator = std::make_shared<tesseract_rosutils::ROSResourceLocator>();
-    tesseract_local->init(urdf_xml_string.str(), srdf_xml_string.str(), locator);
+    tesseract_local->init(urdf_content, srdf_content, locator);
 
     // Set up planning config variable
     crs_motion_planning::descartesConfig descartes_config;
@@ -134,11 +161,14 @@ public:
     motion_planner_config_->trajopt_freespace_config = trajopt_freespace_config;
     motion_planner_config_->manipulator = this->get_parameter(param_names::MANIPULATOR_GROUP).as_string();
     motion_planner_config_->robot_base_frame = this->get_parameter(param_names::ROOT_LINK_FRAME).as_string();
-    motion_planner_config_->max_joint_vel = 5.0;//1.5;
+    motion_planner_config_->world_frame = this->get_parameter(param_names::WORLD_FRAME).as_string();
+    motion_planner_config_->tool0_frame = this->get_parameter(param_names::TOOL0_FRAME).as_string();
+    motion_planner_config_->max_joint_vel = this->get_parameter(param_names::MAX_JOINT_VELOCITY).as_double();//5.0;//1.5;
     motion_planner_config_->minimum_raster_length = this->get_parameter(param_names::MIN_RASTER_LENGTH).as_int();
     motion_planner_config_->add_approach_and_retreat = true;
     motion_planner_config_->required_tool_vel = true;
-    motion_planner_config_->use_gazebo_sim_timing = true;
+    motion_planner_config_->use_gazebo_sim_timing = this->get_parameter(param_names::GAZEBO_SIM_TIMING).as_bool();
+    motion_planner_config_->trajopt_verbose_output = this->get_parameter(param_names::TRAJOPT_VERBOSE).as_bool();
 
   }
 private:
@@ -247,9 +277,6 @@ private:
       // Create crsMotionPlanner class
       crs_motion_planning::crsMotionPlanner crs_motion_planner(motion_planner_config_);
 
-      // Initialize vector of target waypoints
-      std::vector<tesseract_motion_planners::Waypoint::Ptr> trgt_wypts;
-
       // Define initial waypoint
       tesseract_motion_planners::JointWaypoint::Ptr joint_start_waypoint;
       if(request->start_position.position.empty())
@@ -293,13 +320,13 @@ private:
       }
 
       // Modify time
-      for (int i = 0; i < response->output_trajectory.points.size(); ++i)
+      for (size_t i = 0; i < response->output_trajectory.points.size(); ++i)
       {
-        response->output_trajectory.points[static_cast<size_t>(i)].time_from_start.sec = 0;
-        response->output_trajectory.points[static_cast<size_t>(i)].time_from_start.nanosec = 0;//2e8;
+        response->output_trajectory.points[i].time_from_start.sec = 0;
+        response->output_trajectory.points[i].time_from_start.nanosec = 0;//2e8;
       }
 
-      if (success)
+      if (success && response->output_trajectory.points.size() > 0)
       {
         response->success = true;
       }
@@ -307,6 +334,7 @@ private:
       {
         response->success = false;
         RCLCPP_ERROR(this->get_logger(),response->message.c_str());
+        return;
       }
 
       if (request->execute && success)
