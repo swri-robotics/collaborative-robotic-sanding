@@ -74,7 +74,7 @@ def generate_launch_description():
         spawner1,
 
         # planning
-        freespace_planner
+#        freespace_planner
 
 ])
 
