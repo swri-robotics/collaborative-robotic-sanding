@@ -31,7 +31,7 @@ def generate_launch_description():
          package='tesseract_monitoring',
          node_executable='tesseract_monitoring_environment_node',
          output='screen',
-         parameters=[{'use_sim_time': 'true',
+         parameters=[{'use_sim_time': True,
          'desc_param': 'robot_description',
          'robot_description': urdf3,
          'robot_description_semantic': srdf}])
@@ -62,6 +62,27 @@ def generate_launch_description():
         'manipulator_group': "manipulator",
         'num_steps': 200}])
 
+    motion_planning_server = launch_ros.actions.Node(
+        node_executable='crs_motion_planning_motion_planning_server',
+        package='crs_motion_planning',
+        node_name='motion_planning_server',
+        output='screen',
+        parameters=[{'urdf_path': urdf3,
+        'srdf_path': srdf,
+        'process_planner_service': "plan_process_motion",
+        'freespace_motion_service': "plan_freespace_motion",
+        'trajectory_topic': "set_trajectory_test",
+        'base_link_frame': "base_link",
+        'world_frame': "world",
+        'tool0_frame': "tool0",
+        'manipulator_group': "manipulator",
+        'num_steps': 20,
+        'max_joint_velocity': 5.0,
+        'min_raster_length': 4,
+        'use_gazebo_simulation_time': True,
+        'set_trajopt_verbose': False}])
+
+
     return launch.LaunchDescription([
         # kill_gazebo
 #        kill_gazebo,
@@ -75,6 +96,7 @@ def generate_launch_description():
 
         # planning
 #        freespace_planner
+        motion_planning_server,
 
 ])
 
