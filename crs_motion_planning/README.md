@@ -36,9 +36,14 @@ Then in another terminal call the service trigger
 ros2 service call /test_process_planner std_srvs/srv/Trigger
 ```
 Rviz will first populate with a marker array of blue arrows to show the original path.
-Once planning is complete  and successful 2 new marker arrays will be publised
-The first is an array of light blue spheres to donate the unreachable waypoints
+
+Once planning is complete  and successful 2 new marker arrays will be publised.
+
+The first is an array of light blue spheres to denote the unreachable waypoints.
+
 The second includes 3 different colored arrows:
-  Green: Successfully planned rasters
-  Yellow: Skipped rasters due to raster length being below specified threshold
-  Red: Rasters that failed to pass through trajopt surface planner
+- Green: Successfully planned rasters
+  
+- Yellow: Skipped rasters due to raster length being below specified threshold
+  
+- Red: Rasters that failed to pass through trajopt surface planner
