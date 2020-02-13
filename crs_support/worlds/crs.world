@@ -28,7 +28,7 @@
 		   </ros>
 		   <update_rate>10</update_rate>
 		</plugin>
-	</include>
+    </include>
   
     </world>
 </sdf>
