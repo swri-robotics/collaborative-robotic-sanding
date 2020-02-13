@@ -1,7 +1,8 @@
 - git: {local-name: descartes_light, uri: 'https://github.com/swri-robotics/descartes_light.git', version: 6addf6b}
 - git: {local-name: octomap_msgs, uri: 'https://github.com/AcutronicRobotics/octomap_msgs.git', version: d0c420f}
 - git: {local-name: opw_kinematics, uri: 'https://github.com/Jmeyer1292/opw_kinematics.git', version: 2bcea36}
-- git: {local-name: tesseract, uri: 'https://github.com/mpowelson/tesseract.git', version: feature/ros2_temp}
+- git: {local-name: tesseract, uri: 'https://github.com/ros-industrial-consortium/tesseract.git', version: 76e2892}
 - git: {local-name: tesseract_ros2, uri: 'https://github.com/ros-industrial-consortium/tesseract_ros2.git', version: 9458de7}
-- git: {local-name: trajopt_ros, uri: 'https://github.com/ros-industrial-consortium/trajopt_ros.git', version: 7b46728}
+- git: {local-name: trajopt_ros, uri: 'https://github.com/ros-industrial-consortium/trajopt_ros.git', version: e37cba6}
 - git: {local-name: ros_scxml, uri: 'https://github.com/mpowelson/ros_scxml.git', version: feature/ci}
+- git: {local-name: ur_ikfast_kinematics, uri: 'https://github.com/schornakj/ur_ikfast_kinematics.git', version: 533d183}
