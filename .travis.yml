@@ -23,7 +23,7 @@ env:
     - ROS_REPO=ros
     - CMAKE_ARGS="-DCMAKE_BUILD_TYPE=Debug"
     # Rosdep does not currently handle pure cmake packages correctly in ROS2 with extended workspaces (like the UPSTREAM_WORKSPACE). Therefore we have to add them here
-    - ROSDEP_SKIP_KEYS="catkin ompl message_runtime message_generation dynamic_reconfigure roscpp roslib eigen_conversions scxml_core tesseract tesseract_kinematics tesseract_visualization trajopt trajopt_utils trajopt_sco descartes_light descartes_ikfast descartes_samplers"
+    - ROSDEP_SKIP_KEYS="catkin ompl message_runtime message_generation dynamic_reconfigure roscpp roslib eigen_conversions scxml_core tesseract tesseract_kinematics tesseract_visualization trajopt trajopt_utils trajopt_sco descartes_light descartes_ikfast descartes_samplers ur_ikfast_kinematics"
 
 jobs:
   include:

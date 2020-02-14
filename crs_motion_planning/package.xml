@@ -29,6 +29,8 @@
   <depend>tesseract_kinematics</depend>
   <depend>tesseract_visualization</depend>
 
+  <depend>ur_ikfast_kinematics</depend>
+
   <depend>trajopt</depend>
   <depend>trajopt_utils</depend>
   <depend>trajopt_sco</depend>
