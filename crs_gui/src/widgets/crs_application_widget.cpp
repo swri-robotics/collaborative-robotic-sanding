@@ -30,11 +30,14 @@
 #include <crs_gui/widgets/polygon_area_selection_widget.h>
 #include <crs_gui/widgets/state_machine_interface_widget.h>
 
+#include <crs_motion_planning/path_processing_utils.h>
+
 const static std::string CURRENT_STATE_TOPIC = "current_state";
 const static std::string GET_AVAILABLE_ACTIONS = "get_available_actions";
 const static std::string GET_CONFIGURATION_SERVICE = "get_configuration";
 const static std::string EXECUTE_ACTION = "execute_action";
 const static std::string MESH_MARKER_TOPIC = "mesh_marker";
+const static std::string TOOLPATH_MARKER_TOPIC = "toolpath_marker";
 const static double WAIT_FOR_SERVICE_PERIOD = 1.0;
 
 namespace crs_gui
@@ -61,12 +64,19 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node,
   // Set up ROS interfaces for area selection
   mesh_marker_pub_.reset();
   mesh_marker_pub_ = node_->create_publisher<visualization_msgs::msg::MarkerArray>(MESH_MARKER_TOPIC, 1);
+  toolpath_marker_pub_.reset();
+  toolpath_marker_pub_ = node_->create_publisher<visualization_msgs::msg::MarkerArray>(TOOLPATH_MARKER_TOPIC, 1);
 
   // Visualization Setup
   {
     using namespace std::chrono_literals;
     mesh_marker_timer_ = node_->create_wall_timer(500ms, std::bind(&CRSApplicationWidget::meshMarkerTimerCb, this));
+    toolpath_marker_timer_ =
+        node_->create_wall_timer(500ms, std::bind(&CRSApplicationWidget::toolpathMarkerTimerCb, this));
   }
+  visualization_msgs::msg::Marker marker;
+  marker.action = marker.DELETEALL;
+  delete_all_marker_.markers.push_back(marker);
 
   //  // Add the widgets to the UI
   ui_->vertical_layout_part_selector->addWidget(part_selector_widget_.get());
@@ -105,7 +115,20 @@ void CRSApplicationWidget::onPartSelected(const std::string selected_part)
 
 void CRSApplicationWidget::onPartPathSelected(const std::string selected_part, const std::string selected_path)
 {
-  // Currently does nothing
+  // Read toolpath yamls
+  std::string path = database_directory_ + "/" + selected_part + "/" + selected_path + ".yaml";
+  std::cout << "Loading Toolpath: " << path << std::endl;
+  std::vector<geometry_msgs::msg::PoseArray> rasters;
+  crs_motion_planning::parsePathFromFile(path, "world", rasters);
+
+  // Convert to markers
+  visualization_msgs::msg::MarkerArray raster_markers;
+  crs_motion_planning::rasterStripsToMarkerArray(rasters, "world", raster_markers);
+  current_toolpath_marker_.markers.clear();
+  current_toolpath_marker_ = raster_markers;
+
+  // Clear the old toolpath
+  toolpath_marker_pub_->publish(delete_all_marker_);
 }
 
 void CRSApplicationWidget::getConfigurationCb(crs_msgs::srv::GetConfiguration::Request::SharedPtr req,
@@ -118,4 +141,6 @@ void CRSApplicationWidget::getConfigurationCb(crs_msgs::srv::GetConfiguration::R
 }
 
 void CRSApplicationWidget::meshMarkerTimerCb() { mesh_marker_pub_->publish(current_mesh_marker_); }
+
+void CRSApplicationWidget::toolpathMarkerTimerCb() { toolpath_marker_pub_->publish(current_toolpath_marker_); }
 }  // namespace crs_gui
