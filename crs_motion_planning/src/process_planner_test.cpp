@@ -54,7 +54,6 @@ public:
     toolpath_filepath_ = ament_index_cpp::get_package_share_directory("crs_support") + "/toolpaths/scanned_part1/"
                                                                                        "job_90degrees.yaml";
 
-
     // waiting for server
     if(!trajectory_exec_client_->wait_for_action_server(std::chrono::duration<double>(WAIT_SERVER_TIMEOUT)))
     {
@@ -63,13 +62,7 @@ public:
       throw std::runtime_error(err_msg);
     }
     RCLCPP_INFO(this->get_logger(), "%s action client found", FOLLOW_JOINT_TRAJECTORY_ACTION.c_str());
-
-/*    std::shared_ptr<std_srvs::srv::Trigger::Request> req = std::make_shared<std_srvs::srv::Trigger::Request>();
-    std::shared_ptr<std_srvs::srv::Trigger::Response> res = std::make_shared<std_srvs::srv::Trigger::Response>();
-    std::cout<<"Calling planService(...)"<<std::endl;
-    planService(req,res);*/
   }
-
 
 private:
 
@@ -182,8 +175,8 @@ private:
     auto proc_req = std::make_shared<crs_msgs::srv::PlanProcessMotions::Request>();
     proc_req->tool_link = "sander_center_link";
     proc_req->tool_speed = 0.4;
-    proc_req->approach_dist = 0.05;
-    proc_req->retreat_dist = 0.05;
+    proc_req->approach_dist = 0.025;
+    proc_req->retreat_dist = 0.025;
     proc_req->start_position = curr_joint_state_;
     proc_req->end_position = curr_joint_state_;
     Eigen::Isometry3d tool_offset_req = Eigen::Isometry3d::Identity();

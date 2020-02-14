@@ -81,6 +81,8 @@ struct omplConfig
   int max_solutions = 10;
 
   int n_output_states = 20;
+
+  double longest_valid_segment_fraction = 0.01;
 };
 
 struct trajoptFreespaceConfig
@@ -196,6 +198,12 @@ public:
   bool generateSurfacePlans(pathPlanningResults::Ptr& results);
 
   ///
+  /// \brief generateSurfacePlans Creates surface trajectories given a set of rasters
+  /// \return success
+  ///
+  bool generateSurfacePlans2(pathPlanningResults::Ptr& results);
+
+  ///
   /// \brief generateOMPLSeed Creates freespace trajectory given a start and end joint state
   /// \return success
   ///
@@ -238,6 +246,15 @@ public:
   bool generateFreespacePlan(const tesseract_motion_planners::JointWaypoint::Ptr& start_pose,
                              const tesseract_motion_planners::CartesianWaypoint::Ptr& end_pose,
                              trajectory_msgs::msg::JointTrajectory& joint_trajectory);
+
+  ///
+  /// \brief findClosestJointOrientation Finds the closest joint state given start pose at the end cartesian pose
+  /// \return success
+  ///
+  bool findClosestJointOrientation(const tesseract_motion_planners::JointWaypoint::Ptr& start_pose,
+                                   const tesseract_motion_planners::CartesianWaypoint::Ptr& end_pose,
+                                   tesseract_motion_planners::JointWaypoint::Ptr& returned_pose,
+                                   const double& axial_step = -1);
 
 protected:
   pathPlanningConfig::Ptr config_;
