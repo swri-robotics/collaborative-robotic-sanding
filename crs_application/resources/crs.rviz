@@ -44,7 +44,7 @@ Visualization Manager:
       Plane Cell Count: 10
       Reference Frame: <Fixed Frame>
       Value: true
-    - Alpha: 0.5
+    - Alpha: 1
       Class: rviz_default_plugins/RobotModel
       Collision Enabled: false
       Description File: ""
@@ -166,7 +166,7 @@ Visualization Manager:
         gazebo_camera_link:
           Value: false
         part:
-          Value: false
+          Value: true
         robot_stand:
           Value: false
         sander_center_link:
@@ -230,7 +230,7 @@ Visualization Manager:
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        "": true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -242,7 +242,7 @@ Visualization Manager:
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        "": true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -254,7 +254,7 @@ Visualization Manager:
       Enabled: true
       Name: Marker
       Namespaces:
-        "": true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -353,10 +353,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.46539875864982605
+      Pitch: 0.40039870142936707
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.6003984808921814
+      Yaw: 0.6453993320465088
     Saved: ~
 Window Geometry:
   Displays:
