@@ -39,6 +39,7 @@ public:
 
     toolpath_filepath_ = ament_index_cpp::get_package_share_directory("crs_support") + "/toolpaths/scanned_part1/"
                                                                                        "job_90degrees.yaml";
+//    toolpath_filepath_ = "/home/tmarr/.local/share/offline_generated_paths/itar_part1/job_0_degrees.yaml";
   }
 
 private:
@@ -89,8 +90,8 @@ private:
     auto proc_req = std::make_shared<crs_msgs::srv::PlanProcessMotions::Request>();
     proc_req->tool_link = "sander_center_link";
     proc_req->tool_speed = 0.4;
-    proc_req->approach_dist = 0.05;
-    proc_req->retreat_dist = 0.05;
+    proc_req->approach_dist = 0.025;
+    proc_req->retreat_dist = 0.025;
     proc_req->start_position = curr_joint_state_;
     proc_req->end_position = curr_joint_state_;
     Eigen::Isometry3d tool_offset_req = Eigen::Isometry3d::Identity();
