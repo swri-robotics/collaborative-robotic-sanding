@@ -28,7 +28,7 @@ find_package(Eigen3 REQUIRED NO_MODULE)
 ##################################
 # build
 ##################################
-add_library(${PROJECT_NAME} 
+add_library(${PROJECT_NAME} SHARED
 	src/crs_executive.cpp 
 	src/task_managers/scan_acquisition_manager.cpp
 	src/task_managers/part_registration_manager.cpp

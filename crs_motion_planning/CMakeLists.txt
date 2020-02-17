@@ -47,7 +47,7 @@ find_package(tf2_geometry_msgs REQUIRED)
 
 find_package(yaml-cpp REQUIRED)
 
-add_library(${PROJECT_NAME}_path_processing_utils src/path_processing_utils.cpp)
+add_library(${PROJECT_NAME}_path_processing_utils SHARED src/path_processing_utils.cpp)
 target_include_directories(${PROJECT_NAME}_path_processing_utils PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
   "$<INSTALL_INTERFACE:include>"
@@ -70,7 +70,7 @@ target_link_libraries(${PROJECT_NAME}_path_processing_utils
   Eigen3::Eigen
   )
 
-add_library(${PROJECT_NAME}_path_planning_utils src/path_planning_utils.cpp)
+add_library(${PROJECT_NAME}_path_planning_utils SHARED src/path_planning_utils.cpp)
 target_include_directories(${PROJECT_NAME}_path_planning_utils PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
   "$<INSTALL_INTERFACE:include>"
