@@ -166,7 +166,7 @@ Visualization Manager:
         gazebo_camera_link:
           Value: false
         part:
-          Value: true
+          Value: false
         robot_stand:
           Value: false
         sander_center_link:
