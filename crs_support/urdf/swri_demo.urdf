@@ -93,7 +93,7 @@
         <child link="forearm_link" />
         <origin rpy="3.14047492209 3.14117521433 3.14159104748" xyz="-0.611971344601 0 0" />
         <axis xyz="0 0 1" />
-        <limit effort="150.0" lower="-2.6" upper="3.141592653589793" velocity="3.14" />
+        <limit effort="150.0" lower="-6.28318530718" upper="6.28318530718" velocity="3.14" />
         <dynamics damping="0.0" friction="0.0" />
     </joint>
     <link name="forearm_link">
@@ -237,7 +237,7 @@
     </link>
     <link name="base" />
     <joint name="base_link-base_fixed_joint" type="fixed">
-        <origin rpy="0 0 0" xyz="0 0 0" />
+        <origin rpy="-1.571 0 0" xyz="0 0 0" />
         <parent link="base" />
         <child link="base_link" />
     </joint>
@@ -250,7 +250,7 @@
     <link name="eoat_link">
         <visual>
             <geometry>
-                <mesh filename="package://crs_support/meshes/end_effector/visual/FRAMOS.stl" />
+                <mesh filename="package://crs_support/meshes/end_effector/visual/ee_v2.stl" />
             </geometry>
             <material name="Orange">
                 <color rgba="1.0 0.4 0.0 1.0" />
@@ -258,7 +258,7 @@
         </visual>
         <collision>
             <geometry>
-                <mesh filename="package://crs_support/meshes/end_effector/collision/FRAMOS_collision.stl" />
+                <mesh filename="package://crs_support/meshes/end_effector/collision/ee_v2_collision_full.stl" />
             </geometry>
         </collision>
 
@@ -271,63 +271,70 @@
     <joint name="tool0_to_eoat_link" type="fixed">
         <parent link="tool0" />
         <child link="eoat_link" />
-        <origin rpy="1.57 0.0 0" xyz="-0.04 0.09 -0.03" />
+        <origin rpy="0.0 0.0 0" xyz="0.00 0.00 0.00" />
     </joint>
     <link name="robot_stand">
         <visual>
+            <origin rpy="1.57079632679 0 0" xyz="0 0 -0.1168" />
             <geometry>
-                <box size="0.4318 0.4318 1.1"/>
+                <mesh filename="package://crs_support/meshes/Mockup/visual/mockup_frame_v3.stl" />
             </geometry>
             <material name="LightGrey">
                 <color rgba="0.7 0.7 0.7 1.0" />
             </material>
-            <origin rpy="0 0 0" xyz="0 0 0.55" />
         </visual>
         <visual>
+            <origin rpy="1.57079632679 0 0" xyz="0 0 -0.1168" />
             <geometry>
-                <box size="0.889 0.889 0.7112"/>
+                <mesh filename="package://crs_support/meshes/Mockup/visual/mockup_cart_v3.stl" />
             </geometry>
             <material name="LightGrey">
                 <color rgba="0.7 0.7 0.7 1.0" />
             </material>
-            <origin rpy="0 0 0" xyz="0 0 0.3556" />
-        </visual>
-        <visual>
-            <geometry>
-                <box size="1.55 1.55 0.254"/>
-            </geometry>
-            <material name="LightGrey">
-                <color rgba="0.7 0.7 0.7 1.0" />
-            </material>
-            <origin rpy="0 0 0" xyz="0 0 0.127" />
         </visual>
         <collision>
+            <origin rpy="1.57079632679 0 0" xyz="0 0 -0.1168" />
             <geometry>
-                <box size="0.4318 0.4318 1.1"/>
+                <mesh filename="package://crs_support/meshes/Mockup/collision/mockup_cart_collision_v3.stl" />
             </geometry>
-            <material name="LightGrey">
-                <color rgba="0.7 0.7 0.7 1.0" />
-            </material>
-            <origin rpy="0 0 0" xyz="0 0 0.55" />
         </collision>
-        <collision>
+        <collision> <!-- Right Wall-->
             <geometry>
-                <box size="0.889 0.889 0.7112"/>
+                <box size="1.02 2.14 0.1" />
             </geometry>
-            <material name="LightGrey">
-                <color rgba="0.7 0.7 0.7 1.0" />
-            </material>
-            <origin rpy="0 0 0" xyz="0 0 0.3556" />
+            <origin rpy="0 0 0" xyz="-0.42 -1.1 1.105" />
         </collision>
-        <collision>
+        <collision> <!-- Left Wall-->
             <geometry>
-                <box size="1.55 1.55 0.254"/>
+                <box size="1.02 2.14 0.1" />
             </geometry>
-            <material name="LightGrey">
-                <color rgba="0.7 0.7 0.7 1.0" />
-            </material>
-            <origin rpy="0 0 0" xyz="0 0 0.127" />
+            <origin rpy="0 0 0" xyz="-0.42 -1.1 -1.46" />
         </collision>
+<!--        <collision> Front Wall
+            <geometry>
+                <box size="0.1 2.14 2.65" />
+            </geometry>
+            <origin rpy="0 0 0" xyz="0.4 -1.1 -0.175" />
+        </collision>
+        <collision> Back Wall
+            <geometry>
+                <box size="0.1 2.14 2.65" />
+            </geometry>
+            <origin rpy="0 0 0" xyz="-1.25 -1.1 -0.175" />
+        </collision>-->
+        <collision> <!-- Top front beam-->
+            <geometry>
+                <box size="0.22 0.12 2.65" />
+            </geometry>
+            <origin rpy="0 0 0" xyz="0.036983 -2.145 -0.175" />
+        </collision>
+        <collision> <!-- Top back beam-->
+            <geometry>
+                <box size="0.22 0.12 2.65" />
+            </geometry>
+            <origin rpy="0 0 0" xyz="-0.867 -2.145 -0.175" />
+        </collision>
+
         <inertial>
             <mass value="0.1" />
             <inertia ixx="0.03" iyy="0.03" izz="0.03" ixy="0.0" ixz="0.0" iyz="0.0" />
@@ -337,26 +344,58 @@
     <joint name="robot_base_joint" type="fixed">
         <parent link="robot_stand" />
         <child link="base" />
-        <origin rpy="0 0 0" xyz="0 0 1.0922" />
+        <origin rpy="0 1.571 0" xyz="0.036983 -2.0948 0.58 " />
+<!--        <origin rpy="0 1.571 0" xyz="0.036983 -2.0948 0.258 " />-->
+        <axis xyz="1 0 0"/>
         <limit effort="1.0" lower="-0.1" upper="1.9" velocity=".01" />
     </joint>
     <link name="world" />
     <joint name="robot_stand_joint" type="fixed">
         <parent link="world" />
         <child link="robot_stand" />
-        <origin rpy="0 0 0" xyz="0 0 0" />
+        <origin rpy="-1.571 0 0" xyz="0 0 0" />
     </joint>
     <link name="gazebo_camera_link" />
     <joint name="gazebo_camera_joint" type="fixed">
-        <origin xyz="0 0 0.02" rpy="0 0 1.571"/>
-        <parent link="wrist_3_link"/>
+        <origin xyz="0.0 0.0 0.0" rpy="1.57 -1.57 0.0"/>
+        <parent link="camera_link_optical"/>
         <child link="gazebo_camera_link"/>
     </joint>
     <link name="camera_link_optical" />
     <joint name="camera_optical_joint" type="fixed">
-        <origin xyz="0 0 0" rpy="-1.571 0 -1.571"/>
+        <origin xyz="-0.00345 0.070793 0.077409" rpy="-0.7854 0 0"/>
+        <parent link="eoat_link"/>
         <parent link="gazebo_camera_link"/>
         <child link="camera_link_optical"/>
+    </joint>
+    <link name="sander_center_link" />
+    <joint name="sander_joint" type = "fixed">
+        <origin xyz="0.0 -0.1167 0.12664" rpy="0.7854 0.0 0.0"/>
+        <parent link="eoat_link"/>
+        <child link="sander_center_link" />
+    </joint>
+    <link name="part" >
+        <visual>
+            <origin rpy="0 0 0" xyz="0 0 0" />
+            <geometry>
+                <mesh filename="package://crs_support/meshes/Parts/visual/part1_ch.stl" />
+<!--                <mesh filename="file:///home/tmarr/.local/share/offline_generated_paths/itar_part1/part3.stl" />-->
+            </geometry>
+            <material name="Green">
+                <color rgba="0.0 0.7 0.0 1.0" />
+            </material>
+        </visual>
+<!--        <collision>
+            <geometry>
+                <mesh filename="package://crs_support/meshes/Parts/collision/part1_ch.stl" />
+            </geometry>
+        </collision>-->
+    </link>
+    <joint name="robot_stand_to_part_joint" type= "fixed">
+        <origin xyz="-0.439 -1.1 -0.14" rpy= "-3.1416 0.0 -1.571"/>
+<!--        <origin xyz="-0.63 -2.50 -0.05" rpy= "-1.4 0.0 0"/>-->
+        <parent link="robot_stand"/>
+        <child link="part"/>
     </joint>
 
     <transmission name="trans_shoulder_pan_joint">
@@ -470,8 +509,8 @@
           <update_rate>5</update_rate>
           <camera name="camera_name">
             <image>
-              <width>640</width>
-              <height>400</height>
+              <width>320</width>
+              <height>200</height>
             </image>
             <distortion>
               <k1>-0.0</k1>
@@ -504,7 +543,7 @@
             <!-- Set TF frame name. If empty, defaults to link name (i.e. "link_name") -->
             <hack_baseline>0.07</hack_baseline>
             <!-- No need to repeat distortion parameters or to set autoDistortion -->
-             <min_depth>0.001</min_depth>
+             <min_depth>0.1</min_depth>
           </plugin>
         </sensor>
     </gazebo>
@@ -531,4 +570,3 @@
         </plugin>
     </gazebo>
 </robot>
-
