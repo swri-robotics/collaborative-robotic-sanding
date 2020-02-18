@@ -89,7 +89,7 @@ private:
 
     auto proc_req = std::make_shared<crs_msgs::srv::PlanProcessMotions::Request>();
     proc_req->tool_link = "sander_center_link";
-    proc_req->tool_speed = 0.4;
+    proc_req->tool_speed = 0.3;
     proc_req->approach_dist = 0.025;
     proc_req->retreat_dist = 0.025;
     proc_req->start_position = curr_joint_state_;
@@ -135,7 +135,7 @@ private:
         {
           std::cout << "PUBLISHING SURFACE\t" << i + 1 << " OF " << process_motions.size() << std::endl;
           traj_publisher_->publish(process_motions[i]);
-          std::this_thread::sleep_for(std::chrono::seconds(2));
+          std::this_thread::sleep_for(std::chrono::seconds(process_motions[i].points.size() / 5 + 1));
           std::cout << "PUBLISHING FREESPACE\t" << i + 1 << " OF " << freespace_motions.size() << std::endl;
           traj_publisher_->publish(freespace_motions[i]);
           std::this_thread::sleep_for(std::chrono::seconds(freespace_motions[i].points.size() / 10 + 1));

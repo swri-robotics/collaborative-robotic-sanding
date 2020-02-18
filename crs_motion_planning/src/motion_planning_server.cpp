@@ -136,35 +136,43 @@ public:
     trajopt_surface_config.smooth_velocities = false;
     trajopt_surface_config.smooth_accelerations = false;
     trajopt_surface_config.smooth_jerks = false;
-    tesseract_motion_planners::CollisionCostConfig coll_cost_config_srfc, coll_cost_config_fs;
+    tesseract_motion_planners::CollisionCostConfig coll_cost_config_srfc;
     coll_cost_config_srfc.enabled = false;
     trajopt_surface_config.coll_cst_cfg = coll_cost_config_srfc;
-    tesseract_motion_planners::CollisionConstraintConfig coll_cnt_config_srfc, coll_cnt_config_fs;
+    tesseract_motion_planners::CollisionConstraintConfig coll_cnt_config_srfc;
     coll_cnt_config_srfc.enabled = true;
     coll_cnt_config_srfc.safety_margin = 0.001;
     trajopt_surface_config.coll_cnt_cfg = coll_cnt_config_srfc;
     Eigen::VectorXd surface_coeffs(6);
     surface_coeffs << 10, 10, 10, 10, 10, 0;
     trajopt_surface_config.surface_coeffs = surface_coeffs;
-    trajopt_surface_config.waypoints_critical = false;
+    trajopt_surface_config.waypoints_critical = true;
+    trajopt_surface_config.longest_valid_segment_fraction = 0.001;
 
     crs_motion_planning::omplConfig ompl_config;
-    ompl_config.collision_safety_margin = 0.01;
+    ompl_config.collision_safety_margin = 0.0175;
     ompl_config.planning_time = 5;
     ompl_config.n_output_states = this->get_parameter(param_names::NUM_FREEPSACE_STEPS).as_int();
-    ompl_config.simplify = false;
+    ompl_config.simplify = true;
     ompl_config.longest_valid_segment_fraction = 0.005;
 
     crs_motion_planning::trajoptFreespaceConfig trajopt_freespace_config;
-    coll_cost_config_fs = coll_cost_config_srfc;
+    tesseract_motion_planners::CollisionCostConfig coll_cost_config_fs;
     coll_cost_config_fs.enabled = true;
     coll_cost_config_fs.buffer_margin = 0.05;
-    coll_cnt_config_fs = coll_cnt_config_srfc;
-    coll_cnt_config_fs.safety_margin = 0.01;
+    coll_cost_config_fs.coeff = 15;
+    tesseract_motion_planners::CollisionConstraintConfig coll_cnt_config_fs;
+    coll_cnt_config_fs.enabled = true;
+    coll_cnt_config_fs.safety_margin = 0.005;
+//    coll_cnt_config_fs.type = trajopt::CollisionEvaluatorType::DISCRETE_CONTINUOUS;
     trajopt_freespace_config.coll_cst_cfg = coll_cost_config_fs;
     trajopt_freespace_config.coll_cnt_cfg = coll_cnt_config_fs;
-    trajopt_freespace_config.longest_valid_segment_fraction = 0.005;
+    trajopt_freespace_config.longest_valid_segment_fraction = 0.001;
     trajopt_freespace_config.contact_test_type = tesseract_collision::ContactTestType::ALL;
+//    trajopt_freespace_config.contact_test_type = tesseract_collision::ContactTestType::CLOSEST;
+    trajopt_freespace_config.smooth_velocities = true;
+    trajopt_freespace_config.smooth_accelerations = true;
+    trajopt_freespace_config.smooth_jerks = true;
 
     motion_planner_config_ = std::make_shared<crs_motion_planning::pathPlanningConfig>();
     motion_planner_config_->tesseract_local = tesseract_local;
@@ -183,7 +191,10 @@ public:
     motion_planner_config_->required_tool_vel = true;
     motion_planner_config_->use_gazebo_sim_timing = this->get_parameter(param_names::GAZEBO_SIM_TIMING).as_bool();
     motion_planner_config_->trajopt_verbose_output = this->get_parameter(param_names::TRAJOPT_VERBOSE).as_bool();
-    motion_planner_config_->simplify_start_end_freespace = false;
+    motion_planner_config_->simplify_start_end_freespace = true;
+    motion_planner_config_->use_trajopt_freespace = true;
+    motion_planner_config_->combine_strips = true;
+    motion_planner_config_->global_descartes = true;
   }
 
 private:
