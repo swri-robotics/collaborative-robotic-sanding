@@ -22,6 +22,7 @@ find_package(crs_msgs REQUIRED)
 # Library containing tools for specifying regions and determining inlying points
 add_library(${PROJECT_NAME}_area_selection SHARED src/area_selector.cpp src/selection_artist.cpp)
 set_target_properties(${PROJECT_NAME}_area_selection PROPERTIES CXX_STANDARD 14)
+target_compile_options(${PROJECT_NAME}_area_selection PUBLIC -mno-avx)  # Prevent Eigen Alignment issues
 target_include_directories(${PROJECT_NAME}_area_selection PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:include>")

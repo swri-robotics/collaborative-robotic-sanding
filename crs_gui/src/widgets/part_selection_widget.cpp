@@ -121,6 +121,12 @@ void PartSelectionWidget::onPartSelected()
     emit partSelected(current_part);
     emit partPathSelected(current_part, current_path);
   }
+  else if (ui_->list_widget_parts && ui_->list_widget_parts->currentItem())
+  {
+    std::string current_part =
+        ui_->list_widget_parts->currentItem()->data(Qt::ItemDataRole::UserRole).toString().toUtf8().constData();
+    emit partSelected(current_part);
+  }
 }
 
 }  // namespace crs_gui

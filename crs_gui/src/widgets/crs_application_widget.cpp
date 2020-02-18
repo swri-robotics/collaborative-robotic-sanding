@@ -111,6 +111,10 @@ void CRSApplicationWidget::onPartSelected(const std::string selected_part)
   visualization_msgs::msg::MarkerArray array;
   array.markers.push_back(marker);
   current_mesh_marker_ = array;
+
+  // Clear the old toolpath
+  current_toolpath_marker_ = delete_all_marker_;
+  toolpath_marker_pub_->publish(delete_all_marker_);
 }
 
 void CRSApplicationWidget::onPartPathSelected(const std::string selected_part, const std::string selected_path)
