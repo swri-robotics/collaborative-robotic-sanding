@@ -58,6 +58,7 @@ struct trajoptSurfaceConfig
   trajopt::InitInfo::Type init_type = trajopt::InitInfo::GIVEN_TRAJ;
 
   double longest_valid_segment_fraction = 0.01;
+  double longest_valid_segment_length = 0.5;
 
   Eigen::VectorXd surface_coeffs;  // Defaults to 6 10s
 
@@ -83,6 +84,7 @@ struct omplConfig
   int n_output_states = 20;
 
   double longest_valid_segment_fraction = 0.01;
+  double longest_valid_segment_length = 0.5;
 };
 
 struct trajoptFreespaceConfig
@@ -97,6 +99,7 @@ struct trajoptFreespaceConfig
   trajopt::InitInfo::Type init_type = trajopt::InitInfo::GIVEN_TRAJ;
 
   double longest_valid_segment_fraction = 0.01;
+  double longest_valid_segment_length = 0.5;
 
   tesseract_collision::ContactTestType contact_test_type = tesseract_collision::ContactTestType::CLOSEST;
 };
@@ -146,6 +149,9 @@ struct pathPlanningConfig
   bool trajopt_verbose_output = false;
 
   bool use_gazebo_sim_timing = false;
+
+  bool combine_strips = false;
+  bool global_descartes = true;
 };
 
 struct pathPlanningResults
