@@ -204,12 +204,6 @@ public:
   bool generateSurfacePlans(pathPlanningResults::Ptr& results);
 
   ///
-  /// \brief generateSurfacePlans Creates surface trajectories given a set of rasters
-  /// \return success
-  ///
-  bool generateSurfacePlans2(pathPlanningResults::Ptr& results);
-
-  ///
   /// \brief generateOMPLSeed Creates freespace trajectory given a start and end joint state
   /// \return success
   ///
