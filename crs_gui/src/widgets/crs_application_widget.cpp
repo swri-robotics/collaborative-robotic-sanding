@@ -50,8 +50,8 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node,
   , node_(node)
   , database_directory_(database_directory)
   , part_selector_widget_(new PartSelectionWidget(parent, database_directory))
-  , area_selection_widget_(new PolygonAreaSelectionWidget(node, "world", "world"))
-  , state_machine_interface_widget_(new StateMachineInterfaceWidget(node))
+  , area_selection_widget_(new PolygonAreaSelectionWidget(node, "world", "world", parent))
+  , state_machine_interface_widget_(new StateMachineInterfaceWidget(node, parent))
 {
   ui_->setupUi(this);
 
@@ -111,6 +111,9 @@ void CRSApplicationWidget::onPartSelected(const std::string selected_part)
   visualization_msgs::msg::MarkerArray array;
   array.markers.push_back(marker);
   current_mesh_marker_ = array;
+
+  std::string path2 = database_directory_ + "/" + selected_part + "/" + selected_part + ".ply";
+  area_selection_widget_->loadMeshFile(path2);
 
   // Clear the old toolpath
   current_toolpath_marker_ = delete_all_marker_;

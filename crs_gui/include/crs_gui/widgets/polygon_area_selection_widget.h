@@ -45,7 +45,9 @@ public:
 
 public Q_SLOTS:
 
-  void init(const shape_msgs::msg::Mesh& mesh);
+  void loadShapeMsg(const shape_msgs::msg::Mesh& mesh);
+
+  void loadMeshFile(const std::string& filepath);
 
 Q_SIGNALS:
   void selectedSubmesh(const shape_msgs::msg::Mesh::SharedPtr& selected_submesh);

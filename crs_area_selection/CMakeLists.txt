@@ -9,7 +9,7 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_eigen REQUIRED)
 
 find_package(Eigen3 REQUIRED)
-find_package(PCL 1.8 REQUIRED COMPONENTS sample_consensus segmentation surface)
+find_package(PCL 1.8 REQUIRED COMPONENTS sample_consensus segmentation surface io)
 
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)

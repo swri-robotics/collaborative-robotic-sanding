@@ -33,6 +33,8 @@ namespace crs_area_selection
 {
 struct FittedPlane
 {
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
   Eigen::Vector3d normal = Eigen::Vector3d::UnitZ();
   Eigen::Vector3d origin = Eigen::Vector3d::Zero();
 };
@@ -47,6 +49,8 @@ struct FittedPlane
 class AreaSelector
 {
 public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
   /**
    * @brief AreaSelector class constructor
    */
