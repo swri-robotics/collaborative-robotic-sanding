@@ -21,6 +21,8 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <shape_msgs/msg/mesh.hpp>
+#include <eigen3/Eigen/Core>
+
 
 #include <crs_area_selection/selection_artist.h>
 #include "crs_gui/register_ros_msgs_for_qt.h"
@@ -35,8 +37,9 @@ namespace crs_gui
 class PolygonAreaSelectionWidget : public QWidget
 {
   Q_OBJECT
-
 public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
   explicit PolygonAreaSelectionWidget(rclcpp::Node::SharedPtr node,
                                       const std::string& selection_world_frame,
                                       const std::string& selection_sensor_frame,

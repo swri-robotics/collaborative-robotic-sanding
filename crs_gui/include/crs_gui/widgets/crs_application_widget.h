@@ -26,6 +26,7 @@
 #include <crs_msgs/srv/execute_action.hpp>
 #include <crs_msgs/srv/get_configuration.hpp>
 #include <string>
+#include <eigen3/Eigen/Core>
 
 namespace Ui
 {
@@ -42,6 +43,8 @@ class CRSApplicationWidget : public QWidget
 {
   Q_OBJECT
 public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+
   CRSApplicationWidget(rclcpp::Node::SharedPtr node,
                        QWidget* parent = nullptr,
                        std::string database_directory = std::string(std::getenv("HOME")) + "/.local/share/"

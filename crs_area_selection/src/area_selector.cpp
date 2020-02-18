@@ -87,8 +87,10 @@ boost::optional<FittedPlane> AreaSelector::fitPlaneToPoints(const PointVector& p
     pt.z = static_cast<float>((*it)(2));
 
     input_cloud->points.push_back(pt);
+    input_cloud->width += 1;
     centroid.add(pt);
   }
+  input_cloud->height = 1;
 
   pcl::PointXYZ origin;
   centroid.get(origin);
