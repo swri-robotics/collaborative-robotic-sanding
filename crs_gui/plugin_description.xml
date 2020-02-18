@@ -1,0 +1,8 @@
+<library path="libcrs_gui_panels">
+  <class type="crs_gui::ApplicationPanel"
+         base_class_type="rviz_common::Panel">
+    <description>
+      A panel for running the CRS application
+    </description>
+  </class>
+</library>

@@ -37,6 +37,7 @@
 #define INCLUDE_CRS_APPLICATION_TASK_MANAGERS_MOTION_PLANNING_MANAGER_H_
 
 #include <memory>
+#include <atomic>
 #include <Eigen/Geometry>
 #include <rclcpp/rclcpp.hpp>
 #include <crs_msgs/srv/call_freespace_motion.hpp>
@@ -48,9 +49,13 @@ namespace crs_application
 {
 namespace task_managers
 {
-
 struct MotionPlanningConfig
 {
+  // home pose
+  std::vector<std::string> joint_names;
+  std::vector<double> joint_home_position;
+
+  // process path
   double tool_speed;
   Eigen::Isometry3d offset_pose;
   double retreat_dist;
@@ -58,8 +63,11 @@ struct MotionPlanningConfig
   std::string tool_frame;
 
   // media change
-  double media_change_time;             /** @brief secs */
-  Eigen::Isometry3d media_change_pose;  /** @brief in world coordinates */
+  double media_change_time;            /** @brief time that needs to elapse for the next media change secs */
+  Eigen::Isometry3d media_change_pose; /** @brief in world coordinates */
+
+  // preview
+  double preview_time_scaling = 1.0; /** @brief preview will be played at a scaled speed */
 };
 
 class MotionPlanningManager
@@ -77,24 +85,33 @@ public:
   common::ActionResult splitToolpaths();
   common::ActionResult planProcessPaths();
   common::ActionResult planMediaChanges();
+
+  /**
+   * @brief previews the entire set of robot trajectories.  This method is blocking
+   * therefore it must be executed asynchronously
+   * @return True always
+   */
   common::ActionResult showPreview();
+
+  /**
+   * @brief stops an ongoing preview
+   * @return  True always
+   */
   common::ActionResult hidePreview();
 
   // Results
-  const datatypes::ProcessExecutionData& getResult()
-  {
-    return result_;
-  }
+  const datatypes::ProcessExecutionData& getResult() { return result_; }
 
 protected:
-
   // support methods
   common::ActionResult checkPreReq();
-  sensor_msgs::msg::JointState::SharedPtr getCurrentState();
+  boost::optional<trajectory_msgs::msg::JointTrajectory>
+  planFreeSpace(const std::string& plan_name, crs_msgs::srv::CallFreespaceMotion::Request::SharedPtr req);
 
   std::shared_ptr<rclcpp::Node> node_;
   std::shared_ptr<datatypes::ProcessToolpathData> input_ = nullptr;
   std::shared_ptr<MotionPlanningConfig> config_ = nullptr;
+  sensor_msgs::msg::JointState::SharedPtr home_js_;
   datatypes::ProcessExecutionData result_;
 
   rclcpp::Client<crs_msgs::srv::CallFreespaceMotion>::SharedPtr call_freespace_planning_client_;
@@ -103,6 +120,8 @@ protected:
   // process data
   std::vector<datatypes::ProcessToolpathData> process_toolpaths_;
 
+  // others
+  std::atomic<bool> publish_preview_enabled_;
 };
 
 } /* namespace task_managers */

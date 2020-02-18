@@ -40,15 +40,15 @@
 #include <Eigen/Geometry>
 #include <crs_msgs/msg/process_motion_plan.hpp>
 #include <geometry_msgs/msg/pose_array.hpp>
+#include <sensor_msgs/msg/point_cloud2.hpp>
 
 namespace crs_application
 {
 namespace datatypes
 {
-
 struct ScanAcquisitionResult
 {
-  Eigen::Isometry3d transform;
+  std::vector<sensor_msgs::msg::PointCloud2> point_clouds;
 };
 
 struct ProcessToolpathData
@@ -61,18 +61,26 @@ struct MediaChangeMotionPlan
   trajectory_msgs::msg::JointTrajectory start_traj;
   trajectory_msgs::msg::JointTrajectory return_traj;
 };
+
+enum class ProcessExecActions : int
+{
+  EXEC_PROCESS = 1,
+  EXEC_MEDIA_CHANGE,
+  DONE
+};
+
 struct ProcessExecutionData
 {
-  std::vector< crs_msgs::msg::ProcessMotionPlan > process_plans;
-  std::vector< MediaChangeMotionPlan > media_change_plans;
+  trajectory_msgs::msg::JointTrajectory move_to_start;
+  std::vector<crs_msgs::msg::ProcessMotionPlan> process_plans;
+  std::vector<MediaChangeMotionPlan> media_change_plans;
 };
 
 struct PartInspectionResult
 {
-
 };
 
-}
-}
+}  // namespace datatypes
+}  // namespace crs_application
 
 #endif /* INCLUDE_CRS_APPLICATION_COMMON_DATATYPES_H_ */

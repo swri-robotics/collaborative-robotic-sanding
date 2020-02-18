@@ -36,6 +36,7 @@
 #ifndef INCLUDE_CRS_APPLICATION_TASK_MANAGERS_PROCESS_EXECUTION_MANAGER_H_
 #define INCLUDE_CRS_APPLICATION_TASK_MANAGERS_PROCESS_EXECUTION_MANAGER_H_
 
+#include <atomic>
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include "crs_application/common/common.h"
@@ -45,10 +46,12 @@ namespace crs_application
 {
 namespace task_managers
 {
-
 struct ProcessExecutionConfig
 {
-
+  double traj_time_tolerance = 5.0; /** @brief time tolerance on trajectory duration */
+  double wait_state_timeout = 1.0;  /** @brief seconds to wait for the current joint state*/
+  double joint_tolerance =
+      (3.1416 / 180.0) * 2.0; /** @brief how close the robot needs to be to the last position in radians */
 };
 
 class ProcessExecutionManager
@@ -64,12 +67,18 @@ public:
 
   // Process Actions
   /**
-   * @brief moves to start position
-   * @return
+   * @brief Checks inputs and other variables and moves to start position if necessary
+   * @return True on success, false otherwise
    */
   common::ActionResult moveStart();
   common::ActionResult execProcess();
   common::ActionResult execMediaChange();
+
+  /**
+   * @brief moves from media change position back to process
+   * @return True on success, false otherwise
+   */
+  common::ActionResult execMoveReturn();
 
   /**
    * @brief checks if there are any process motions left in the queue
@@ -79,10 +88,27 @@ public:
 
   common::ActionResult execHome();
 
-protected:
+  common::ActionResult cancelMotion();
 
+protected:
+  // support methods
+  void resetIndexes();
+  common::ActionResult execTrajectory(const trajectory_msgs::msg::JointTrajectory& traj);
+  common::ActionResult checkPreReq();
+
+  // roscpp
   std::shared_ptr<rclcpp::Node> node_;
+  rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr traj_exec_pub_;
+
+  // process data
+  std::shared_ptr<ProcessExecutionConfig> config_ = nullptr;
   std::shared_ptr<datatypes::ProcessExecutionData> input_ = nullptr;
+
+  // other
+  int current_process_idx_ = 0;
+  int current_media_change_idx_ = 0;
+
+  std::atomic<bool> executing_motion_;
 };
 
 } /* namespace task_managers */

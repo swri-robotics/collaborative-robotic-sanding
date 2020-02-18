@@ -42,14 +42,15 @@
 #include "crs_application/common/common.h"
 #include "crs_application/common/datatypes.h"
 
+#include <crs_msgs/srv/load_part.hpp>
+#include <crs_msgs/srv/localize_to_part.hpp>
+
 namespace crs_application
 {
 namespace task_managers
 {
-
 struct PartRegistrationConfig
 {
-
 };
 
 class PartRegistrationManager
@@ -69,16 +70,19 @@ public:
   common::ActionResult applyTransform();
 
   // Results
-  const datatypes::ProcessToolpathData& getResult()
-  {
-    return result_;
-  }
+  const datatypes::ProcessToolpathData& getResult() { return result_; }
 
 protected:
-
   std::shared_ptr<rclcpp::Node> node_;
   std::shared_ptr<datatypes::ScanAcquisitionResult> input_ = nullptr;
   datatypes::ProcessToolpathData result_;
+
+  // parameters
+  std::string part_file_;
+
+  // service clients
+  rclcpp::Client<crs_msgs::srv::LoadPart>::SharedPtr load_part_client_;
+  rclcpp::Client<crs_msgs::srv::LocalizeToPart>::SharedPtr localize_to_part_client_;
 };
 
 } /* namespace task_managers */

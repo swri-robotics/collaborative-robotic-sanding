@@ -2,9 +2,23 @@
 <launch>
 	<let name="state_machine_file" value="$(find-pkg-share crs_application)/resources/crs_process.scxml"/>
 	
-	<group ns="crs">
-		<node pkg="crs_application" exec="crs_application_node" output="screen" >
+	<group>
+		<let name="group_ns" value="crs"/>
+		<include file="$(find-pkg-share crs_application)/launch/load_preview_robot_model.launch.xml">
+			<arg name="global_ns" value="$(var group_ns)"/>
+		</include>
+		
+		<include file="$(find-pkg-share crs_support)/launch/environment_launch.launch.py">
+			<arg name="global_ns" value="$(var group_ns)"/>
+		</include>
+		
+		<node pkg="crs_application" exec="crs_application_node" name="crs_main" namespace="$(var group_ns)"
+			 output="screen">
 			<param name="state_machine_file" value="$(var state_machine_file)"/>
-		</node>
+		</node>		
+		
+		<!-- rviz -->
+		<let name="rviz_config" value="$(find-pkg-share crs_application)/resources/crs.rviz"/>
+		<node pkg="rviz2" exec="rviz2" launch-prefix="xterm -e" args="-d $(var rviz_config) --ros-args --log-level ERROR" output="log"/>
 	</group>
 </launch>

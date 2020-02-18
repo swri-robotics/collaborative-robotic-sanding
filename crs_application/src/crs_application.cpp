@@ -57,99 +57,105 @@ int main(int argc, char** argv)
   using namespace crs_msgs;
   using namespace scxml_core;
 
+  // force flush of the stdout buffer.
+  // this ensures a correct sync of all prints
+  // even when executed simultaneously within the launch file.
+  setvbuf(stdout, NULL, _IONBF, BUFSIZ);
+
   QApplication app(argc, argv);
 
-  std::cout<<"CRS Starting" << std::endl;
-
+  std::cout << "CRS Starting" << std::endl;
   rclcpp::init(argc, argv);
-  std::shared_ptr<rclcpp::Node> node = std::make_shared<rclcpp::Node>(NODE_NAME, rclcpp::NodeOptions());
+  std::shared_ptr<rclcpp::Node> node = std::make_shared<rclcpp::Node>(NODE_NAME);
   rcutils_logging_set_logger_level(node->get_logger().get_name(), RCUTILS_LOG_SEVERITY_INFO);
 
   // crs executive
   CRSExecutive exec(node);
 
-  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr state_pub = node->create_publisher<std_msgs::msg::String>(CURRENT_ST_TOPIC,
-                                                                                                      rclcpp::QoS(rclcpp::KeepLast(7)));
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr state_pub =
+      node->create_publisher<std_msgs::msg::String>(CURRENT_ST_TOPIC, rclcpp::QoS(rclcpp::KeepLast(7)));
 
   rclcpp::Service<srv::ExecuteAction>::SharedPtr exec_action_server = node->create_service<srv::ExecuteAction>(
-      EXECUTE_ACTION_SERVICE,[&exec, &node](std::shared_ptr<srv::ExecuteAction::Request> req,
-          std::shared_ptr<srv::ExecuteAction::Response> res) -> void{
+      EXECUTE_ACTION_SERVICE,
+      [&exec, &node](std::shared_ptr<srv::ExecuteAction::Request> req,
+                     std::shared_ptr<srv::ExecuteAction::Response> res) -> void {
+        res->succeeded = true;
+        if (exec.getSM()->isBusy())
+        {
+          res->succeeded = false;
+          res->err_msg = "State Machine is busy";
+          RCLCPP_ERROR(node->get_logger(), res->err_msg.c_str());
+          return;
+        }
 
-    res->succeeded = true;
-    if(exec.getSM()->isBusy())
-    {
-      res->succeeded = false;
-      res->err_msg = "State Machine is busy";
-      RCLCPP_ERROR(node->get_logger(), res->err_msg.c_str());
-      return;
-    }
-
-    Response sm_res = exec.getSM()->execute(Action{id : req->action_id, data : boost::any()});
-    if(!sm_res)
-    {
-      res->succeeded = false;
-      res->err_msg = sm_res.msg;
-      RCLCPP_ERROR(node->get_logger(), res->err_msg.c_str());
-      return;
-    }
-  });
+        Response sm_res = exec.getSM()->execute(Action{ id : req->action_id, data : boost::any() });
+        if (!sm_res)
+        {
+          res->succeeded = false;
+          res->err_msg = sm_res.msg;
+          RCLCPP_ERROR(node->get_logger(), res->err_msg.c_str());
+          return;
+        }
+      });
 
   rclcpp::Service<srv::GetAvailableActions>::SharedPtr get_actions_srv = node->create_service<srv::GetAvailableActions>(
-      GET_AVAILABLE_ACTIONS_SERVICE,[&exec, &node](std::shared_ptr<srv::GetAvailableActions::Request> req,
-          std::shared_ptr<srv::GetAvailableActions::Response> res) -> void{
+      GET_AVAILABLE_ACTIONS_SERVICE,
+      [&exec, &node](std::shared_ptr<srv::GetAvailableActions::Request> req,
+                     std::shared_ptr<srv::GetAvailableActions::Response> res) -> void {
+        res->succeeded = false;
+        if (exec.getSM()->isBusy())
+        {
+          res->succeeded = false;
+          res->err_msg = "State Machine is busy";
+          RCLCPP_ERROR(node->get_logger(), res->err_msg.c_str());
+          return;
+        }
+        std::vector<std::string> action_ids = exec.getSM()->getAvailableActions();
+        if (req->search_pattern.empty())
+        {
+          res->action_ids = action_ids;
+          return;
+        }
 
-    res->succeeded =false;
-    if(exec.getSM()->isBusy())
-    {
-      res->succeeded = false;
-      res->err_msg = "State Machine is busy";
-      RCLCPP_ERROR(node->get_logger(), res->err_msg.c_str());
-      return;
-    }
-    std::vector<std::string> action_ids = exec.getSM()->getAvailableActions();
-    if(req->search_pattern.empty())
-    {
-      res->action_ids = action_ids;
-      return;
-    }
+        if (action_ids.empty())
+        {
+          return;
+        }
 
-    if(action_ids.empty())
-    {
-      return;
-    }
+        for (const auto& id : action_ids)
+        {
+          if (std::regex_search(id, std::regex(req->search_pattern)))
+          {
+            res->action_ids.push_back(id);
+          }
+        }
+        RCLCPP_WARN_EXPRESSION(node->get_logger(),
+                               res->action_ids.empty(),
+                               "No action ids matched the '%s' search pattern",
+                               req->search_pattern.c_str());
+      });
 
-    for(const auto& id : action_ids)
-    {
-      if(std::regex_search(id, std::regex(req->search_pattern)))
-      {
-        res->action_ids.push_back(id);
-      }
-    }
-    RCLCPP_WARN_EXPRESSION(node->get_logger(),res->action_ids.empty(),"No action ids matched the '%s' search pattern",
-                           req->search_pattern.c_str());
-  });
-
-  rclcpp::TimerBase::SharedPtr pub_timer = node->create_wall_timer(std::chrono::duration<double>(STATE_PUB_RATE),
-                                                                   [&exec, &state_pub](){
-    if(!exec.getSM()->isRunning())
-    {
-      return;
-    }
-    std_msgs::msg::String msg;
-    msg.data = exec.getSM()->getCurrentState(true);
-    state_pub->publish(msg);
-  });
+  rclcpp::TimerBase::SharedPtr pub_timer =
+      node->create_wall_timer(std::chrono::duration<double>(STATE_PUB_RATE), [&exec, &state_pub]() {
+        if (!exec.getSM()->isRunning())
+        {
+          return;
+        }
+        std_msgs::msg::String msg;
+        msg.data = exec.getSM()->getCurrentState(true);
+        state_pub->publish(msg);
+      });
 
   // start sm
-  if(!exec.getSM()->start())
+  if (!exec.getSM()->start())
   {
-    RCLCPP_ERROR(node->get_logger(),"CRS SM failed to start");
+    RCLCPP_ERROR(node->get_logger(), "CRS SM failed to start");
   }
-  RCLCPP_INFO(node->get_logger(),"CRS Application started");
+  RCLCPP_INFO(node->get_logger(), "CRS Application started");
 
   // main loop
   rclcpp::Rate throttle(100);
-  while(rclcpp::ok())
+  while (rclcpp::ok())
   {
     app.processEvents(QEventLoop::AllEvents);
     throttle.sleep();

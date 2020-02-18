@@ -40,12 +40,15 @@
 #include <rclcpp/rclcpp.hpp>
 #include "crs_application/common/common.h"
 #include "crs_application/common/datatypes.h"
+#include <crs_msgs/srv/call_freespace_motion.hpp>
+
+#include <geometry_msgs/msg/transform.hpp>
+#include <sensor_msgs/msg/point_cloud2.hpp>
 
 namespace crs_application
 {
 namespace task_managers
 {
-
 struct ScanAcquisitionConfig
 {
   std::vector<std::vector<double> > scan_poses;
@@ -74,23 +77,40 @@ public:
 
   /**
    * @brief checks if there are any scan positions left in the queue
-   * @return  True when the queue is empty
+   * @return  True all scan positions have been visited
    */
   common::ActionResult checkQueue();
 
   // Results
-  const datatypes::ScanAcquisitionResult& getResult()
-  {
-    return result_;
-  }
+  const datatypes::ScanAcquisitionResult& getResult() { return result_; }
 
 protected:
+  // support methods
+  common::ActionResult checkPreReqs();
 
   std::shared_ptr<rclcpp::Node> node_;
   datatypes::ScanAcquisitionResult result_;
+
+  // parameters
+  std::vector<geometry_msgs::msg::Transform> scan_positions_;
+  std::string camera_frame_id_;
+  double pre_acquisition_pause_;
+  double max_time_since_last_point_cloud_;
+
+  // subscribers
+  rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr point_cloud_sub_;
+
+  // service clients
+  rclcpp::Client<crs_msgs::srv::CallFreespaceMotion>::SharedPtr call_freespace_motion_client_;
+
+  sensor_msgs::msg::PointCloud2 curr_point_cloud_;
+  std::vector<sensor_msgs::msg::PointCloud2> point_clouds_;
+  uint scan_index_;
+
+  void handlePointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr msg);
 };
 
-}
-}
+}  // namespace task_managers
+}  // namespace crs_application
 
 #endif /* INCLUDE_CRS_APPLICATION_TASK_MANAGERS_SCAN_ACQUISITION_MANAGER_H_ */

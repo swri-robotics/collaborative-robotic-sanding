@@ -1,6 +1,14 @@
 # Collaborative-Robotic-Sanding
 The CRS (Collaborative Robotic Sanding) Application buit in ROS2 eloquent
 
+[![Integration Build Status](https://travis-ci.com/swri-robotics/collaborative-robotic-sanding.svg?branch=master)](https://travis-ci.com/swri-robotics/collaborative-robotic-sanding)
+[![Integration Build Status](https://travis-ci.com/swri-robotics/collaborative-robotic-sanding.svg?branch=integration)](https://travis-ci.com/swri-robotics/collaborative-robotic-sanding)
+[![Github Issues](https://img.shields.io/github/issues/swri-robotics/collaborative-robotic-sanding.svg)](http://github.com/swri-robotics/collaborative-robotic-sanding/issues)
+
+[![license - apache 2.0](https://img.shields.io/:license-Apache%202.0-yellowgreen.svg)](https://opensource.org/licenses/Apache-2.0)
+[![license - bsd 2 clause](https://img.shields.io/:license-BSD%202--Clause-blue.svg)](https://opensource.org/licenses/BSD-2-Clause)
+
+
 ---
 ### Workspace Setup
 #### Download source dependencies
