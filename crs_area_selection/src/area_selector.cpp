@@ -115,126 +115,127 @@ boost::optional<FittedPlane> AreaSelector::fitPlaneToPoints(const std::vector<Ei
   return boost::make_optional(plane);
 }
 
-// pcl::PointCloud<pcl::PointXYZ>::Ptr AreaSelector::projectPointsOntoPlane(const std::vector<Eigen::Vector3d>& points,
-//                                                                         const FittedPlane& plane)
-//{
-//  pcl::PointCloud<pcl::PointXYZ> projected_points;
-//  for (const Eigen::Vector3d& current_pt : points)
-//  {
-//    // Create a vector from plane origin to point
-//    Eigen::Vector3d vec(current_pt - plane.origin);
+ pcl::PointCloud<pcl::PointXYZ>::Ptr AreaSelector::projectPointsOntoPlane(const std::vector<Eigen::Vector3d>& points,
+                                                                         const FittedPlane& plane)
+{
+  pcl::PointCloud<pcl::PointXYZ> projected_points;
+  for (const Eigen::Vector3d& current_pt : points)
+  {
+    // Create a vector from plane origin to point
+    Eigen::Vector3d vec(current_pt - plane.origin);
 
-//    // Project the vector connecting the origin and point onto the plane normal to get the distance that the point is
-//    // from the plane
-//    double dp = plane.normal.dot(vec);
+    // Project the vector connecting the origin and point onto the plane normal to get the distance that the point is
+    // from the plane
+    double dp = plane.normal.dot(vec);
 
-//    // Move the point from its current location along the plane's normal by its distance from the plane
-//    Eigen::Vector3d proj_pt = current_pt - dp * plane.normal;
+    // Move the point from its current location along the plane's normal by its distance from the plane
+    Eigen::Vector3d proj_pt = current_pt - dp * plane.normal;
 
-//    // Convert each point to PCL format
-//    pcl::PointXYZ pt;
-//    pt.x = static_cast<float>(proj_pt(0));
-//    pt.y = static_cast<float>(proj_pt(1));
-//    pt.z = static_cast<float>(proj_pt(2));
+    // Convert each point to PCL format
+    pcl::PointXYZ pt;
+    pt.x = static_cast<float>(proj_pt(0));
+    pt.y = static_cast<float>(proj_pt(1));
+    pt.z = static_cast<float>(proj_pt(2));
 
-//    projected_points.points.push_back(pt);
-//  }
+    projected_points.points.push_back(pt);
+  }
 
-//  return projected_points.makeShared();
-//}
+  return projected_points.makeShared();
+}
 
-// std::vector<int> AreaSelector::getPointsInROI(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
-//                                              const pcl::PointCloud<pcl::PointXYZ>::Ptr proj_sel_points,
-//                                              const FittedPlane& plane,
-//                                              const AreaSelectorParameters& params)
-//{
-//  // Calculate the diagonal of search_points_ cloud
-//  pcl::PointXYZ min_pt, max_pt;
-//  pcl::getMinMax3D(*cloud, min_pt, max_pt);
-//  double half_dist = std::sqrt(static_cast<double>(sqrDistance(min_pt, max_pt))) / 2.0;
+ std::vector<int> AreaSelector::getPointsInROI(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
+                                              const pcl::PointCloud<pcl::PointXYZ>::Ptr proj_sel_points,
+                                              const FittedPlane& plane,
+                                              const AreaSelectorParameters& params)
+{
+  // Calculate the diagonal of search_points_ cloud
+  pcl::PointXYZ min_pt, max_pt;
+  pcl::getMinMax3D(*cloud, min_pt, max_pt);
+  double half_dist = std::sqrt(static_cast<double>(sqrDistance(min_pt, max_pt))) / 2.0;
 
-//  // Extrude the convex hull by half the max distance
-//  pcl::ExtractPolygonalPrismData<pcl::PointXYZ> prism;
-//  pcl::PointIndicesPtr selection_indices(new pcl::PointIndices{});
-//  prism.setInputCloud(cloud);
-//  prism.setInputPlanarHull(proj_sel_points);
-//  prism.setHeightLimits(-half_dist, half_dist);
-//  prism.segment(*selection_indices);
+  // Extrude the convex hull by half the max distance
+  pcl::ExtractPolygonalPrismData<pcl::PointXYZ> prism;
+  pcl::PointIndicesPtr selection_indices(new pcl::PointIndices{});
+  prism.setInputCloud(cloud);
+  prism.setInputPlanarHull(proj_sel_points);
+  prism.setHeightLimits(-half_dist, half_dist);
+  prism.segment(*selection_indices);
 
-//  if (selection_indices->indices.empty())
-//  {
+  if (selection_indices->indices.empty())
+  {
 //    ROS_ERROR("No points found within selection area");
-//    return {};
-//  }
+    return {};
+  }
 
-//  // Pull out the points that are inside the user selected prism
-//  pcl::PointCloud<pcl::PointXYZ>::Ptr prism_cloud(new pcl::PointCloud<pcl::PointXYZ>);
-//  pcl::ExtractIndices<pcl::PointXYZ> extract;
-//  extract.setInputCloud(cloud);
-//  extract.setIndices(selection_indices);
-//  extract.setNegative(false);
-//  extract.filter(*prism_cloud);
+  // Pull out the points that are inside the user selected prism
+  pcl::PointCloud<pcl::PointXYZ>::Ptr prism_cloud(new pcl::PointCloud<pcl::PointXYZ>);
+  pcl::ExtractIndices<pcl::PointXYZ> extract;
+  extract.setInputCloud(cloud);
+  extract.setIndices(selection_indices);
+  extract.setNegative(false);
+  extract.filter(*prism_cloud);
 
-//  // Estimate the normals for each point in the user selection
-//  pcl::search::Search<pcl::PointXYZ>::Ptr tree =
-//      boost::shared_ptr<pcl::search::Search<pcl::PointXYZ>>(new pcl::search::KdTree<pcl::PointXYZ>);
-//  pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
-//  pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> normal_estimator;
-//  normal_estimator.setSearchMethod(tree);
-//  normal_estimator.setInputCloud(prism_cloud);
-//  normal_estimator.setRadiusSearch(params.normal_est_radius);
-//  normal_estimator.compute(*normals);
+  // Estimate the normals for each point in the user selection
+  pcl::search::Search<pcl::PointXYZ>::Ptr tree =
+      boost::shared_ptr<pcl::search::Search<pcl::PointXYZ>>(new pcl::search::KdTree<pcl::PointXYZ>);
+  pcl::PointCloud<pcl::Normal>::Ptr normals(new pcl::PointCloud<pcl::Normal>);
+  pcl::NormalEstimation<pcl::PointXYZ, pcl::Normal> normal_estimator;
+  normal_estimator.setSearchMethod(tree);
+  normal_estimator.setInputCloud(prism_cloud);
+  normal_estimator.setRadiusSearch(params.normal_est_radius);
+  normal_estimator.compute(*normals);
 
-//  // Perform region growing using euclidian distance and normals to estimate connectedness
-//  pcl::RegionGrowing<pcl::PointXYZ, pcl::Normal> reg;
-//  reg.setMinClusterSize(params.min_cluster_size);
-//  reg.setMaxClusterSize(params.max_cluster_size);
-//  reg.setSearchMethod(tree);
-//  reg.setNumberOfNeighbours(static_cast<unsigned int>(params.region_growing_nneighbors));
-//  reg.setInputCloud(prism_cloud);
-//  reg.setInputNormals(normals);
-//  reg.setSmoothnessThreshold(static_cast<float>(params.region_growing_smoothness / 180.0 * M_PI));
-//  reg.setCurvatureThreshold(static_cast<float>(params.region_growing_curvature));
+  // Perform region growing using euclidian distance and normals to estimate connectedness
+  pcl::RegionGrowing<pcl::PointXYZ, pcl::Normal> reg;
+  reg.setMinClusterSize(params.min_cluster_size);
+  reg.setMaxClusterSize(params.max_cluster_size);
+  reg.setSearchMethod(tree);
+  reg.setNumberOfNeighbours(static_cast<unsigned int>(params.region_growing_nneighbors));
+  reg.setInputCloud(prism_cloud);
+  reg.setInputNormals(normals);
+  reg.setSmoothnessThreshold(static_cast<float>(params.region_growing_smoothness / 180.0 * M_PI));
+  reg.setCurvatureThreshold(static_cast<float>(params.region_growing_curvature));
 
-//  std::vector<pcl::PointIndices> int_indices;
-//  reg.extract(int_indices);
+  std::vector<pcl::PointIndices> int_indices;
+  reg.extract(int_indices);
 
-//  // We need to translate the indices into the prism cloud into indices into the original cloud (via selection
-//  indices) std::vector<pcl::PointIndices> cluster_indices; cluster_indices.reserve(int_indices.size()); for (const
-//  auto& index_set : int_indices)
-//  {
-//    pcl::PointIndices output_set;
-//    output_set.header = index_set.header;
-//    for (const auto i : index_set.indices)
-//    {
-//      output_set.indices.push_back(selection_indices->indices[static_cast<std::size_t>(i)]);
-//    }
-//    cluster_indices.push_back(output_set);
-//  }
+  // We need to translate the indices into the prism cloud into indices into the original cloud (via selection
+//  indices)
+  std::vector<pcl::PointIndices> cluster_indices; cluster_indices.reserve(int_indices.size());
+  for (const auto& index_set : int_indices)
+  {
+    pcl::PointIndices output_set;
+    output_set.header = index_set.header;
+    for (const auto i : index_set.indices)
+    {
+      output_set.indices.push_back(selection_indices->indices[static_cast<std::size_t>(i)]);
+    }
+    cluster_indices.push_back(output_set);
+  }
 
-//  if (cluster_indices.size() > 1)
-//  {
+  if (cluster_indices.size() > 1)
+  {
 //    ROS_INFO("%lu clusters found in ROI selection; choosing closest cluster to ROI selection centroid",
 //             cluster_indices.size());
 
-//    // Multiple clusters of points found, so find the cluster closest to the centroid of the selection polygon
-//    pcl::PointXYZ polygon_centroid;
-//    polygon_centroid.x = static_cast<float>(plane.origin(0));
-//    polygon_centroid.y = static_cast<float>(plane.origin(1));
-//    polygon_centroid.z = static_cast<float>(plane.origin(2));
+    // Multiple clusters of points found, so find the cluster closest to the centroid of the selection polygon
+    pcl::PointXYZ polygon_centroid;
+    polygon_centroid.x = static_cast<float>(plane.origin(0));
+    polygon_centroid.y = static_cast<float>(plane.origin(1));
+    polygon_centroid.z = static_cast<float>(plane.origin(2));
 
-//    // Find the closest cluster
-//    auto closest_cluster = std::min_element(cluster_indices.begin(),
-//                                            cluster_indices.end(),
-//                                            boost::bind(&clusterComparator, _1, _2, cloud, polygon_centroid));
-//    return closest_cluster->indices;
-//  }
-//  else
-//  {
-//    // Either one or zero clusters were found, so just return all of the points in the extruded hull
-//    return selection_indices->indices;
-//  }
-//}
+    // Find the closest cluster
+    auto closest_cluster = std::min_element(cluster_indices.begin(),
+                                            cluster_indices.end(),
+                                            boost::bind(&clusterComparator, _1, _2, cloud, polygon_centroid));
+    return closest_cluster->indices;
+  }
+  else
+  {
+    // Either one or zero clusters were found, so just return all of the points in the extruded hull
+    return selection_indices->indices;
+  }
+}
 
 std::vector<int> AreaSelector::getRegionOfInterest(const pcl::PointCloud<pcl::PointXYZ>::Ptr input_cloud,
                                                    const std::vector<Eigen::Vector3d>& points,
@@ -262,19 +263,19 @@ std::vector<int> AreaSelector::getRegionOfInterest(const pcl::PointCloud<pcl::Po
     return {};
   }
 
-  //  // Project the selection points onto the fitted plane
-  //  pcl::PointCloud<pcl::PointXYZ>::Ptr proj_sel_points = projectPointsOntoPlane(points, plane.get());
+    // Project the selection points onto the fitted plane
+    pcl::PointCloud<pcl::PointXYZ>::Ptr proj_sel_points = projectPointsOntoPlane(points, plane.get());
 
-  //  /* Find all of the sensor data points inside a volume whose perimeter is defined by the projected selection points
-  //   * and whose depth is defined by the largest length of the bounding box of the input point cloud */
-  //  std::vector<int> roi_cloud_indices = getPointsInROI(input_cloud, proj_sel_points, plane.get(), params);
-  //  if (roi_cloud_indices.empty())
-  //  {
-  //    ROS_ERROR("Unable to identify points in the region of interest");
-  //    return {};
-  //  }
+    /* Find all of the sensor data points inside a volume whose perimeter is defined by the projected selection points
+     * and whose depth is defined by the largest length of the bounding box of the input point cloud */
+    std::vector<int> roi_cloud_indices = getPointsInROI(input_cloud, proj_sel_points, plane.get(), params);
+    if (roi_cloud_indices.empty())
+    {
+//      ROS_ERROR("Unable to identify points in the region of interest");
+      return {};
+    }
 
-  std::vector<int> roi_cloud_indices;
+//  std::vector<int> roi_cloud_indices;
   return roi_cloud_indices;
 }
 

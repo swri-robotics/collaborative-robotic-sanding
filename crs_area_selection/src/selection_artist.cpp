@@ -266,10 +266,11 @@ bool SelectionArtist::collectROIMesh(const shape_msgs::msg::Mesh& mesh_msg,
   pclFromShapeMsg(mesh_msg, mesh);
   pcl::PointCloud<pcl::PointXYZ> mesh_cloud;
   pcl::fromPCLPointCloud2(mesh.cloud, mesh_cloud);
-  crs_msgs::srv::GetROISelection::Request::SharedPtr req;
+  crs_msgs::srv::GetROISelection::Request::SharedPtr req(new crs_msgs::srv::GetROISelection::Request());
   pcl::toROSMsg(mesh_cloud, req->input_cloud);
 
-  crs_msgs::srv::GetROISelection::Response::SharedPtr res;
+  crs_msgs::srv::GetROISelection::Response::SharedPtr res(new crs_msgs::srv::GetROISelection::Response());
+//  auto res = std::make_shared<crs_msgs::srv::GetROISelection::Response>();
   collectROIPointsCb(req, res);
   if (!res->success)
   {

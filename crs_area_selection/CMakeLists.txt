@@ -9,7 +9,7 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_eigen REQUIRED)
 
 find_package(Eigen3 REQUIRED)
-find_package(PCL 1.8 REQUIRED COMPONENTS sample_consensus segmentation surface io)
+find_package(PCL 1.9 REQUIRED COMPONENTS sample_consensus segmentation surface io)
 
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
@@ -53,6 +53,7 @@ ament_target_dependencies(${PROJECT_NAME}_area_selection
 
 # Node that runs area selection service
 add_executable(${PROJECT_NAME}_area_selection_node src/area_selection_node.cpp)
+target_compile_options(${PROJECT_NAME}_area_selection_node PUBLIC -mno-avx)
 target_link_libraries(${PROJECT_NAME}_area_selection_node ${PROJECT_NAME}_area_selection)
 set_target_properties(${PROJECT_NAME}_area_selection_node PROPERTIES CXX_STANDARD 14)
 target_include_directories(${PROJECT_NAME}_area_selection_node PUBLIC

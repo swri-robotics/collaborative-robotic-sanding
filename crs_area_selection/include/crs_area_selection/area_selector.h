@@ -70,13 +70,13 @@ protected:
   boost::optional<FittedPlane> fitPlaneToPoints(const std::vector<Eigen::Vector3d>& points,
                                                 const AreaSelectorParameters& params);
 
-  //  pcl::PointCloud<pcl::PointXYZ>::Ptr projectPointsOntoPlane(const std::vector<Eigen::Vector3d>& points,
-  //                                                             const FittedPlane& plane);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr projectPointsOntoPlane(const std::vector<Eigen::Vector3d>& points,
+                                                               const FittedPlane& plane);
 
-  //  std::vector<int> getPointsInROI(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
-  //                                  const pcl::PointCloud<pcl::PointXYZ>::Ptr proj_sel_points,
-  //                                  const FittedPlane& plane,
-  //                                  const AreaSelectorParameters& params);
+    std::vector<int> getPointsInROI(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
+                                    const pcl::PointCloud<pcl::PointXYZ>::Ptr proj_sel_points,
+                                    const FittedPlane& plane,
+                                    const AreaSelectorParameters& params);
 };
 
 }  // namespace crs_area_selection
