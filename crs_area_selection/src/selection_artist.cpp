@@ -294,7 +294,7 @@ void SelectionArtist::collectROIPointsCb(crs_msgs::srv::GetROISelection::Request
                                 [](const visualization_msgs::msg::Marker& marker) { return marker.id == 0; });
 
   // Convert the selection points to Eigen vectors
-  std::vector<Eigen::Vector3d> points;
+  PointVector points;
   for (const geometry_msgs::msg::Point& pt : points_it->points)
   {
     Eigen::Vector3d e;

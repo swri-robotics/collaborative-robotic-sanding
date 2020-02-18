@@ -73,7 +73,7 @@ bool clusterComparator(const pcl::PointIndices& a,
 
 namespace crs_area_selection
 {
-boost::optional<FittedPlane> AreaSelector::fitPlaneToPoints(const std::vector<Eigen::Vector3d>& points,
+boost::optional<FittedPlane> AreaSelector::fitPlaneToPoints(const PointVector& points,
                                                             const AreaSelectorParameters& params)
 {
   // Create a point cloud from the selection points
@@ -115,7 +115,7 @@ boost::optional<FittedPlane> AreaSelector::fitPlaneToPoints(const std::vector<Ei
   return boost::make_optional(plane);
 }
 
- pcl::PointCloud<pcl::PointXYZ>::Ptr AreaSelector::projectPointsOntoPlane(const std::vector<Eigen::Vector3d>& points,
+ pcl::PointCloud<pcl::PointXYZ>::Ptr AreaSelector::projectPointsOntoPlane(const PointVector& points,
                                                                          const FittedPlane& plane)
 {
   pcl::PointCloud<pcl::PointXYZ> projected_points;
@@ -238,7 +238,7 @@ boost::optional<FittedPlane> AreaSelector::fitPlaneToPoints(const std::vector<Ei
 }
 
 std::vector<int> AreaSelector::getRegionOfInterest(const pcl::PointCloud<pcl::PointXYZ>::Ptr input_cloud,
-                                                   const std::vector<Eigen::Vector3d>& points,
+                                                   const PointVector& points,
                                                    const AreaSelectorParameters& params)
 {
   // Check size of selection points vector

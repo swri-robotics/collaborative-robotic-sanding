@@ -29,6 +29,7 @@
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <std_srvs/srv/trigger.hpp>
 #include <crs_msgs/srv/get_roi_selection.hpp>
+#include <crs_area_selection/types.h>
 
 namespace crs_area_selection
 {

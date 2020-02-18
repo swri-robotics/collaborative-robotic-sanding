@@ -28,6 +28,7 @@
 #include <sensor_msgs/msg/point_cloud2.hpp>
 
 #include "crs_area_selection/area_selector_parameters.h"
+#include <crs_area_selection/types.h>
 
 namespace crs_area_selection
 {
@@ -63,14 +64,14 @@ public:
    * otherwise returns true.
    */
   std::vector<int> getRegionOfInterest(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,
-                                       const std::vector<Eigen::Vector3d>& points,
+                                       const PointVector& points,
                                        const AreaSelectorParameters& params);
 
 protected:
-  boost::optional<FittedPlane> fitPlaneToPoints(const std::vector<Eigen::Vector3d>& points,
+  boost::optional<FittedPlane> fitPlaneToPoints(const PointVector& points,
                                                 const AreaSelectorParameters& params);
 
-    pcl::PointCloud<pcl::PointXYZ>::Ptr projectPointsOntoPlane(const std::vector<Eigen::Vector3d>& points,
+    pcl::PointCloud<pcl::PointXYZ>::Ptr projectPointsOntoPlane(const PointVector& points,
                                                                const FittedPlane& plane);
 
     std::vector<int> getPointsInROI(const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud,

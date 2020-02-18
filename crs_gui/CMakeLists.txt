@@ -66,8 +66,8 @@ add_library(${PROJECT_NAME}_widgets SHARED
   ${crs_gui_widget_MOCS}
   ${crs_gui_widget_SOURCES}
 )
-set_target_properties(${PROJECT_NAME}_widgets PROPERTIES CXX_STANDARD 14)
-target_compile_options(${PROJECT_NAME}_widgets PUBLIC -mno-avx)
+set_target_properties(${PROJECT_NAME}_widgets PROPERTIES CXX_STANDARD 17)
+#target_compile_options(${PROJECT_NAME}_widgets PUBLIC -mno-avx)
 target_include_directories(${PROJECT_NAME}_widgets PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:include>")
@@ -114,14 +114,14 @@ ament_target_dependencies(${PROJECT_NAME}_widgets rclcpp shape_msgs std_srvs crs
 # Area selection widget demo
 add_executable(${PROJECT_NAME}_area_selection_demo src/nodes/area_selection_widget_demo.cpp)
 target_link_libraries(${PROJECT_NAME}_area_selection_demo ${PROJECT_NAME}_widgets)
-set_target_properties(${PROJECT_NAME}_area_selection_demo PROPERTIES CXX_STANDARD 14)
+set_target_properties(${PROJECT_NAME}_area_selection_demo PROPERTIES CXX_STANDARD 17)
 target_include_directories(${PROJECT_NAME}_area_selection_demo PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:include>")
 
 add_executable(${PROJECT_NAME}_part_selection_demo src/nodes/part_selection_widget_demo.cpp)
 target_link_libraries(${PROJECT_NAME}_part_selection_demo ${PROJECT_NAME}_widgets)
-set_target_properties(${PROJECT_NAME}_part_selection_demo PROPERTIES CXX_STANDARD 14)
+set_target_properties(${PROJECT_NAME}_part_selection_demo PROPERTIES CXX_STANDARD 17)
 target_include_directories(${PROJECT_NAME}_part_selection_demo PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:include>")
@@ -129,14 +129,14 @@ target_include_directories(${PROJECT_NAME}_part_selection_demo PUBLIC
 add_executable(${PROJECT_NAME}_crs_application_demo src/nodes/crs_application_demo.cpp)
 target_compile_options(${PROJECT_NAME}_crs_application_demo PUBLIC -mno-avx)
 target_link_libraries(${PROJECT_NAME}_crs_application_demo ${PROJECT_NAME}_widgets)
-set_target_properties(${PROJECT_NAME}_crs_application_demo PROPERTIES CXX_STANDARD 14)
+set_target_properties(${PROJECT_NAME}_crs_application_demo PROPERTIES CXX_STANDARD 17)
 target_include_directories(${PROJECT_NAME}_crs_application_demo PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:include>")
 
 add_executable(${PROJECT_NAME}_state_machine_interface_demo src/nodes/state_machine_interface_widget_demo.cpp)
 target_link_libraries(${PROJECT_NAME}_state_machine_interface_demo ${PROJECT_NAME}_widgets)
-set_target_properties(${PROJECT_NAME}_state_machine_interface_demo PROPERTIES CXX_STANDARD 14)
+set_target_properties(${PROJECT_NAME}_state_machine_interface_demo PROPERTIES CXX_STANDARD 17)
 target_include_directories(${PROJECT_NAME}_state_machine_interface_demo PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:include>")
