@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <robot name="crs" xmlns:xacro="http://ros.org/wiki/xacro">
-    <link name="base_link">
+  <xacro:macro name="crs_workcell" params="prefix:=^|''">
+    <link name="${prefix}base_link">
         <visual>
             <origin rpy="0 0 3.14159265359" xyz="0 0 0" />
             <geometry>
@@ -24,15 +25,15 @@
         </inertial>
 
     </link>
-    <joint name="shoulder_pan_joint" type="revolute">
-        <parent link="base_link" />
-        <child link="shoulder_link" />
+    <joint name="${prefix}shoulder_pan_joint" type="revolute">
+        <parent link="${prefix}base_link" />
+        <child link="${prefix}shoulder_link" />
         <origin rpy="0 0 3.14159249728" xyz="0 0 0.180920744391" />
         <axis xyz="0 0 1" />
         <limit effort="330.0" lower="-6.28318530718" upper="6.28318530718" velocity="3.14" />
         <dynamics damping="0.0" friction="0.0" />
     </joint>
-    <link name="shoulder_link">
+    <link name="${prefix}shoulder_link">
         <visual>
             <origin rpy="0 0 3.14159265359" xyz="0 0 0" />
             <geometry>
@@ -56,15 +57,15 @@
         </inertial>
 
     </link>
-    <joint name="shoulder_lift_joint" type="revolute">
-        <parent link="shoulder_link" />
-        <child link="upper_arm_link" />
+    <joint name="${prefix}shoulder_lift_joint" type="revolute">
+        <parent link="${prefix}shoulder_link" />
+        <child link="${prefix}upper_arm_link" />
         <origin rpy="1.57065145242 0 -2.70337965131e-06" xyz="0.00013292041689 0 0" />
         <axis xyz="0 0 1" />
         <limit effort="330.0" lower="-6.28318530718" upper="6.28318530718" velocity="3.14" />
         <dynamics damping="0.0" friction="0.0" />
     </joint>
-    <link name="upper_arm_link">
+    <link name="${prefix}upper_arm_link">
         <visual>
             <origin rpy="1.57079632679 0 -1.57079632679" xyz="0 0 0.1762" />
             <geometry>
@@ -88,15 +89,15 @@
         </inertial>
 
     </link>
-    <joint name="elbow_joint" type="revolute">
-        <parent link="upper_arm_link" />
-        <child link="forearm_link" />
+    <joint name="${prefix}elbow_joint" type="revolute">
+        <parent link="${prefix}upper_arm_link" />
+        <child link="${prefix}forearm_link" />
         <origin rpy="3.14047492209 3.14117521433 3.14159104748" xyz="-0.611971344601 0 0" />
         <axis xyz="0 0 1" />
         <limit effort="150.0" lower="-6.28318530718" upper="6.28318530718" velocity="3.14" />
         <dynamics damping="0.0" friction="0.0" />
     </joint>
-    <link name="forearm_link">
+    <link name="${prefix}forearm_link">
         <visual>
             <origin rpy="1.57079632679 0 -1.57079632679" xyz="0 0 0.0393" />
             <geometry>
@@ -120,15 +121,15 @@
         </inertial>
 
     </link>
-    <joint name="wrist_1_joint" type="revolute">
-        <parent link="forearm_link" />
-        <child link="wrist_1_link" />
+    <joint name="${prefix}wrist_1_joint" type="revolute">
+        <parent link="${prefix}forearm_link" />
+        <child link="${prefix}wrist_1_link" />
         <origin rpy="3.13872123266 -3.14053617519 3.14158723656" xyz="-0.571064941288 0.000500820247035 0.174414995927" />
         <axis xyz="0 0 1" />
         <limit effort="54.0" lower="-6.28318530718" upper="6.28318530718" velocity="6.28" />
         <dynamics damping="0.0" friction="0.0" />
     </joint>
-    <link name="wrist_1_link">
+    <link name="${prefix}wrist_1_link">
         <visual>
             <origin rpy="1.57079632679 0 0" xyz="0 0 -0.135" />
             <geometry>
@@ -152,15 +153,15 @@
         </inertial>
 
     </link>
-    <joint name="wrist_2_joint" type="revolute">
-        <parent link="wrist_1_link" />
-        <child link="wrist_2_link" />
+    <joint name="${prefix}wrist_2_joint" type="revolute">
+        <parent link="${prefix}wrist_1_link" />
+        <child link="${prefix}wrist_2_link" />
         <origin rpy="1.57117550062 0 -9.13444434245e-07" xyz="5.96404309737e-05 -0.119843553735 -4.54415414531e-05" />
         <axis xyz="0 0 1" />
         <limit effort="54.0" lower="-6.28318530718" upper="6.28318530718" velocity="6.28" />
         <dynamics damping="0.0" friction="0.0" />
     </joint>
-    <link name="wrist_2_link">
+    <link name="${prefix}wrist_2_link">
         <visual>
             <origin rpy="0 0 0" xyz="0 0 -0.12" />
             <geometry>
@@ -184,15 +185,15 @@
         </inertial>
 
     </link>
-    <joint name="wrist_3_joint" type="revolute">
-        <parent link="wrist_2_link" />
-        <child link="wrist_3_link" />
+    <joint name="${prefix}wrist_3_joint" type="revolute">
+        <parent link="${prefix}wrist_2_link" />
+        <child link="${prefix}wrist_3_link" />
         <origin rpy="1.57170379674 3.14159265359 3.14159254819" xyz="1.57784168351e-05 0.115533666641 0.000104843358957" />
         <axis xyz="0 0 1" />
         <limit effort="54.0" lower="-6.28318530718" upper="6.28318530718" velocity="6.28" />
         <dynamics damping="0.0" friction="0.0" />
     </joint>
-    <link name="wrist_3_link">
+    <link name="${prefix}wrist_3_link">
         <visual>
             <origin rpy="1.57079632679 0 0" xyz="0 0 -0.1168" />
             <geometry>
@@ -216,12 +217,12 @@
         </inertial>
 
     </link>
-    <joint name="ee_fixed_joint" type="fixed">
-        <parent link="wrist_3_link" />
-        <child link="ee_link" />
+    <joint name="${prefix}ee_fixed_joint" type="fixed">
+        <parent link="${prefix}wrist_3_link" />
+        <child link="${prefix}ee_link" />
         <origin rpy="0.0 -1.57079632679 1.57079632679" xyz="0.0 0.0 0.0" />
     </joint>
-    <link name="ee_link">
+    <link name="${prefix}ee_link">
         <collision>
             <geometry>
                 <box size="0.01 0.01 0.01" />
@@ -235,19 +236,19 @@
         </inertial>
 
     </link>
-    <link name="base" />
-    <joint name="base_link-base_fixed_joint" type="fixed">
+    <link name="${prefix}base" />
+    <joint name="${prefix}base_link-base_fixed_joint" type="fixed">
         <origin rpy="-1.571 0 0" xyz="0 0 0" />
-        <parent link="base" />
-        <child link="base_link" />
+        <parent link="${prefix}base" />
+        <child link="${prefix}base_link" />
     </joint>
-    <link name="tool0" />
-    <joint name="wrist_3_link-tool0_fixed_joint" type="fixed">
+    <link name="${prefix}tool0" />
+    <joint name="${prefix}wrist_3_link-tool0_fixed_joint" type="fixed">
         <origin rpy="0 0 0" xyz="0 0 0" />
-        <parent link="wrist_3_link" />
-        <child link="tool0" />
+        <parent link="${prefix}wrist_3_link" />
+        <child link="${prefix}tool0" />
     </joint>
-    <link name="eoat_link">
+    <link name="${prefix}eoat_link">
         <visual>
             <geometry>
                 <mesh filename="package://crs_support/meshes/end_effector/visual/ee_v2.stl" />
@@ -268,12 +269,12 @@
             <inertia ixx="0.000526462289415" ixy="0.0" ixz="0.0" iyy="0.000526462289415" iyz="0.0" izz="0.000568125" />
         </inertial>
     </link>
-    <joint name="tool0_to_eoat_link" type="fixed">
-        <parent link="tool0" />
-        <child link="eoat_link" />
+    <joint name="${prefix}tool0_to_eoat_link" type="fixed">
+        <parent link="${prefix}tool0" />
+        <child link="${prefix}eoat_link" />
         <origin rpy="0.0 0.0 0" xyz="0.00 0.00 0.00" />
     </joint>
-    <link name="robot_stand">
+    <link name="${prefix}robot_stand">
         <visual>
             <origin rpy="1.57079632679 0 0" xyz="0 0 -0.1168" />
             <geometry>
@@ -329,39 +330,39 @@
         </inertial>
 
     </link>
-    <joint name="robot_base_joint" type="fixed">
-        <parent link="robot_stand" />
-        <child link="base" />
+    <joint name="${prefix}robot_base_joint" type="fixed">
+        <parent link="${prefix}robot_stand" />
+        <child link="${prefix}base" />
         <origin rpy="0 1.571 0" xyz="0.036983 -2.0948 0.58 " />
         <axis xyz="1 0 0"/>
         <limit effort="1.0" lower="-0.1" upper="1.9" velocity=".01" />
     </joint>
     <link name="world" />
-    <joint name="robot_stand_joint" type="fixed">
+    <joint name="${prefix}robot_stand_joint" type="fixed">
         <parent link="world" />
-        <child link="robot_stand" />
+        <child link="${prefix}robot_stand" />
         <origin rpy="-1.571 0 0" xyz="0 0 0" />
     </joint>
-    <link name="gazebo_camera_link" />
-    <joint name="gazebo_camera_joint" type="fixed">
+    <link name="${prefix}gazebo_camera_link" />
+    <joint name="${prefix}gazebo_camera_joint" type="fixed">
         <origin xyz="0.0 0.0 0.0" rpy="1.57 -1.57 0.0"/>
-        <parent link="camera_link_optical"/>
-        <child link="gazebo_camera_link"/>
+        <parent link="${prefix}camera_link_optical"/>
+        <child link="${prefix}gazebo_camera_link"/>
     </joint>
-    <link name="camera_link_optical" />
-    <joint name="camera_optical_joint" type="fixed">
+    <link name="${prefix}camera_link_optical" />
+    <joint name="${prefix}camera_optical_joint" type="fixed">
         <origin xyz="-0.00345 0.070793 0.077409" rpy="-0.7854 0 0"/>
-        <parent link="eoat_link"/>
-        <parent link="gazebo_camera_link"/>
-        <child link="camera_link_optical"/>
+        <parent link="${prefix}eoat_link"/>
+        <!-- <parent link="${prefix}gazebo_camera_link"/> -->
+        <child link="${prefix}camera_link_optical"/>
     </joint>
-    <link name="sander_center_link" />
-    <joint name="sander_joint" type = "fixed">
+    <link name="${prefix}sander_center_link" />
+    <joint name="${prefix}sander_joint" type = "fixed">
         <origin xyz="0.0 -0.1167 0.12664" rpy="0.7854 0.0 0.0"/>
-        <parent link="eoat_link"/>
-        <child link="sander_center_link" />
+        <parent link="${prefix}eoat_link"/>
+        <child link="${prefix}sander_center_link" />
     </joint>
-    <link name="part" >
+    <link name="${prefix}part" >
         <visual>
             <origin rpy="0 0 0" xyz="0 0 0" />
             <geometry>
@@ -377,16 +378,16 @@
             </geometry>
         </collision>-->
     </link>
-    <joint name="robot_stand_to_part_joint" type= "fixed">
+    <joint name="${prefix}robot_stand_to_part_joint" type= "fixed">
         <origin xyz="-0.439 -1.1 -0.14" rpy= "-3.1416 0.0 -1.571"/>
 <!--        <origin xyz="-0.439 -1.2 -0.14" rpy= "-3.1416 0.0 -1.571"/>-->
-        <parent link="robot_stand"/>
-        <child link="part"/>
+        <parent link="${prefix}robot_stand"/>
+        <child link="${prefix}part"/>
     </joint>
 
     <transmission name="trans_shoulder_pan_joint">
         <type>transmission_interface/SimpleTransmission</type>
-        <joint name="shoulder_pan_joint">
+        <joint name="${prefix}shoulder_pan_joint">
             <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
         </joint>
         <actuator name="shoulder_pan_joint_motor">
@@ -396,7 +397,7 @@
     </transmission>
     <transmission name="trans_shoulder_lift_joint">
         <type>transmission_interface/SimpleTransmission</type>
-        <joint name="shoulder_lift_joint">
+        <joint name="${prefix}shoulder_lift_joint">
             <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
         </joint>
         <actuator name="shoulder_lift_joint_motor">
@@ -406,7 +407,7 @@
     </transmission>
     <transmission name="trans_elbow_joint">
         <type>transmission_interface/SimpleTransmission</type>
-        <joint name="elbow_joint">
+        <joint name="${prefix}elbow_joint">
             <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
         </joint>
         <actuator name="elbow_joint_motor">
@@ -416,7 +417,7 @@
     </transmission>
     <transmission name="trans_wrist_1_joint">
         <type>transmission_interface/SimpleTransmission</type>
-        <joint name="wrist_1_joint">
+        <joint name="${prefix}wrist_1_joint">
             <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
         </joint>
         <actuator name="wrist_1_joint_motor">
@@ -426,7 +427,7 @@
     </transmission>
     <transmission name="trans_wrist_2_joint">
         <type>transmission_interface/SimpleTransmission</type>
-        <joint name="wrist_2_joint">
+        <joint name="${prefix}wrist_2_joint">
             <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
         </joint>
         <actuator name="wrist_2_joint_motor">
@@ -436,7 +437,7 @@
     </transmission>
     <transmission name="trans_wrist_3_joint">
         <type>transmission_interface/SimpleTransmission</type>
-        <joint name="wrist_3_joint">
+        <joint name="${prefix}wrist_3_joint">
             <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
         </joint>
         <actuator name="wrist_3_joint_motor">
@@ -446,7 +447,7 @@
     </transmission>
     <transmission name="trans_robot_base_joint">
         <type>transmission_interface/SimpleTransmission</type>
-        <joint name="robot_base_joint">
+        <joint name="${prefix}robot_base_joint">
             <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
         </joint>
         <actuator name="robot_base_joint_motor">
@@ -454,40 +455,40 @@
             <mechanicalReduction>1</mechanicalReduction>
         </actuator>
     </transmission>
-    <gazebo reference="robot_stand">
+    <gazebo reference="${prefix}robot_stand">
         <selfCollide>true</selfCollide>
     </gazebo>
-    <gazebo reference="base_link">
+    <gazebo reference="${prefix}base_link">
         <selfCollide>true</selfCollide>
     </gazebo>
-    <gazebo reference="shoulder_link">
+    <gazebo reference="${prefix}shoulder_link">
         <selfCollide>true</selfCollide>
     </gazebo>
-    <gazebo reference="upper_arm_link">
+    <gazebo reference="${prefix}upper_arm_link">
         <selfCollide>true</selfCollide>
     </gazebo>
-    <gazebo reference="wrist_1_joint">
+    <gazebo reference="${prefix}wrist_1_joint">
         <selfCollide>true</selfCollide>
     </gazebo>
-    <gazebo reference="forearm_link">
+    <gazebo reference="${prefix}forearm_link">
         <selfCollide>true</selfCollide>
     </gazebo>
-    <gazebo reference="wrist_2_joint">
+    <gazebo reference="${prefix}wrist_2_joint">
         <selfCollide>true</selfCollide>
     </gazebo>
-    <gazebo reference="wrist_3_joint">
+    <gazebo reference="${prefix}wrist_3_joint">
         <selfCollide>true</selfCollide>
     </gazebo>
-    <gazebo reference="ee_link">
+    <gazebo reference="${prefix}ee_link">
         <selfCollide>true</selfCollide>
     </gazebo>
-    <gazebo reference="eoat_link">
+    <gazebo reference="${prefix}eoat_link">
         <selfCollide>true</selfCollide>
     </gazebo>
-    <gazebo reference="tool0">
+    <gazebo reference="${prefix}tool0">
         <selfCollide>true</selfCollide>
     </gazebo>
-    <gazebo reference="gazebo_camera_link">
+    <gazebo reference="${prefix}gazebo_camera_link">
         <sensor type="depth" name="sensor_name">
           <!-- Set always_on only sensor, not on plugin -->
           <always_on>1</always_on>
@@ -540,12 +541,12 @@
               <argument>joint_states:=joint_states</argument>
           </ros>
           <update_rate>50</update_rate>
-          <joint_name>shoulder_pan_joint</joint_name>
-          <joint_name>shoulder_lift_joint</joint_name>
-          <joint_name>elbow_joint</joint_name>
-          <joint_name>wrist_1_joint</joint_name>
-          <joint_name>wrist_2_joint</joint_name>
-          <joint_name>wrist_3_joint</joint_name>
+          <joint_name>${prefix}shoulder_pan_joint</joint_name>
+          <joint_name>${prefix}shoulder_lift_joint</joint_name>
+          <joint_name>${prefix}elbow_joint</joint_name>
+          <joint_name>${prefix}wrist_1_joint</joint_name>
+          <joint_name>${prefix}wrist_2_joint</joint_name>
+          <joint_name>${prefix}wrist_3_joint</joint_name>
         </plugin>
         <plugin name='gazebo_ros_joint_pose_trajectory' filename='libgazebo_ros_joint_pose_trajectory.so'>
             <ros>
@@ -555,4 +556,7 @@
             <update_rate>20</update_rate>
         </plugin>
     </gazebo>
+  </xacro:macro>
+  <xacro:arg name="prefix" default=""/>
+  <xacro:crs_workcell prefix="$(arg prefix)"/>
 </robot>

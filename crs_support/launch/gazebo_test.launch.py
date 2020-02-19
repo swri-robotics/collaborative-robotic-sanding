@@ -14,6 +14,7 @@ def generate_launch_description():
         path = os.path.join(head, 'tesseract_collision')
         os.environ["AMENT_PREFIX_PATH"] += os.pathsep + path
 
+    xacro = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs.urdf.xacro')
     urdf = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs.urdf')
     srdf = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'ur10e_robot.srdf')
     gzworld = os.path.join(get_package_share_directory('crs_support'), 'worlds', 'crs.world')
@@ -25,6 +26,33 @@ def generate_launch_description():
         os.mkdir(gazebo_path + "/crs_support")
         shutil.copytree(os.path.join(get_package_share_directory('crs_support'), 'meshes'), Path.home().joinpath(Path.home().joinpath('.gazebo','models','crs_support','meshes').resolve()))
 
+    required_cmd = False
+    cmd1 = 'ln -s %s %s'%(crs_model_path, gazebo_model_path)
+    cmd2 = 'xacro %s > %s'%(xacro, urdf)        
+    cmd3 = 'killall -9 gazebo & killall -9 gzserver & killall -9 gzclient'
+    cmd_dict = {cmd1: True, cmd2 : True, cmd3: False}
+    
+    # check if soft link exists
+    gazebo_model_path = os.path.join(os.environ['HOME'],'.gazebo', 'models', 'crs_support')
+    crs_model_path = get_package_share_directory('crs_support')
+    cmd1 = 'ln -s %s %s'%(crs_model_path, gazebo_model_path)
+    if not os.path.exists(gazebo_model_path):
+        cmd_dict[cmd1] = True    
+     
+    # run commands   
+    try:    
+
+        for cmd, req_ in cmd_dict.items():       
+            required_cmd = req_ 
+            print('Running cmd: %s' % (cmd))    
+            process = subprocess.run(cmd , shell=True, check=True, stdout=subprocess.PIPE, universal_newlines=True)       
+        
+    except subprocess.CalledProcessError as e:
+        print(e.output)
+        if required_cmd:
+            return None 
+            
+            
     tesseract_env = launch_ros.actions.Node(
          node_name='env_node',
          package='tesseract_monitoring',
