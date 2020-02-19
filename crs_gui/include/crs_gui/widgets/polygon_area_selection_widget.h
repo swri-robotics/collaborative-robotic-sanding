@@ -27,6 +27,10 @@
 #include <crs_area_selection/selection_artist.h>
 #include "crs_gui/register_ros_msgs_for_qt.h"
 
+
+#define EIGEN_DONT_VECTORIZE
+#define EIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT
+
 namespace Ui
 {
 class PolygonAreaSelectionWidget;

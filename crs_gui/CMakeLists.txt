@@ -17,6 +17,7 @@ find_package(Qt5 REQUIRED COMPONENTS
   Core
   Widgets
 )
+find_package(Eigen3 REQUIRED)
 
 ###########
 ## Build ##
@@ -67,7 +68,6 @@ add_library(${PROJECT_NAME}_widgets SHARED
   ${crs_gui_widget_SOURCES}
 )
 set_target_properties(${PROJECT_NAME}_widgets PROPERTIES CXX_STANDARD 17)
-#target_compile_options(${PROJECT_NAME}_widgets PUBLIC -mno-avx)
 target_include_directories(${PROJECT_NAME}_widgets PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:include>")
@@ -127,7 +127,6 @@ target_include_directories(${PROJECT_NAME}_part_selection_demo PUBLIC
     "$<INSTALL_INTERFACE:include>")
 
 add_executable(${PROJECT_NAME}_crs_application_demo src/nodes/crs_application_demo.cpp)
-target_compile_options(${PROJECT_NAME}_crs_application_demo PUBLIC -mno-avx)
 target_link_libraries(${PROJECT_NAME}_crs_application_demo ${PROJECT_NAME}_widgets)
 set_target_properties(${PROJECT_NAME}_crs_application_demo PROPERTIES CXX_STANDARD 17)
 target_include_directories(${PROJECT_NAME}_crs_application_demo PUBLIC

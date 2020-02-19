@@ -21,6 +21,9 @@
 #include <memory>
 #include <string>
 
+#define EIGEN_DONT_VECTORIZE
+#define EIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT
+
 class QListWidgetItem;
 
 namespace Ui

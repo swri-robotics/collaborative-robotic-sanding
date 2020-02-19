@@ -25,6 +25,10 @@
 #include <std_msgs/msg/string.hpp>
 #include <string>
 
+
+#define EIGEN_DONT_VECTORIZE
+#define EIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT
+
 namespace Ui
 {
 class StateMachineInterface;

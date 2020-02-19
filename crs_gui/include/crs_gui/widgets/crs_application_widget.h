@@ -28,6 +28,9 @@
 #include <string>
 #include <eigen3/Eigen/Core>
 
+#define EIGEN_DONT_VECTORIZE
+#define EIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT
+
 namespace Ui
 {
 class CRSApplication;

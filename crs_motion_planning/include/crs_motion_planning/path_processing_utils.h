@@ -1,6 +1,9 @@
 #ifndef CRS_MOTION_PLANNING_PATH_PROCESSING_UTILS_H
 #define CRS_MOTION_PLANNING_PATH_PROCESSING_UTILS_H
 
+#define EIGEN_DONT_VECTORIZE
+#define EIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT
+
 #include <yaml-cpp/yaml.h>
 #include <yaml-cpp/node/iterator.h>
 #include <yaml-cpp/node/impl.h>
