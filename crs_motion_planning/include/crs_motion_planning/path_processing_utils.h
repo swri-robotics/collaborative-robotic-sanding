@@ -102,6 +102,10 @@ void addApproachAndRetreat(const geometry_msgs::msg::PoseArray& given_raster,
                            const double& approach_dist,
                            const double& retreat_dist,
                            geometry_msgs::msg::PoseArray& returned_raster);
+
+bool timeParameterizeTrajectories(const trajectory_msgs::msg::JointTrajectory& given_traj,
+                                  trajectory_msgs::msg::JointTrajectory& returned_traj,
+                                  const bool gazebo_time = false);
 }  // namespace crs_motion_planning
 
 #endif  // CRS_MOTION_PLANNING_PATH_PROCESSING_UTILS_H
