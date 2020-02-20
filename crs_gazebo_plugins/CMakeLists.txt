@@ -17,7 +17,6 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
-find_package(action_tutorials_interfaces REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(rclcpp_components REQUIRED)
@@ -37,16 +36,18 @@ include_directories(include
 link_directories(${gazebo_dev_LIBRARY_DIRS})
 
 # oint_pose_trajectory plugin
-add_library(joint_pose_trajectory SHARED
+add_library(${PROJECT_NAME}_joint_pose_trajectory SHARED
   src/joint_pose_trajectory.cpp
 )
-ament_target_dependencies(joint_pose_trajectory
+ament_target_dependencies(${PROJECT_NAME}_joint_pose_trajectory
   "gazebo_dev"
   "gazebo_ros"
   "rclcpp"
   "control_msgs"
+  "rclcpp_action"
+  "rclcpp_components"
 )
-ament_export_libraries(joint_pose_trajectory)
+ament_export_libraries(${PROJECT_NAME}_joint_pose_trajectory)
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -65,7 +66,7 @@ install(DIRECTORY include/
         DESTINATION include)
 
 install(TARGETS
-    joint_pose_trajectory
+    ${PROJECT_NAME}_joint_pose_trajectory
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
