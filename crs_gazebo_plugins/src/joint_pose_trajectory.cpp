@@ -42,10 +42,12 @@ public:
   /// \param[in] msg Trajectory msg
   void SetJointTrajectory(trajectory_msgs::msg::JointTrajectory::SharedPtr _msg);
 
+  bool executeTrajectory(const trajectory_msgs::msg::JointTrajectory& msg);
+
+  void publishFeedback();
+
   rclcpp_action::GoalResponse goalCallback(const rclcpp_action::GoalUUID & uuid,
         std::shared_ptr<const control_msgs::action::FollowJointTrajectory::Goal> goal);
-
-  bool executeTrajectory(const trajectory_msgs::msg::JointTrajectory& msg);
 
   rclcpp_action::CancelResponse cancelCallback(const std::shared_ptr<GoalHandleFollowJointTrajectory> goal_handle);
 
@@ -54,9 +56,6 @@ public:
 
   /// A pointer to the GazeboROS node.
   gazebo_ros::Node::SharedPtr ros_node_;
-
-  /// Subscriber to Trajectory messages.
-  rclcpp::Subscription<trajectory_msgs::msg::JointTrajectory>::SharedPtr sub_;
 
   // action server
   rclcpp_action::Server<control_msgs::action::FollowJointTrajectory>::SharedPtr ac_;
@@ -75,6 +74,9 @@ public:
 
   /// Command trajectory points
   std::vector<trajectory_msgs::msg::JointTrajectoryPoint> points_;
+
+  /// Mapping of gazebo joint to trajectory joint indices
+  std::map<std::size_t, std::size_t> joint_index_mappings_;
 
   /// Period in seconds
   double update_period_;
@@ -129,12 +131,7 @@ void JointPoseTrajectory::Load(gazebo::physics::ModelPtr model, sdf::ElementPtr 
   }
   impl_->last_update_time_ = impl_->world_->SimTime();
 
-  // Set Joint Trajectory Callback
-  impl_->sub_ = impl_->ros_node_->create_subscription<trajectory_msgs::msg::JointTrajectory>(
-    "set_joint_trajectory", rclcpp::QoS(rclcpp::KeepLast(1)),
-    std::bind(&JointPoseTrajectoryPrivate::SetJointTrajectory,
-    impl_.get(), std::placeholders::_1));
-
+  // creating action interface
   impl_->ac_ = rclcpp_action::create_server<control_msgs::action::FollowJointTrajectory>(
     impl_->ros_node_->get_node_base_interface(),
     impl_->ros_node_->get_node_clock_interface(),
@@ -171,6 +168,22 @@ void JointPoseTrajectoryPrivate::acceptedCallback(
 {
   // this needs to return quickly to avoid blocking the executor, so spin up a new thread
   gh_ = std::shared_ptr<GoalHandleFollowJointTrajectory>(goal_handle);
+
+  // creating indices mappings
+  const std::vector<std::string>& joint_names = gh_->get_goal()->trajectory.joint_names;
+  joint_index_mappings_.clear();
+  for(std::size_t i = 0; i< joints_.size(); i++)
+  {
+    std::string jname = joints_[i]->GetName();
+    auto pos = std::find(joint_names.begin(), joint_names.end(), jname);
+    if( pos == joint_names.end())
+    {
+      RCLCPP_WARN(ros_node_->get_logger(),"Joint %s was not found in trajectory", jname.c_str());
+      continue;
+    }
+    std::size_t traj_joint_index = std::distance(joint_names.begin(), pos);
+    joint_index_mappings_[i] = traj_joint_index;
+  }
   std::thread(std::bind(&JointPoseTrajectoryPrivate::executeTrajectory, this, std::placeholders::_1),
     std::cref(goal_handle->get_goal()->trajectory)).detach();
 }
@@ -193,7 +206,8 @@ void JointPoseTrajectoryPrivate::OnUpdate(const gazebo::common::UpdateInfo & inf
   }
 
   std::lock_guard<std::mutex> scoped_lock(lock_);
-  if (has_trajectory_ && current_time >= trajectory_start_time_) {
+  if (has_trajectory_ && current_time >= trajectory_start_time_)
+  {
     if (trajectory_index_ < points_.size()) {
       RCLCPP_INFO(ros_node_->get_logger(), "time [%f] updating configuration [%d/%lu]",
         current_time.Double(), trajectory_index_ + 1, points_.size());
@@ -208,11 +222,15 @@ void JointPoseTrajectoryPrivate::OnUpdate(const gazebo::common::UpdateInfo & inf
       // trajectory roll-out based on time:
       // set model configuration from trajectory message
       auto chain_size = static_cast<unsigned int>(joints_.size());
-      if (chain_size == points_[trajectory_index_].positions.size()) {
-        for (unsigned int i = 0; i < chain_size; ++i) {
+      if (chain_size == points_[trajectory_index_].positions.size())
+      {
+        for (unsigned int i = 0; i < chain_size; ++i)
+        {
           // this is not the most efficient way to set things
-          if (joints_[i]) {
-            joints_[i]->SetPosition(0, points_[trajectory_index_].positions[i], true);
+          std::size_t traj_joint_idx = joint_index_mappings_[i];
+          if (joints_[i])
+          {
+            joints_[i]->SetPosition(0, points_[trajectory_index_].positions[traj_joint_idx], true);
           }
         }
         // set model pose
@@ -238,6 +256,12 @@ void JointPoseTrajectoryPrivate::OnUpdate(const gazebo::common::UpdateInfo & inf
       auto duration =
         gazebo_ros::Convert<gazebo::common::Time>(points_[trajectory_index_].time_from_start);
 
+      // Subtracting from previous
+      if(trajectory_index_ > 0)
+      {
+        duration -= gazebo_ros::Convert<gazebo::common::Time>(points_[trajectory_index_-1].time_from_start);
+      }
+
       // reset start time for next trajectory point
       trajectory_start_time_ += duration;
       trajectory_index_++;  // increment to next trajectory point
@@ -257,6 +281,27 @@ void JointPoseTrajectoryPrivate::SetJointTrajectory(
   trajectory_msgs::msg::JointTrajectory::SharedPtr msg)
 {
 	executeTrajectory(*msg);
+}
+
+void JointPoseTrajectoryPrivate::publishFeedback()
+{
+  using namespace control_msgs::action;
+  if(trajectory_index_ >= points_.size())
+  {
+    RCLCPP_DEBUG(ros_node_->get_logger(),"trajectory index exceeded trajectory size");
+    return;
+  }
+
+  std::shared_ptr<FollowJointTrajectory::Feedback> fb_ptr = std::make_shared<FollowJointTrajectory::Feedback>();
+  auto& fb = *fb_ptr;
+  fb.joint_names = gh_->get_goal()->trajectory.joint_names;
+  fb.desired.positions.resize(fb.joint_names.size(), 0);
+  fb.desired.accelerations.resize(fb.joint_names.size());
+  fb.desired.velocities.resize(fb.joint_names.size());
+  fb.error = fb.desired;
+  fb.desired.positions = points_[trajectory_index_].positions;
+  fb.actual = fb.desired;
+  gh_->publish_feedback(fb_ptr);
 }
 
 bool JointPoseTrajectoryPrivate::executeTrajectory(const trajectory_msgs::msg::JointTrajectory& msg)
@@ -338,6 +383,8 @@ bool JointPoseTrajectoryPrivate::executeTrajectory(const trajectory_msgs::msg::J
 	  {
 	    break;
 	  }
+
+	  publishFeedback();
 
 	  // getting error code
 	  {
