@@ -236,9 +236,9 @@ private:
             return;
           }
         }
+
         std::cout << "EXECUTING SURFACE TRAJECTORY\t" << process_motions.size() << " OF " << process_motions.size() << std::endl;
         execTrajectory(process_motions.back());
-
         if (end_traj.points.size() > 0)
         {
           if(!execTrajectory(end_traj))
