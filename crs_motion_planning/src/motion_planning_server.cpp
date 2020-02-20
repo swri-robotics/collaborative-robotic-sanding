@@ -164,12 +164,12 @@ public:
     tesseract_motion_planners::CollisionConstraintConfig coll_cnt_config_fs;
     coll_cnt_config_fs.enabled = true;
     coll_cnt_config_fs.safety_margin = 0.005;
-//    coll_cnt_config_fs.type = trajopt::CollisionEvaluatorType::DISCRETE_CONTINUOUS;
+    //    coll_cnt_config_fs.type = trajopt::CollisionEvaluatorType::DISCRETE_CONTINUOUS;
     trajopt_freespace_config.coll_cst_cfg = coll_cost_config_fs;
     trajopt_freespace_config.coll_cnt_cfg = coll_cnt_config_fs;
     trajopt_freespace_config.longest_valid_segment_fraction = 0.001;
     trajopt_freespace_config.contact_test_type = tesseract_collision::ContactTestType::ALL;
-//    trajopt_freespace_config.contact_test_type = tesseract_collision::ContactTestType::CLOSEST;
+    //    trajopt_freespace_config.contact_test_type = tesseract_collision::ContactTestType::CLOSEST;
     trajopt_freespace_config.smooth_velocities = true;
     trajopt_freespace_config.smooth_accelerations = true;
     trajopt_freespace_config.smooth_jerks = true;
