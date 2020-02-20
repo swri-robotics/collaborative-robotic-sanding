@@ -142,7 +142,7 @@ private:
         }
         std::cout << "PUBLISHING SURFACE\t" << process_motions.size() << " OF " << process_motions.size() << std::endl;
         traj_publisher_->publish(process_motions.back());
-        std::this_thread::sleep_for(std::chrono::seconds(2));
+        std::this_thread::sleep_for(std::chrono::seconds(process_motions.back().points.size() / 5 + 1));
         if (end_traj.points.size() > 0)
         {
           traj_publisher_->publish(end_traj);

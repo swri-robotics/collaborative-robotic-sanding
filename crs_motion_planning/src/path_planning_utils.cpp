@@ -340,9 +340,9 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
             if (config_->required_tool_vel)
             {
                 std::vector<double> modified_time_steps = post_speed_split_time_steps[i];
-                modified_time_steps.push_back(approach * config_->tool_speed);
+                modified_time_steps.push_back(approach / config_->tool_speed);
                 modified_time_steps.insert(modified_time_steps.end(), post_speed_split_time_steps[i].begin(), post_speed_split_time_steps[i].end());
-                modified_time_steps.push_back(retreat * config_->tool_speed);
+                modified_time_steps.push_back(retreat / config_->tool_speed);
                 final_time_steps.push_back(modified_time_steps);
             }
         }
@@ -447,6 +447,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
     // Assign trajectory timestamps for motion execution
     std::vector<double> traj_times;
     size_t trajopt_traj_n = 0;
+    std::vector<trajectory_msgs::msg::JointTrajectory> time_mod_traj;
     for (size_t i = 0; i < results->descartes_trajectory_results.size(); ++i)
     {
       if (trajopt_solved[i])
@@ -457,28 +458,35 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
         if (config_->required_tool_vel)
         {
           double curr_traj_time = 0;
-          for (size_t j = 1; j < trajopt_trajectories[trajopt_traj_n].points.size(); ++j)
+          for (size_t j = 0; j < trajopt_trajectories[trajopt_traj_n].points.size(); ++j)
           {
             double added_time = 0;
             if (!config_->use_gazebo_sim_timing)
             {
               added_time = curr_traj_time;
             }
-            trajopt_trajectories[trajopt_traj_n].points[j - 1].time_from_start.sec =
+            trajopt_trajectories[trajopt_traj_n].points[j].time_from_start.sec =
                 static_cast<int>(floor(final_time_steps[i][j] + added_time));
-            trajopt_trajectories[trajopt_traj_n].points[j - 1].time_from_start.nanosec = static_cast<uint>(
+            trajopt_trajectories[trajopt_traj_n].points[j].time_from_start.nanosec = static_cast<uint>(
                 1e9 * (final_time_steps[i][j] + added_time - floor(final_time_steps[i][j] + added_time)));
             curr_traj_time += final_time_steps[i][j];
           }
           trajopt_trajectories[trajopt_traj_n].points.back().time_from_start.sec = 0;
           traj_times.push_back(std::move(curr_traj_time));
-          trajopt_traj_n++;
+          trajectory_msgs::msg::JointTrajectory curr_time_mod_traj;
+          crs_motion_planning::timeParameterizeTrajectories(trajopt_trajectories[trajopt_traj_n],curr_time_mod_traj, config_->use_gazebo_sim_timing);
+          time_mod_traj.push_back(curr_time_mod_traj);
         }
+        else
+        {
+            time_mod_traj.push_back(trajopt_trajectories[trajopt_traj_n]);
+        }
+        trajopt_traj_n++;
       }
     }
 
     std::cout << "ALL DONE" << std::endl;
-    results->final_raster_trajectories = std::move(trajopt_trajectories);
+    results->final_raster_trajectories = std::move(time_mod_traj);
     return true;
 }
 

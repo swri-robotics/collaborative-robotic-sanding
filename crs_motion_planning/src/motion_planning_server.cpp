@@ -133,8 +133,8 @@ public:
     descartes_config.collision_safety_margin = 0.0075;
 
     crs_motion_planning::trajoptSurfaceConfig trajopt_surface_config;
-    trajopt_surface_config.smooth_velocities = false;
-    trajopt_surface_config.smooth_accelerations = false;
+    trajopt_surface_config.smooth_velocities = true;
+    trajopt_surface_config.smooth_accelerations = true;
     trajopt_surface_config.smooth_jerks = false;
     tesseract_motion_planners::CollisionCostConfig coll_cost_config_srfc;
     coll_cost_config_srfc.enabled = false;
