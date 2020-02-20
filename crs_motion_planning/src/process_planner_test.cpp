@@ -53,7 +53,6 @@ public:
 
     toolpath_filepath_ = ament_index_cpp::get_package_share_directory("crs_support") + "/toolpaths/scanned_part1/"
                                                                                        "job_90degrees.yaml";
-
     // waiting for server
     if(!trajectory_exec_client_->wait_for_action_server(std::chrono::duration<double>(WAIT_SERVER_TIMEOUT)))
     {
