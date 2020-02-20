@@ -309,43 +309,44 @@ bool crs_motion_planning::timeParameterizeTrajectories(const trajectory_msgs::ms
                                                        trajectory_msgs::msg::JointTrajectory& returned_traj,
                                                        const bool gazebo_time)
 {
-    double curr_time = 0, prev_time_diff = 0;
-    size_t joint_num = given_traj.joint_names.size();
-    std::vector<double> prev_pose(joint_num), prev_vel(joint_num), prev_accel(joint_num);
-    returned_traj = given_traj;
-    for (size_t i = 1; i < given_traj.points.size(); ++i)
+  double curr_time = 0, prev_time_diff = 0;
+  size_t joint_num = given_traj.joint_names.size();
+  std::vector<double> prev_pose(joint_num), prev_vel(joint_num), prev_accel(joint_num);
+  returned_traj = given_traj;
+  for (size_t i = 1; i < given_traj.points.size(); ++i)
+  {
+    if (gazebo_time)
     {
-        if(gazebo_time)
-        {
-            curr_time = 0;
-        }
-        double time_diff = given_traj.points[i-1].time_from_start.sec + static_cast<double>(given_traj.points[i-1].time_from_start.nanosec)/1e9 - curr_time;
-        for (size_t j = 0; j < joint_num; ++j)
-        {
-            double pose_diff = given_traj.points[i].positions[j] - given_traj.points[i-1].positions[j];
-            returned_traj.points[i-1].velocities.push_back(pose_diff/time_diff);
-        }
-        if(i > 1)
-        {
-            for (size_t j = 0; j < joint_num; ++j)
-            {
-                double vel_diff = returned_traj.points[i-1].velocities[j] - returned_traj.points[i-2].velocities[j];
-                returned_traj.points[i-2].accelerations.push_back(vel_diff/prev_time_diff);
-            }
-        }
-        curr_time += time_diff;
-        prev_time_diff = time_diff;
+      curr_time = 0;
     }
-    std::vector<double> zeros_vec;
-    for (int i = 0; i < 6; ++i)
-        zeros_vec.push_back(0.0);
-    returned_traj.points.back().velocities = zeros_vec;
-    for (size_t j = 1; j < joint_num; ++j)
+    double time_diff = given_traj.points[i - 1].time_from_start.sec +
+                       static_cast<double>(given_traj.points[i - 1].time_from_start.nanosec) / 1e9 - curr_time;
+    for (size_t j = 0; j < joint_num; ++j)
     {
-        double vel_diff = returned_traj.points.rbegin()[0].velocities[j] - returned_traj.points.rbegin()[1].velocities[j];
-        returned_traj.points.rbegin()[1].accelerations.push_back(vel_diff/prev_time_diff);
+      double pose_diff = given_traj.points[i].positions[j] - given_traj.points[i - 1].positions[j];
+      returned_traj.points[i - 1].velocities.push_back(pose_diff / time_diff);
     }
-    returned_traj.points.back().accelerations = zeros_vec;
+    if (i > 1)
+    {
+      for (size_t j = 0; j < joint_num; ++j)
+      {
+        double vel_diff = returned_traj.points[i - 1].velocities[j] - returned_traj.points[i - 2].velocities[j];
+        returned_traj.points[i - 2].accelerations.push_back(vel_diff / prev_time_diff);
+      }
+    }
+    curr_time += time_diff;
+    prev_time_diff = time_diff;
+  }
+  std::vector<double> zeros_vec;
+  for (int i = 0; i < 6; ++i)
+    zeros_vec.push_back(0.0);
+  returned_traj.points.back().velocities = zeros_vec;
+  for (size_t j = 1; j < joint_num; ++j)
+  {
+    double vel_diff = returned_traj.points.rbegin()[0].velocities[j] - returned_traj.points.rbegin()[1].velocities[j];
+    returned_traj.points.rbegin()[1].accelerations.push_back(vel_diff / prev_time_diff);
+  }
+  returned_traj.points.back().accelerations = zeros_vec;
 
-    return true;
+  return true;
 }
