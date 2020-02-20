@@ -70,6 +70,13 @@ protected:
   rclcpp::TimerBase::SharedPtr mesh_marker_timer_;
   void meshMarkerTimerCb();
 
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr toolpath_marker_pub_;
+  visualization_msgs::msg::MarkerArray current_toolpath_marker_;
+  rclcpp::TimerBase::SharedPtr toolpath_marker_timer_;
+  void toolpathMarkerTimerCb();
+
+  visualization_msgs::msg::MarkerArray delete_all_marker_;
+
   std::unique_ptr<PartSelectionWidget> part_selector_widget_;
   std::unique_ptr<PolygonAreaSelectionWidget> area_selection_widget_;
   std::unique_ptr<StateMachineInterfaceWidget> state_machine_interface_widget_;

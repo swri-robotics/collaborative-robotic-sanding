@@ -47,7 +47,7 @@ find_package(tf2_geometry_msgs REQUIRED)
 
 find_package(yaml-cpp REQUIRED)
 
-add_library(${PROJECT_NAME}_path_processing_utils src/path_processing_utils.cpp)
+add_library(${PROJECT_NAME}_path_processing_utils SHARED src/path_processing_utils.cpp)
 target_include_directories(${PROJECT_NAME}_path_processing_utils PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
   "$<INSTALL_INTERFACE:include>"
@@ -70,7 +70,7 @@ target_link_libraries(${PROJECT_NAME}_path_processing_utils
   Eigen3::Eigen
   )
 
-add_library(${PROJECT_NAME}_path_planning_utils src/path_planning_utils.cpp)
+add_library(${PROJECT_NAME}_path_planning_utils SHARED src/path_planning_utils.cpp)
 target_include_directories(${PROJECT_NAME}_path_planning_utils PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
   "$<INSTALL_INTERFACE:include>"
@@ -105,9 +105,10 @@ target_link_libraries(${PROJECT_NAME}_path_planning_utils
   )
 
 add_executable(${PROJECT_NAME}_motion_planning_server src/motion_planning_server.cpp)
-
 target_include_directories(${PROJECT_NAME}_motion_planning_server PUBLIC
-  include
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+    "$<INSTALL_INTERFACE:include>")
+target_include_directories(${PROJECT_NAME}_motion_planning_server PUBLIC
   ${rclcpp_INCLUDE_DIRS}
   ${rclcpp_action_INCLUDE_DIRS}
   ${crs_msgs_INCLUDE_DIRS}
@@ -138,9 +139,10 @@ target_link_libraries(${PROJECT_NAME}_motion_planning_server
   )
 
 add_executable(${PROJECT_NAME}_process_planner_test src/process_planner_test.cpp)
-
 target_include_directories(${PROJECT_NAME}_process_planner_test PUBLIC
-  include
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+    "$<INSTALL_INTERFACE:include>")
+target_include_directories(${PROJECT_NAME}_process_planner_test PUBLIC
   ${rclcpp_INCLUDE_DIRS}
   ${rclcpp_action_INCLUDE_DIRS}
   ${crs_msgs_INCLUDE_DIRS}
@@ -185,7 +187,6 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-
 ament_export_include_directories(
     include)
 
@@ -203,9 +204,36 @@ install(TARGETS
   ${PROJECT_NAME}_path_planning_utils
   ${PROJECT_NAME}_motion_planning_server
   ${PROJECT_NAME}_process_planner_test
+  EXPORT ${PACKAGE_NAME}-targets
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
+
+ament_export_interfaces(${PACKAGE_NAME}-targets)
+ament_export_dependencies(
+    ament_cmake
+    ament_index_cpp
+    rosidl_default_generators
+    rclcpp
+    rclcpp_action
+    crs_msgs
+    tesseract_motion_planners
+    tesseract_rosutils
+    ur_ikfast_kinematics
+    descartes_light
+    descartes_ikfast
+    std_srvs
+    std_msgs
+    sensor_msgs
+    action_msgs
+    visualization_msgs
+    geometry_msgs
+    trajectory_msgs
+    tf2
+    tf2_ros
+    tf2_eigen
+    tf2_geometry_msgs
+    yaml-cpp)
 
 ament_package()

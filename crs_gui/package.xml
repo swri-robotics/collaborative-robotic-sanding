@@ -17,11 +17,14 @@
   <depend>rclcpp</depend>
   <depend>shape_msgs</depend>
   <depend>std_srvs</depend>
+  <depend>rviz2</depend>
   <depend>crs_msgs</depend>
+  <depend>crs_motion_planning</depend>
+  <depend>pluginlib</depend>
   <exec_depend>xterm</exec_depend>
 
   <export>
-<!--    <rviz plugin="${prefix}/plugin_description.xml"/>-->
     <build_type>ament_cmake</build_type>
+    <rviz plugin="${prefix}/plugin_description.xml"/>
   </export>
 </package>
