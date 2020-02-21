@@ -107,6 +107,7 @@ public:
 JointPoseTrajectory::JointPoseTrajectory()
 : impl_(std::make_unique<JointPoseTrajectoryPrivate>())
 {
+
 }
 
 JointPoseTrajectory::~JointPoseTrajectory()
@@ -121,6 +122,8 @@ void JointPoseTrajectory::Load(gazebo::physics::ModelPtr model, sdf::ElementPtr 
 
   // Initialize ROS node
   impl_->ros_node_ = gazebo_ros::Node::Get(sdf);
+
+  impl_->has_trajectory_ = false;
 
   // Update rate
   auto update_rate = sdf->Get<double>("update_rate", 100.0).first;
@@ -150,16 +153,22 @@ void JointPoseTrajectory::Load(gazebo::physics::ModelPtr model, sdf::ElementPtr 
 rclcpp_action::GoalResponse JointPoseTrajectoryPrivate::goalCallback(const rclcpp_action::GoalUUID & uuid,
 	    std::shared_ptr<const control_msgs::action::FollowJointTrajectory::Goal> goal)
 {
+  RCLCPP_INFO(ros_node_->get_logger(),"Received Trajectory goal %s",rclcpp_action::to_string(uuid).c_str());
   if(has_trajectory_)
   {
+    RCLCPP_ERROR(ros_node_->get_logger(),"Goal Rejected");
     return rclcpp_action::GoalResponse::REJECT;
   }
+  has_trajectory_ = true;
+  RCLCPP_INFO(ros_node_->get_logger(),"Goal Accepted");
   return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
 rclcpp_action::CancelResponse JointPoseTrajectoryPrivate::cancelCallback(
     const std::shared_ptr<GoalHandleFollowJointTrajectory> goal_handle)
 {
+  RCLCPP_WARN(ros_node_->get_logger(),"Cancel requested for goal %s",
+              rclcpp_action::to_string(goal_handle->get_goal_id()).c_str());
   return rclcpp_action::CancelResponse::ACCEPT;
 }
 
@@ -308,6 +317,7 @@ bool JointPoseTrajectoryPrivate::executeTrajectory(const trajectory_msgs::msg::J
 {
   using namespace control_msgs::action;
 	std::lock_guard<std::mutex> scoped_lock(lock_);
+	RCLCPP_INFO(ros_node_->get_logger(),"Executing trajectory now");
 
 	std::string reference_link_name = msg.header.frame_id;
 	// do this every time a new joint trajectory is supplied,
