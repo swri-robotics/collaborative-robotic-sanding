@@ -38,18 +38,15 @@ def generate_launch_description():
     if not os.path.exists(gazebo_model_path):
         cmd_dict[cmd1] = True        
     
-    required_cmd = False
-    try:    
-
-        for cmd, req_ in cmd_dict.items():       
-            required_cmd = req_ 
+    for cmd, req_ in cmd_dict.items():   
+        try:       
             print('Running cmd: %s' % (cmd))    
             process = subprocess.run(cmd , shell=True, check=True, stdout=subprocess.PIPE, universal_newlines=True)       
         
-    except subprocess.CalledProcessError as e:
-        print(e.output)
-        if required_cmd:
-            return None       
+        except subprocess.CalledProcessError as e:
+            print(e.output)
+            if req_:
+                return None       
     
     
     gzserver = launch.actions.ExecuteProcess(
