@@ -54,16 +54,16 @@ def generate_launch_description():
     
     gzserver = launch.actions.ExecuteProcess(
         cmd=['xterm', '-e', 'gazebo', '--verbose', '-s', 'libgazebo_ros_factory.so', '--world', gzworld],
-        output='screen',
+        output='screen',   
         condition = launch.conditions.IfCondition(launch.substitutions.LaunchConfiguration('sim_robot'))
     )
 
     spawner1 = launch_ros.actions.Node(
         node_name='spawn_node',
-        node_namespace = [launch.substitutions.LaunchConfiguration('global_ns')],
+        #node_namespace = [launch.substitutions.LaunchConfiguration('global_ns')],
         package='gazebo_ros',
         node_executable='spawn_entity.py',
-        arguments=['-entity', 'robot', '-x', '0', '-y', '0', '-z', '0.05', '-file', urdf],
+        arguments=['-entity', 'robot', '-x', '0', '-y', '0', '-z', '0', '-file', urdf],
         condition = launch.conditions.IfCondition(launch.substitutions.LaunchConfiguration('sim_robot'))
         )
 
@@ -71,6 +71,7 @@ def generate_launch_description():
         node_executable='crs_motion_planning_motion_planning_server',
         package='crs_motion_planning',
         node_name='motion_planning_server',
+        #node_namespace = [launch.substitutions.LaunchConfiguration('global_ns')],
         output='screen',
         parameters=[{'urdf_path': urdf,
         'srdf_path': srdf,
@@ -87,15 +88,24 @@ def generate_launch_description():
         'use_gazebo_simulation_time': True,
         'set_trajopt_verbose': False}])
     
+    '''  
+    Example of how to push a ros namespace 
+    group_action = GroupAction([
+        PushRosNamespace('my_ns'),
+        IncludeLaunchDescription(PythonLaunchDescriptionSource('another_launch_file'),
+                                 ])
+        ])
+    '''
+        
     return launch.LaunchDescription([
         # arguments
-        launch.actions.DeclareLaunchArgument('global_ns', default_value = ['crs']),
+        #launch.actions.DeclareLaunchArgument('global_ns', default_value = ['crs']),
         launch.actions.DeclareLaunchArgument('sim_robot',default_value = ['True']),
         
         # environment
         launch_ros.actions.Node(
              node_name = ['env_node'],
-             node_namespace = [launch.substitutions.LaunchConfiguration('global_ns')],
+             #node_namespace = [launch.substitutions.LaunchConfiguration('global_ns')],
              package='tesseract_monitoring',
              node_executable='tesseract_monitoring_environment_node',
              output='screen',
