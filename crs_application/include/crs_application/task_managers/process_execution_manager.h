@@ -38,6 +38,8 @@
 
 #include <atomic>
 #include <memory>
+#include <control_msgs/action/follow_joint_trajectory.hpp>
+#include <rclcpp_action/rclcpp_action.hpp>
 #include <rclcpp/rclcpp.hpp>
 #include "crs_application/common/common.h"
 #include "crs_application/common/datatypes.h"
@@ -97,8 +99,10 @@ protected:
   common::ActionResult checkPreReq();
 
   // roscpp
+  using GoalHandleT = rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::GoalHandle;
   std::shared_ptr<rclcpp::Node> node_;
-  rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr traj_exec_pub_;
+  rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SharedPtr trajectory_exec_client_;
+  std::shared_future<GoalHandleT::SharedPtr> trajectory_exec_fut_;
 
   // process data
   std::shared_ptr<ProcessExecutionConfig> config_ = nullptr;
@@ -108,7 +112,6 @@ protected:
   int current_process_idx_ = 0;
   int current_media_change_idx_ = 0;
 
-  std::atomic<bool> executing_motion_;
 };
 
 } /* namespace task_managers */
