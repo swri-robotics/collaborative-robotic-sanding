@@ -38,6 +38,7 @@
 
 #include <vector>
 #include <rclcpp/rclcpp.hpp>
+#include <tf2_ros/buffer.h>
 #include "crs_application/common/common.h"
 #include "crs_application/common/datatypes.h"
 #include <crs_msgs/srv/call_freespace_motion.hpp>
@@ -51,7 +52,7 @@ namespace task_managers
 {
 struct ScanAcquisitionConfig
 {
-  std::vector<std::vector<double> > scan_poses;
+  std::vector<geometry_msgs::msg::Transform> scan_poses;
   std::string tool_frame;
   bool skip_on_failure = false;
 };
@@ -92,8 +93,9 @@ protected:
   datatypes::ScanAcquisitionResult result_;
 
   // parameters
-  std::vector<geometry_msgs::msg::Transform> scan_positions_;
-  std::string camera_frame_id_;
+  std::vector<geometry_msgs::msg::Transform> scan_poses_;
+  std::string tool_frame_;
+  std::string world_frame_;
   double pre_acquisition_pause_;
   double max_time_since_last_point_cloud_;
 
@@ -106,6 +108,9 @@ protected:
   sensor_msgs::msg::PointCloud2 curr_point_cloud_;
   std::vector<sensor_msgs::msg::PointCloud2> point_clouds_;
   uint scan_index_;
+
+  rclcpp::Clock::SharedPtr clock_;
+  tf2_ros::Buffer tf_buffer_;
 
   void handlePointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr msg);
 };
