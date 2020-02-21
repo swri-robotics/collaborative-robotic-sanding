@@ -2,18 +2,17 @@
 <launch>
 	<let name="state_machine_file" value="$(find-pkg-share crs_application)/resources/crs_process.scxml"/>
 	
-	<group>
-		<let name="group_ns" value="crs"/>
+	<let name="group_ns" value="crs"/>
+	<group>		
+		<push-ros-namespace namespace="$(var group_ns)"/>
+		
 		<include file="$(find-pkg-share crs_application)/launch/load_preview_robot_model.launch.xml">
-			<arg name="global_ns" value="$(var group_ns)"/>
-		</include>
+		</include>		
 		
 		<include file="$(find-pkg-share crs_support)/launch/environment_launch.launch.py">
-			<arg name="global_ns" value="$(var group_ns)"/>
 		</include>
 		
-		<node pkg="crs_application" exec="crs_application_node" name="crs_main" namespace="$(var group_ns)"
-			 output="screen">
+		<node pkg="crs_application" exec="crs_application_node" name="crs_main" output="screen">
 			<param name="state_machine_file" value="$(var state_machine_file)"/>
 		</node>		
 		
