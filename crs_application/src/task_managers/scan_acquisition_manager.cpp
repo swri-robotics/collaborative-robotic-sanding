@@ -34,12 +34,13 @@
  */
 
 #include <boost/format.hpp>
+#include <tf2/convert.h>
 #include "crs_application/task_managers/scan_acquisition_manager.h"
 
 static const double WAIT_FOR_SERVICE_PERIOD = 10.0;
 static const double WAIT_MESSAGE_TIMEOUT = 2.0;
-static const std::string POINT_CLOUD_TOPIC = "point_cloud";
-static const std::string FREESPACE_MOTION_PLAN_SERVICE = "test_plan";
+static const std::string POINT_CLOUD_TOPIC = "/crs/custom_camera/custom_points";
+static const std::string FREESPACE_MOTION_PLAN_SERVICE = "/plan_freespace_motion";
 static const std::string MANAGER_NAME = "ScanAcquisitionManager";
 
 namespace crs_application
@@ -48,11 +49,14 @@ namespace task_managers
 {
 ScanAcquisitionManager::ScanAcquisitionManager(std::shared_ptr<rclcpp::Node> node)
   : node_(node)
-  , scan_positions_(std::vector<geometry_msgs::msg::Transform>())
-  , camera_frame_id_("")
+  , scan_poses_(std::vector<geometry_msgs::msg::Transform>())
+  , tool_frame_("")
+  , world_frame_("world")
   , max_time_since_last_point_cloud_(0.1)
   , point_clouds_(std::vector<sensor_msgs::msg::PointCloud2>())
   , scan_index_(0)
+  , clock_(std::make_shared<rclcpp::Clock>(RCL_ROS_TIME))
+  , tf_buffer_(clock_)
 {
 }
 
@@ -61,7 +65,7 @@ ScanAcquisitionManager::~ScanAcquisitionManager() {}
 common::ActionResult ScanAcquisitionManager::init()
 {
   // parameters
-  camera_frame_id_ = node_->declare_parameter("camera_frame_id", "eoat_link");
+  tool_frame_ = node_->declare_parameter("camera_frame_id", "eoat_link");
   max_time_since_last_point_cloud_ = node_->declare_parameter("max_time_since_last_point_cloud", 0.1);
   pre_acquisition_pause_ = node_->declare_parameter("pre_acquisition_pause", 1.0);
 
@@ -94,13 +98,28 @@ common::ActionResult ScanAcquisitionManager::init()
 
 common::ActionResult ScanAcquisitionManager::configure(const ScanAcquisitionConfig& config)
 {
-  if (scan_positions_.size() == 0)
+  scan_poses_ = config.scan_poses;
+
+  scan_poses_ = std::vector<geometry_msgs::msg::Transform>();
+  geometry_msgs::msg::Transform tf = geometry_msgs::msg::Transform();
+  tf.translation.x = 0.0;
+  tf.translation.y = -0.6;
+  tf.translation.z = 1.7;
+  tf.rotation.w = -0.1843;
+  tf.rotation.x = 0.0;
+  tf.rotation.y = 0.8791;
+  tf.rotation.z = 0.4395;
+  scan_poses_.push_back(tf);
+
+
+  if (scan_poses_.size() == 0)
   {
     RCLCPP_ERROR(node_->get_logger(), "No scan positions provided.");
     return false;
   }
   else
   {
+    RCLCPP_INFO(node_->get_logger(), "test");
     return true;
   }
 }
@@ -122,8 +141,8 @@ common::ActionResult ScanAcquisitionManager::verify()
 common::ActionResult ScanAcquisitionManager::moveRobot()
 {
   auto freespace_motion_request = std::make_shared<crs_msgs::srv::CallFreespaceMotion::Request>();
-  freespace_motion_request->target_link = camera_frame_id_;
-  freespace_motion_request->goal_pose = scan_positions_.at(scan_index_);
+  freespace_motion_request->target_link = tool_frame_;
+  freespace_motion_request->goal_pose = scan_poses_.at(scan_index_);
   freespace_motion_request->execute = true;
 
   auto result_future = call_freespace_motion_client_->async_send_request(freespace_motion_request);
@@ -136,6 +155,10 @@ common::ActionResult ScanAcquisitionManager::moveRobot()
 
   if (result->success)
   {
+    //todo(ayoungs): wait for robot to finish moving, for now just wait 10 seconds
+    std::chrono::duration<double> sleep_dur(10.0);
+    rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::seconds>(sleep_dur));
+
     return true;
   }
   else
@@ -148,29 +171,49 @@ common::ActionResult ScanAcquisitionManager::moveRobot()
 common::ActionResult ScanAcquisitionManager::capture()
 {
   // sleeping first
-  std::chrono::duration<double> sleep_dur(WAIT_MESSAGE_TIMEOUT);
-  rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::nanoseconds>(sleep_dur));
+  //std::chrono::duration<double> sleep_dur(WAIT_MESSAGE_TIMEOUT);
+  //rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::seconds>(sleep_dur));
 
-  auto msg = common::waitForMessage<sensor_msgs::msg::PointCloud2>(node_, POINT_CLOUD_TOPIC, WAIT_MESSAGE_TIMEOUT);
-  if (!msg)
-  {
-    common::ActionResult res;
-    res.succeeded = false;
-    res.err_msg = "Failed to get point cloud message";
-    return res;
-  }
-  curr_point_cloud_ = *msg;
+  //todo(ayoungs): waitForMessage seems to be broken?
+  //auto msg = common::waitForMessage<sensor_msgs::msg::PointCloud2>(node_, POINT_CLOUD_TOPIC, WAIT_MESSAGE_TIMEOUT);
+  //if (!msg)
+  //{
+  //  common::ActionResult res;
+  //  res.succeeded = false;
+  //  res.err_msg = "Failed to get point cloud message";
+  //  return res;
+  //}
+  //curr_point_cloud_ = *msg;
 
   // TODO(ayoungs): transform point cloud
 
   // TODO asses if the logic below is still needed
-  if (node_->now() - curr_point_cloud_.header.stamp <= rclcpp::Duration(max_time_since_last_point_cloud_))
+  RCLCPP_ERROR(node_->get_logger(), "here 1");
+  if (node_->now() - curr_point_cloud_.header.stamp >= rclcpp::Duration(max_time_since_last_point_cloud_))
   {
+  RCLCPP_ERROR(node_->get_logger(), "here 2");
+
+
+    geometry_msgs::msg::TransformStamped transform;
+    try
+    {
+      transform = tf_buffer_.lookupTransform(world_frame_, curr_point_cloud_.header.frame_id, tf2::TimePointZero);
+    }
+    catch (tf2::TransformException ex)
+    {
+      RCLCPP_ERROR(node_->get_logger(), "%s", ex.what());
+      return false;
+    }
+
+    sensor_msgs::msg::PointCloud2 transformed_cloud;
+    tf2::doTransform(curr_point_cloud_, transformed_cloud, transform);
+
     point_clouds_.push_back(curr_point_cloud_);
     return true;
   }
   else
   {
+  RCLCPP_ERROR(node_->get_logger(), "here 3");
     return false;
   }
 }
@@ -178,7 +221,7 @@ common::ActionResult ScanAcquisitionManager::capture()
 common::ActionResult ScanAcquisitionManager::checkQueue()
 {
   scan_index_++;
-  if (scan_index_ < scan_positions_.size() - 1)
+  if (scan_index_ < scan_poses_.size() - 1)
   {
     return false;
   }
@@ -195,7 +238,21 @@ common::ActionResult ScanAcquisitionManager::checkQueue()
 common::ActionResult ScanAcquisitionManager::checkPreReqs()
 {
   common::ActionResult res;
-  if (scan_positions_.empty())
+
+  //todo(ayoungs): here only for testing purposes before the UI configure is availalbe
+  tool_frame_ = "camera_link_optical";
+  scan_poses_ = std::vector<geometry_msgs::msg::Transform>();
+  geometry_msgs::msg::Transform tf = geometry_msgs::msg::Transform();
+  tf.translation.x = 0.0;
+  tf.translation.y = -0.6;
+  tf.translation.z = 1.7;
+  tf.rotation.w = -0.1843;
+  tf.rotation.x = 0.0;
+  tf.rotation.y = 0.8791;
+  tf.rotation.z = 0.4395;
+  scan_poses_.push_back(tf);
+
+  if (scan_poses_.empty())
   {
     res.succeeded = false;
     res.err_msg = "No scan positions available, cannot proceed";
@@ -203,7 +260,7 @@ common::ActionResult ScanAcquisitionManager::checkPreReqs()
     return res;
   }
 
-  if (camera_frame_id_.empty())
+  if (tool_frame_.empty())
   {
     res.succeeded = false;
     res.err_msg = "No camera frame has been specified, cannot proceed";
