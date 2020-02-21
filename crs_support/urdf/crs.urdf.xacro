@@ -558,7 +558,7 @@
         </plugin> -->
         <plugin name='crs_gazebo_plugins_joint_pose_trajectory' filename='libcrs_gazebo_plugins_joint_pose_trajectory.so'>
             <ros>
-              <namespace></namespace>
+              <namespace>sim</namespace>
               <argument>follow_joint_trajectory:=${prefix}follow_joint_trajectory</argument>
             </ros>
             <update_rate>20</update_rate>
