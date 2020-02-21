@@ -1,4 +1,5 @@
 import os
+import sys
 import subprocess
 from pathlib import Path
 import shutil
@@ -7,6 +8,7 @@ from ament_index_python.packages import get_package_share_directory, get_package
 import launch
 import launch_ros.actions
 from launch import some_substitutions_type
+from rosidl_generator_cpp import default_value_from_type
 
 def generate_launch_description():
 
@@ -14,18 +16,38 @@ def generate_launch_description():
         # workaround for pluginlib ClassLoader bug: manually add tesseract_collision to the AMENT_PREFIX_PATH env variable
         head, tail = os.path.split(get_package_prefix('crs_support'))
         path = os.path.join(head, 'tesseract_collision')
-        os.environ["AMENT_PREFIX_PATH"] += os.pathsep + path
-
+        os.environ["AMENT_PREFIX_PATH"] += os.pathsep + path  
+    
+    
+    xacro = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs.urdf.xacro')
     urdf = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs.urdf')
+    urdf_preview = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs_preview.urdf')
     srdf = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'ur10e_robot.srdf')
     gzworld = os.path.join(get_package_share_directory('crs_support'), 'worlds', 'crs.world')
     
-    # kill any lingering gazebo instances first
-    try:    
-        cmd = 'killall -9 gazebo & killall -9 gzserver & killall -9 gzclient'
-        process = subprocess.run(cmd , shell=True, check=True, stdout=subprocess.PIPE, universal_newlines=True)
-    except subprocess.CalledProcessError as e:
-        print(e.output)
+    # create urdfs from xacro file
+    cmd2 = 'xacro %s prefix:=preview/ > %s'%(xacro, urdf_preview)
+    cmd3 = 'xacro %s > %s'%(xacro, urdf)        
+    cmd4 = 'killall -9 gazebo & killall -9 gzserver & killall -9 gzclient'
+    cmd_dict = {cmd2 : True, cmd3: True, cmd4 : False}
+    
+    # check if soft link exists
+    gazebo_model_path = os.path.join(os.environ['HOME'],'.gazebo', 'models', 'crs_support')
+    crs_model_path = get_package_share_directory('crs_support')
+    cmd1 = 'ln -s %s %s'%(crs_model_path, gazebo_model_path)
+    if not os.path.exists(gazebo_model_path):
+        cmd_dict[cmd1] = True        
+    
+    for cmd, req_ in cmd_dict.items():   
+        try:       
+            print('Running cmd: %s' % (cmd))    
+            process = subprocess.run(cmd , shell=True, check=True, stdout=subprocess.PIPE, universal_newlines=True)       
+        
+        except subprocess.CalledProcessError as e:
+            print(e.output)
+            if req_:
+                return None       
+    
     
     gzserver = launch.actions.ExecuteProcess(
         cmd=['xterm', '-e', 'gazebo', '--verbose', '-s', 'libgazebo_ros_factory.so', '--world', gzworld],
@@ -64,7 +86,7 @@ def generate_launch_description():
     
     return launch.LaunchDescription([
         # arguments
-        launch.actions.DeclareLaunchArgument('global_ns'),
+        launch.actions.DeclareLaunchArgument('global_ns', default_value = ['crs']),
         launch.actions.DeclareLaunchArgument('sim_robot',default_value = ['True']),
         
         # environment
