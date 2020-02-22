@@ -85,7 +85,7 @@ def generate_launch_description():
         'num_steps': 20,
         'max_joint_velocity': 1.5,
         'min_raster_length': 4,
-        'use_gazebo_simulation_time': True,
+        'use_gazebo_simulation_time': False,
         'set_trajopt_verbose': False}])
     
     '''  
