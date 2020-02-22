@@ -40,15 +40,22 @@ public:
         "test_process_planner",
         std::bind(&ProcessPlannerTestServer::planService, this, std::placeholders::_1, std::placeholders::_2));
 
+    trajectory_exec_client_cbgroup_ = this->create_callback_group(
+        rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
     trajectory_exec_client_ = rclcpp_action::create_client<control_msgs::action::FollowJointTrajectory>(
         this->get_node_base_interface(),
         this->get_node_graph_interface(),
         this->get_node_logging_interface(),
         this->get_node_waitables_interface(),
-        FOLLOW_JOINT_TRAJECTORY_ACTION);
+        FOLLOW_JOINT_TRAJECTORY_ACTION,
+        trajectory_exec_client_cbgroup_);
 
     joint_state_listener_ = this->create_subscription<sensor_msgs::msg::JointState>(
         "crs/joint_states", 1, std::bind(&ProcessPlannerTestServer::jointCallback, this, std::placeholders::_1));
+
+/*    call_process_plan_client_ = this->create_client<crs_msgs::srv::PlanProcessMotions>("plan_process_motion",
+         rclcpp::QoS(1).get_rmw_qos_profile(),
+         this->create_callback_group(rclcpp::callback_group::CallbackGroupType::MutuallyExclusive));*/
     call_process_plan_client_ = this->create_client<crs_msgs::srv::PlanProcessMotions>("plan_process_motion");
 
     toolpath_filepath_ = ament_index_cpp::get_package_share_directory("crs_support") + "/toolpaths/scanned_part1/"
@@ -87,8 +94,8 @@ private:
     traj_dur = traj_dur + rclcpp::Duration(std::chrono::duration<double>(TRAJECTORY_TIME_TOLERANCE));
 
     // wait for goal completion
-    RCLCPP_INFO(this->get_logger(), "Waiting for %f seconds", traj_dur.seconds());
-    std::future_status status = trajectory_exec_fut.wait_for(traj_dur.to_chrono<std::chrono::seconds>());
+
+    std::future_status status = trajectory_exec_fut.wait_for(std::chrono::duration<double>(WAIT_RESULT_TIMEOUT));
 
     if (status != std::future_status::ready)
     {
@@ -98,21 +105,29 @@ private:
       return res;
     }
 
-    // wait for result
-    if(trajectory_exec_fut.get()->get_status() != action_msgs::msg::GoalStatus::STATUS_SUCCEEDED)
+    auto gh = trajectory_exec_fut.get();
+    if(!gh)
     {
-      // getting result
-      auto result_fut = trajectory_exec_fut.get()->async_result();
-      status = result_fut.wait_for(std::chrono::duration<double>(WAIT_RESULT_TIMEOUT));
-      if(status != std::future_status::ready)
-      {
-        err_msg = "trajectory execution failed";
-        RCLCPP_ERROR(this->get_logger(), "%s", err_msg.c_str());
-        return res;
-      }
+      RCLCPP_ERROR(this->get_logger(), "Goal was rejected by server");
+     return res;
+    }
 
-      err_msg = result_fut.get().result->error_string;
+    // getting result
+    RCLCPP_INFO(this->get_logger(), "Waiting %f seconds for goal", traj_dur.seconds());
+    auto result_fut = trajectory_exec_client_->async_get_result(gh);
+    status = result_fut.wait_for(traj_dur.to_chrono<std::chrono::seconds>());
+    if(status != std::future_status::ready)
+    {
+      err_msg = "trajectory execution timed out";
       RCLCPP_ERROR(this->get_logger(), "%s", err_msg.c_str());
+      return res;
+    }
+
+    rclcpp_action::ClientGoalHandle<FollowJointTrajectory>::WrappedResult wrapped_result = result_fut.get();
+    if(wrapped_result.code != rclcpp_action::ResultCode::SUCCEEDED)
+    {
+      err_msg = wrapped_result.result->error_string;
+      RCLCPP_ERROR(this->get_logger(), "Trajectory execution failed with error message: %s", err_msg.c_str());
       return res;
     }
 
@@ -259,6 +274,7 @@ private:
   rclcpp::Client<crs_msgs::srv::PlanProcessMotions>::SharedPtr call_process_plan_client_;
   rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SharedPtr trajectory_exec_client_;
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_listener_;
+  rclcpp::callback_group::CallbackGroup::SharedPtr trajectory_exec_client_cbgroup_;
 
   std::shared_ptr<rclcpp::Clock> clock_;
   tf2_ros::Buffer tf_buffer_;
@@ -272,7 +288,10 @@ private:
 int main(int argc, char** argv)
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<ProcessPlannerTestServer>());
+  rclcpp::executors::MultiThreadedExecutor executor;
+  rclcpp::Node::SharedPtr node = std::make_shared<ProcessPlannerTestServer>();
+  executor.add_node(node);
+  executor.spin();
   rclcpp::shutdown();
   return 0;
 }
