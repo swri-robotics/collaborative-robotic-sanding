@@ -53,9 +53,6 @@ public:
     joint_state_listener_ = this->create_subscription<sensor_msgs::msg::JointState>(
         "crs/joint_states", 1, std::bind(&ProcessPlannerTestServer::jointCallback, this, std::placeholders::_1));
 
-/*    call_process_plan_client_ = this->create_client<crs_msgs::srv::PlanProcessMotions>("plan_process_motion",
-         rclcpp::QoS(1).get_rmw_qos_profile(),
-         this->create_callback_group(rclcpp::callback_group::CallbackGroupType::MutuallyExclusive));*/
     call_process_plan_client_ = this->create_client<crs_msgs::srv::PlanProcessMotions>("plan_process_motion");
 
     toolpath_filepath_ = ament_index_cpp::get_package_share_directory("crs_support") + "/toolpaths/scanned_part1/"
@@ -83,6 +80,16 @@ private:
     rclcpp::Duration traj_dur(traj.points.back().time_from_start);
     bool res = false;
     std::string err_msg;
+
+    auto print_traj_time = [this](const trajectory_msgs::msg::JointTrajectory& traj)
+    {
+      RCLCPP_ERROR(this->get_logger(),"Trajectory with %lu points time data", traj.points.size());
+      for(std::size_t i = 0; i < traj.points.size(); i++)
+      {
+        const auto& p = traj.points[i];
+        RCLCPP_ERROR(this->get_logger(),"\tPoint %lu : %f secs", rclcpp::Duration(p.time_from_start).seconds());
+      }
+    };
 
     FollowJointTrajectory::Goal goal;
     goal.trajectory = traj;
@@ -118,6 +125,7 @@ private:
     status = result_fut.wait_for(traj_dur.to_chrono<std::chrono::seconds>());
     if(status != std::future_status::ready)
     {
+      print_traj_time(traj);
       err_msg = "trajectory execution timed out";
       RCLCPP_ERROR(this->get_logger(), "%s", err_msg.c_str());
       return res;
