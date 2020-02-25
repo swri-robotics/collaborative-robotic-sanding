@@ -73,9 +73,9 @@ common::ActionResult ProcessExecutionManager::init()
   return true;
 }
 
-common::ActionResult ProcessExecutionManager::configure(const ProcessExecutionConfig& config)
+common::ActionResult ProcessExecutionManager::configure(const config::ProcessExecutionConfig& config)
 {
-  config_ = std::make_shared<ProcessExecutionConfig>(config);
+  config_ = std::make_shared<config::ProcessExecutionConfig>(config);
   return true;
 }
 

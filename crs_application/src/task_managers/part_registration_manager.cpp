@@ -54,7 +54,7 @@ common::ActionResult PartRegistrationManager::init()
   return true;
 }
 
-common::ActionResult PartRegistrationManager::configure(const PartRegistrationConfig& config)
+common::ActionResult PartRegistrationManager::configure(const config::PartRegistrationConfig& config)
 {
   auto load_part_request = std::make_shared<crs_msgs::srv::LoadPart::Request>();
 

@@ -41,6 +41,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include "crs_application/common/common.h"
 #include "crs_application/common/datatypes.h"
+#include "crs_application/common/config.h"
 
 #include <crs_msgs/srv/load_part.hpp>
 #include <crs_msgs/srv/localize_to_part.hpp>
@@ -49,9 +50,6 @@ namespace crs_application
 {
 namespace task_managers
 {
-struct PartRegistrationConfig
-{
-};
 
 class PartRegistrationManager
 {
@@ -61,7 +59,7 @@ public:
 
   // initialization and configuration
   common::ActionResult init();
-  common::ActionResult configure(const PartRegistrationConfig& config);
+  common::ActionResult configure(const config::PartRegistrationConfig& config);
   common::ActionResult setInput(const datatypes::ScanAcquisitionResult& input);
 
   // Process Actions

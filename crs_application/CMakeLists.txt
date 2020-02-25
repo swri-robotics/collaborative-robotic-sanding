@@ -26,12 +26,14 @@ find_package(rclcpp_action REQUIRED)
 find_package(scxml_core REQUIRED)
 find_package(Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Eigen3 REQUIRED NO_MODULE)
+find_package(yaml-cpp REQUIRED)
 
 ##################################
 # build
 ##################################
 add_library(${PROJECT_NAME} SHARED
 	src/crs_executive.cpp 
+	src/common/config.cpp
 	src/task_managers/scan_acquisition_manager.cpp
 	src/task_managers/part_registration_manager.cpp
 	src/task_managers/part_rework_manager.cpp
@@ -40,6 +42,7 @@ add_library(${PROJECT_NAME} SHARED
 target_link_libraries(${PROJECT_NAME} 
   scxml_core::scxml_core
   Eigen3::Eigen
+  ${YAML_CPP_LIBRARIES}
 )
 target_include_directories(${PROJECT_NAME} PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
