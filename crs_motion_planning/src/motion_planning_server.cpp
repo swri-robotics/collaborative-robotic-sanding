@@ -6,6 +6,7 @@
 #include <visualization_msgs/msg/marker_array.hpp>
 
 #include <crs_motion_planning/path_planning_utils.h>
+#include <crs_motion_planning/path_processing_utils.h>
 
 #include <crs_msgs/srv/call_freespace_motion.hpp>
 #include <crs_msgs/srv/plan_process_motions.hpp>
@@ -26,11 +27,11 @@ static const std::string DEFAULT_SRDF_PATH = "urdf/ur10e_robot.srdf";
 
 static const std::string DEFAULT_PROCESS_MOTION_PLANNING_SERVICE = "plan_process_motion";
 static const std::string DEFAULT_FREESPACE_MOTION_PLANNING_SERVICE = "plan_freespace_motion";
-static const std::string DEFAULT_FREESPACE_TRAJECTORY_TOPIC = "planned_freespace_trajectory";
 static const std::string JOINT_STATES_TOPIC = "crs/joint_states";
 static const std::string LOADED_RASTER_PATHS_TOPIC = "original_raster_paths";
 static const std::string FINAL_RASTER_PATHS_TOPIC = "fixed_raster_paths";
 static const std::string UNREACHABLE_VERTICES_TOPIC = "failed_vertices";
+static const std::string FOLLOW_JOINT_TRAJECTORY_ACTION = "follow_joint_trajectory";
 
 namespace param_names
 {
@@ -38,7 +39,6 @@ static const std::string URDF_PATH = "urdf_path";
 static const std::string SRDF_PATH = "srdf_path";
 static const std::string PROCESS_MOTION_PLANNING_SERVICE = "process_planner_service";
 static const std::string FREESPACE_MOTION_PLANNING_SERVICE = "freespace_motion_service";
-static const std::string FREESPACE_TRAJECTORY_TOPIC = "trajectory_topic";
 static const std::string ROOT_LINK_FRAME = "base_link_frame";
 static const std::string WORLD_FRAME = "world_frame";
 static const std::string TOOL0_FRAME = "tool0_frame";
@@ -69,7 +69,6 @@ public:
             .string());
 
     this->declare_parameter(param_names::FREESPACE_MOTION_PLANNING_SERVICE, DEFAULT_FREESPACE_MOTION_PLANNING_SERVICE);
-    this->declare_parameter(param_names::FREESPACE_TRAJECTORY_TOPIC, DEFAULT_FREESPACE_TRAJECTORY_TOPIC);
     this->declare_parameter(param_names::PROCESS_MOTION_PLANNING_SERVICE, DEFAULT_PROCESS_MOTION_PLANNING_SERVICE);
     this->declare_parameter(param_names::ROOT_LINK_FRAME, "base_link");
     this->declare_parameter(param_names::WORLD_FRAME, "world");
@@ -84,7 +83,6 @@ public:
     std::string process_planner_service = this->get_parameter(param_names::PROCESS_MOTION_PLANNING_SERVICE).as_string();
     std::string freespace_motion_service =
         this->get_parameter(param_names::FREESPACE_MOTION_PLANNING_SERVICE).as_string();
-    std::string freespace_trajectory_topic = this->get_parameter(param_names::FREESPACE_TRAJECTORY_TOPIC).as_string();
 
     // ROS communications
     plan_process_service_ = this->create_service<crs_msgs::srv::PlanProcessMotions>(
@@ -93,7 +91,6 @@ public:
     plan_freespace_service_ = this->create_service<crs_msgs::srv::CallFreespaceMotion>(
         freespace_motion_service,
         std::bind(&MotionPlanningServer::planFreespace, this, std::placeholders::_1, std::placeholders::_2));
-    traj_publisher_ = this->create_publisher<trajectory_msgs::msg::JointTrajectory>(freespace_trajectory_topic, 1);
     original_path_publisher_ =
         this->create_publisher<visualization_msgs::msg::MarkerArray>(LOADED_RASTER_PATHS_TOPIC, 1);
     corrected_path_publisher_ =
@@ -101,6 +98,16 @@ public:
     failed_vertex_publisher_ = this->create_publisher<visualization_msgs::msg::Marker>(UNREACHABLE_VERTICES_TOPIC, 1);
     joint_state_listener_ = this->create_subscription<sensor_msgs::msg::JointState>(
         JOINT_STATES_TOPIC, 1, std::bind(&MotionPlanningServer::jointCallback, this, std::placeholders::_1));
+
+    trajectory_exec_client_cbgroup_ = this->create_callback_group(
+        rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
+    trajectory_exec_client_ = rclcpp_action::create_client<control_msgs::action::FollowJointTrajectory>(
+        this->get_node_base_interface(),
+        this->get_node_graph_interface(),
+        this->get_node_logging_interface(),
+        this->get_node_waitables_interface(),
+        FOLLOW_JOINT_TRAJECTORY_ACTION,
+        trajectory_exec_client_cbgroup_);
 
     // openning files
     std::string urdf_path, srdf_path;
@@ -202,6 +209,7 @@ private:
   void planProcess(std::shared_ptr<crs_msgs::srv::PlanProcessMotions::Request> request,
                    std::shared_ptr<crs_msgs::srv::PlanProcessMotions::Response> response)
   {
+
     // Setup planner config with requested process planner service request data
     motion_planner_config_->tcp_frame = request->tool_link;
     motion_planner_config_->approach_distance = request->approach_dist;
@@ -306,6 +314,8 @@ private:
   void planFreespace(std::shared_ptr<crs_msgs::srv::CallFreespaceMotion::Request> request,
                      std::shared_ptr<crs_msgs::srv::CallFreespaceMotion::Response> response)
   {
+    using namespace crs_motion_planning;
+
     std::cout << "GOT REQUEST" << std::endl;
     motion_planner_config_->tcp_frame = request->target_link;
     std::cout << "SET TARGET LINK" << std::endl;
@@ -397,7 +407,11 @@ private:
     {
       // Publish trajectory if desired
       std::cout << "EXECUTING TRAJECTORY" << std::endl;
-      traj_publisher_->publish(response->output_trajectory);
+      //traj_publisher_->publish(response->output_trajectory);
+      if(!execTrajectory(trajectory_exec_client_, this->get_logger(),response->output_trajectory))
+      {
+        return;
+      }
     }
   }
 
@@ -406,8 +420,10 @@ private:
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr original_path_publisher_,
       corrected_path_publisher_;
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr failed_vertex_publisher_;
-  rclcpp::Publisher<trajectory_msgs::msg::JointTrajectory>::SharedPtr traj_publisher_;
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_listener_;
+
+  rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SharedPtr trajectory_exec_client_;
+  rclcpp::callback_group::CallbackGroup::SharedPtr trajectory_exec_client_cbgroup_;
 
   crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config_;
 
@@ -417,7 +433,9 @@ private:
 int main(int argc, char** argv)
 {
   rclcpp::init(argc, argv);
-  rclcpp::spin(std::make_shared<MotionPlanningServer>());
-  rclcpp::shutdown();
+  rclcpp::executors::MultiThreadedExecutor executor;
+  rclcpp::Node::SharedPtr node = std::make_shared<MotionPlanningServer>();
+  executor.add_node(node);
+  executor.spin();
   return 0;
 }

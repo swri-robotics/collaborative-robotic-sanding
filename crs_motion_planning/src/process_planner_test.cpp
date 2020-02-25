@@ -69,82 +69,6 @@ public:
 
 private:
 
-  bool execTrajectory(const trajectory_msgs::msg::JointTrajectory& traj)
-  {
-    using namespace control_msgs::action;
-    using namespace rclcpp_action;
-    using GoalHandleT = Client<FollowJointTrajectory>::GoalHandle;
-    static const double TRAJECTORY_TIME_TOLERANCE = 5.0; // seconds
-    static const double WAIT_RESULT_TIMEOUT = 1.0; // seconds
-
-    rclcpp::Duration traj_dur(traj.points.back().time_from_start);
-    bool res = false;
-    std::string err_msg;
-
-    auto print_traj_time = [this](const trajectory_msgs::msg::JointTrajectory& traj)
-    {
-      RCLCPP_ERROR(this->get_logger(),"Trajectory with %lu points time data", traj.points.size());
-      for(std::size_t i = 0; i < traj.points.size(); i++)
-      {
-        const auto& p = traj.points[i];
-        RCLCPP_ERROR(this->get_logger(),"\tPoint %lu : %f secs", rclcpp::Duration(p.time_from_start).seconds());
-      }
-    };
-
-    FollowJointTrajectory::Goal goal;
-    goal.trajectory = traj;
-    auto goal_options = rclcpp_action::Client<FollowJointTrajectory>::SendGoalOptions();
-    // TODO populate tolerances
-
-    // send goal
-    std::shared_future<GoalHandleT::SharedPtr> trajectory_exec_fut = trajectory_exec_client_->async_send_goal(goal);
-    traj_dur = traj_dur + rclcpp::Duration(std::chrono::duration<double>(TRAJECTORY_TIME_TOLERANCE));
-
-    // wait for goal completion
-
-    std::future_status status = trajectory_exec_fut.wait_for(std::chrono::duration<double>(WAIT_RESULT_TIMEOUT));
-
-    if (status != std::future_status::ready)
-    {
-      err_msg = "process trajectory did not complete in time";
-      RCLCPP_ERROR(this->get_logger(), "%s", err_msg.c_str());
-      trajectory_exec_client_->async_cancel_all_goals();
-      return res;
-    }
-
-    auto gh = trajectory_exec_fut.get();
-    if(!gh)
-    {
-      RCLCPP_ERROR(this->get_logger(), "Goal was rejected by server");
-     return res;
-    }
-
-    // getting result
-    RCLCPP_INFO(this->get_logger(), "Waiting %f seconds for goal", traj_dur.seconds());
-    auto result_fut = trajectory_exec_client_->async_get_result(gh);
-    status = result_fut.wait_for(traj_dur.to_chrono<std::chrono::seconds>());
-    if(status != std::future_status::ready)
-    {
-      print_traj_time(traj);
-      err_msg = "trajectory execution timed out";
-      RCLCPP_ERROR(this->get_logger(), "%s", err_msg.c_str());
-      return res;
-    }
-
-    rclcpp_action::ClientGoalHandle<FollowJointTrajectory>::WrappedResult wrapped_result = result_fut.get();
-    if(wrapped_result.code != rclcpp_action::ResultCode::SUCCEEDED)
-    {
-      err_msg = wrapped_result.result->error_string;
-      RCLCPP_ERROR(this->get_logger(), "Trajectory execution failed with error message: %s", err_msg.c_str());
-      return res;
-    }
-
-    // reset future
-    RCLCPP_INFO(this->get_logger(),"Trajectory completed");
-    return true;
-  }
-
-
   void jointCallback(const sensor_msgs::msg::JointState::SharedPtr joint_msg)
   {
     curr_joint_state_ = *joint_msg;
@@ -220,6 +144,7 @@ private:
 
   void processPlanCallback(const rclcpp::Client<crs_msgs::srv::PlanProcessMotions>::SharedFuture future)
   {
+    using namespace crs_motion_planning;
     bool success = future.get()->succeeded;
 
     if (success)
@@ -238,7 +163,7 @@ private:
         std::vector<trajectory_msgs::msg::JointTrajectory> freespace_motions = process_plans[j].free_motions;
         if (start_traj.points.size() > 0)
         {
-          if(!execTrajectory(start_traj))
+          if(!execTrajectory(trajectory_exec_client_, this->get_logger(), start_traj))
           {
             return;
           }
@@ -247,23 +172,23 @@ private:
         for (size_t i = 0; i < freespace_motions.size(); ++i)
         {
           std::cout << "EXECUTING SURFACE TRAJECTORY\t" << i + 1 << " OF " << process_motions.size() << std::endl;
-          if(!execTrajectory(process_motions[i]))
+          if(!execTrajectory(trajectory_exec_client_, this->get_logger(),process_motions[i]))
           {
             return;
           }
 
           std::cout << "EXECUTING FREESPACE TRAJECTORY\t" << i + 1 << " OF " << freespace_motions.size() << std::endl;
-          if(!execTrajectory(freespace_motions[i]))
+          if(!execTrajectory(trajectory_exec_client_, this->get_logger(),freespace_motions[i]))
           {
             return;
           }
         }
 
         std::cout << "EXECUTING SURFACE TRAJECTORY\t" << process_motions.size() << " OF " << process_motions.size() << std::endl;
-        execTrajectory(process_motions.back());
+        execTrajectory(trajectory_exec_client_, this->get_logger(),process_motions.back());
         if (end_traj.points.size() > 0)
         {
-          if(!execTrajectory(end_traj))
+          if(!execTrajectory(trajectory_exec_client_, this->get_logger(),end_traj))
           {
             return;
           }
