@@ -27,7 +27,7 @@ static const std::string DEFAULT_SRDF_PATH = "urdf/ur10e_robot.srdf";
 
 static const std::string DEFAULT_PROCESS_MOTION_PLANNING_SERVICE = "plan_process_motion";
 static const std::string DEFAULT_FREESPACE_MOTION_PLANNING_SERVICE = "plan_freespace_motion";
-static const std::string JOINT_STATES_TOPIC = "crs/joint_states";
+static const std::string JOINT_STATES_TOPIC = "joint_states";
 static const std::string LOADED_RASTER_PATHS_TOPIC = "original_raster_paths";
 static const std::string FINAL_RASTER_PATHS_TOPIC = "fixed_raster_paths";
 static const std::string UNREACHABLE_VERTICES_TOPIC = "failed_vertices";
@@ -245,7 +245,7 @@ private:
       original_path_publisher_->publish(mark_array_msg);
 
       // Create crsMotionPlanner class
-      crs_motion_planning::crsMotionPlanner crs_motion_planner(motion_planner_config_);
+      crs_motion_planning::crsMotionPlanner crs_motion_planner(motion_planner_config_, this->get_logger());
 
       // Run process planner
       success = crs_motion_planner.generateProcessPlan(path_plan_results);
@@ -330,7 +330,7 @@ private:
     std::cout << "SET N STEPS" << std::endl;
 
     // Create crsMotionPlanner class
-    crs_motion_planning::crsMotionPlanner crs_motion_planner(motion_planner_config_);
+    crs_motion_planning::crsMotionPlanner crs_motion_planner(motion_planner_config_, this->get_logger());
     std::cout << "INITIALIZED CLASS" << std::endl;
 
     // Define initial waypoint

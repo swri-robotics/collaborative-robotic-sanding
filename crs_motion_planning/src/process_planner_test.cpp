@@ -51,7 +51,7 @@ public:
                                                                                   trajectory_exec_client_cbgroup_);
 
     joint_state_listener_ = this->create_subscription<sensor_msgs::msg::JointState>(
-        "crs/joint_states", 1, std::bind(&ProcessPlannerTestServer::jointCallback, this, std::placeholders::_1));
+        "joint_states", 1, std::bind(&ProcessPlannerTestServer::jointCallback, this, std::placeholders::_1));
 
     call_process_plan_client_ = this->create_client<crs_msgs::srv::PlanProcessMotions>("plan_process_motion");
 
