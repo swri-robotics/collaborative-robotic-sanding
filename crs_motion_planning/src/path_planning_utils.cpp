@@ -478,18 +478,18 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
             added_time = curr_traj_time;
           }
 
-/*          trajopt_trajectories[trajopt_traj_n].points[j].time_from_start.sec =
-              static_cast<int>(floor(final_time_steps[i][j] + added_time));
+          /*          trajopt_trajectories[trajopt_traj_n].points[j].time_from_start.sec =
+                        static_cast<int>(floor(final_time_steps[i][j] + added_time));
 
-          trajopt_trajectories[trajopt_traj_n].points[j].time_from_start.nanosec = static_cast<uint>(
-              1e9 * (final_time_steps[i][j] + added_time - floor(final_time_steps[i][j] + added_time)));*/
+                    trajopt_trajectories[trajopt_traj_n].points[j].time_from_start.nanosec = static_cast<uint>(
+                        1e9 * (final_time_steps[i][j] + added_time - floor(final_time_steps[i][j] + added_time)));*/
 
-          trajopt_trajectories[trajopt_traj_n].points[j].time_from_start = rclcpp::Duration::from_seconds(
-              final_time_steps[i][j] + added_time);
+          trajopt_trajectories[trajopt_traj_n].points[j].time_from_start =
+              rclcpp::Duration::from_seconds(final_time_steps[i][j] + added_time);
           curr_traj_time += final_time_steps[i][j];
         }
 
-        //trajopt_trajectories[trajopt_traj_n].points.back().time_from_start.sec = 0;
+        // trajopt_trajectories[trajopt_traj_n].points.back().time_from_start.sec = 0;
         traj_times.push_back(std::move(curr_traj_time));
         trajectory_msgs::msg::JointTrajectory curr_time_mod_traj;
         crs_motion_planning::timeParameterizeTrajectories(
