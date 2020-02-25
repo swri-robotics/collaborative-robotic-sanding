@@ -49,7 +49,7 @@ common::ActionResult PartReworkManager::init()
   return true;
 }
 
-common::ActionResult PartReworkManager::configure(const PartReworkConfig& config)
+common::ActionResult PartReworkManager::configure(const config::PartReworkConfig& config)
 {
   RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   return true;

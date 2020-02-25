@@ -171,11 +171,11 @@ bool CRSExecutive::configureManagers()
 {
   // TODO: populate each config structure from the data in process_config_
 
-  return scan_acqt_mngr_->configure(task_managers::ScanAcquisitionConfig{}) &&
-         motion_planning_mngr_->configure(task_managers::MotionPlanningConfig{}) &&
-         part_regt_mngr_->configure(task_managers::PartRegistrationConfig{}) &&
-         process_exec_mngr_->configure(task_managers::ProcessExecutionConfig{}) &&
-         part_rework_mngr_->configure(task_managers::PartReworkConfig{});
+  return scan_acqt_mngr_->configure(config::ScanAcquisitionConfig{}) &&
+         motion_planning_mngr_->configure(config::MotionPlanningConfig{}) &&
+         part_regt_mngr_->configure(config::PartRegistrationConfig{}) &&
+         process_exec_mngr_->configure(config::ProcessExecutionConfig{}) &&
+         part_rework_mngr_->configure(config::PartReworkConfig{});
 }
 
 bool CRSExecutive::addStateCallbacks(const std::map<std::string, StateCallbackInfo>& st_callbacks_map)

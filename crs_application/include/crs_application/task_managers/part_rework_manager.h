@@ -40,14 +40,12 @@
 #include <rclcpp/rclcpp.hpp>
 #include "crs_application/common/common.h"
 #include "crs_application/common/datatypes.h"
+#include "crs_application/common/config.h"
 
 namespace crs_application
 {
 namespace task_managers
 {
-struct PartReworkConfig
-{
-};
 
 class PartReworkManager
 {
@@ -57,7 +55,7 @@ public:
 
   // initialization and configuration
   common::ActionResult init();
-  common::ActionResult configure(const PartReworkConfig& config);
+  common::ActionResult configure(const config::PartReworkConfig& config);
   common::ActionResult setInput(const datatypes::ProcessToolpathData& input);
 
   // Process Actions

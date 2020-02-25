@@ -92,7 +92,7 @@ common::ActionResult ScanAcquisitionManager::init()
   return true;
 }
 
-common::ActionResult ScanAcquisitionManager::configure(const ScanAcquisitionConfig& config)
+common::ActionResult ScanAcquisitionManager::configure(const config::ScanAcquisitionConfig& config)
 {
   scan_poses_ = config.scan_poses;
 

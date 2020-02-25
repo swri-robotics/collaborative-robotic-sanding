@@ -43,32 +43,13 @@
 #include <crs_msgs/srv/call_freespace_motion.hpp>
 #include <crs_msgs/srv/plan_process_motions.hpp>
 #include "crs_application/common/common.h"
+#include "crs_application/common/config.h"
 #include "crs_application/common/datatypes.h"
 
 namespace crs_application
 {
 namespace task_managers
 {
-struct MotionPlanningConfig
-{
-  // home pose
-  std::vector<std::string> joint_names;
-  std::vector<double> joint_home_position;
-
-  // process path
-  double tool_speed;
-  Eigen::Isometry3d offset_pose;
-  double retreat_dist;
-  double approac_dist;
-  std::string tool_frame;
-
-  // media change
-  double media_change_time;            /** @brief time that needs to elapse for the next media change secs */
-  Eigen::Isometry3d media_change_pose; /** @brief in world coordinates */
-
-  // preview
-  double preview_time_scaling = 1.0; /** @brief preview will be played at a scaled speed */
-};
 
 class MotionPlanningManager
 {
@@ -78,7 +59,7 @@ public:
 
   // initialization and configuration
   common::ActionResult init();
-  common::ActionResult configure(const MotionPlanningConfig& config);
+  common::ActionResult configure(const config::MotionPlanningConfig& config);
   common::ActionResult setInput(const datatypes::ProcessToolpathData& input);
 
   // Process Actions
@@ -110,7 +91,7 @@ protected:
 
   std::shared_ptr<rclcpp::Node> node_;
   std::shared_ptr<datatypes::ProcessToolpathData> input_ = nullptr;
-  std::shared_ptr<MotionPlanningConfig> config_ = nullptr;
+  std::shared_ptr<config::MotionPlanningConfig> config_ = nullptr;
   sensor_msgs::msg::JointState::SharedPtr home_js_;
   datatypes::ProcessExecutionData result_;
 
