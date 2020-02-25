@@ -74,7 +74,7 @@ def generate_launch_description():
         'srdf_path': srdf,
         'process_planner_service': "plan_process_motion",
         'freespace_motion_service': "plan_freespace_motion",
-        'trajectory_topic': "crs/set_trajectory_test",
+        'trajectory_topic': "set_trajectory_test",
         'base_link_frame': "base_link",
         'world_frame': "world",
         'tool0_frame': "tool0",
