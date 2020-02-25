@@ -3,7 +3,10 @@
 
 namespace crs_motion_planning
 {
-crsMotionPlanner::crsMotionPlanner(pathPlanningConfig::Ptr config, rclcpp::Logger logger) : config_(std::move(config)), logger_(std::move(logger)) {}
+crsMotionPlanner::crsMotionPlanner(pathPlanningConfig::Ptr config, rclcpp::Logger logger)
+  : config_(std::move(config)), logger_(std::move(logger))
+{
+}
 
 void crsMotionPlanner::updateConfiguration(pathPlanningConfig::Ptr config) { config_ = std::move(config); }
 
@@ -464,7 +467,11 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
   {
     if (trajopt_solved[i])
     {
-      RCLCPP_INFO(logger_, "Raster: %i of %i with %i waypoints", trajopt_traj_n + 1, trajopt_trajectories.size(), trajopt_trajectories[trajopt_traj_n].points.size());
+      RCLCPP_INFO(logger_,
+                  "Raster: %i of %i with %i waypoints",
+                  trajopt_traj_n + 1,
+                  trajopt_trajectories.size(),
+                  trajopt_trajectories[trajopt_traj_n].points.size());
       trajopt_trajectories[trajopt_traj_n].header.frame_id = config_->world_frame;
       if (config_->required_tool_vel)
       {
@@ -490,7 +497,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
 
         if (config_->use_gazebo_sim_timing)
         {
-            trajopt_trajectories[trajopt_traj_n].points.back().time_from_start.sec = 0;
+          trajopt_trajectories[trajopt_traj_n].points.back().time_from_start.sec = 0;
         }
         traj_times.push_back(std::move(curr_traj_time));
         trajectory_msgs::msg::JointTrajectory curr_time_mod_traj;
@@ -741,7 +748,7 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr& results)
     results->final_freespace_trajectories.push_back(curr_joint_traj);
     results->final_trajectories.push_back(curr_joint_traj);
 
-    RCLCPP_INFO(logger_, "STORING RASTER, %i", i+1);
+    RCLCPP_INFO(logger_, "STORING RASTER, %i", i + 1);
     results->final_trajectories.push_back(results->final_raster_trajectories[i + 1]);
   }
   RCLCPP_INFO(logger_, "FINAL FREESPACE MOTION");
