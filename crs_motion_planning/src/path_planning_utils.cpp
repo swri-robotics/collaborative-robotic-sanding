@@ -3,7 +3,7 @@
 
 namespace crs_motion_planning
 {
-crsMotionPlanner::crsMotionPlanner(pathPlanningConfig::Ptr config) : config_(std::move(config)) {}
+crsMotionPlanner::crsMotionPlanner(pathPlanningConfig::Ptr config, rclcpp::Logger logger) : config_(std::move(config)), logger_(std::move(logger)) {}
 
 void crsMotionPlanner::updateConfiguration(pathPlanningConfig::Ptr config) { config_ = std::move(config); }
 
@@ -88,7 +88,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
 
   // Determine reachability of all rasters using descartes
   trajectory_msgs::msg::JointTrajectory joint_traj_msg_out_init, joint_traj_msg_out_final;
-  std::cout << "RUNNING FIRST DESCARTES" << std::endl;
+  RCLCPP_INFO(logger_, "RUNNING FIRST DESCARTES");
 
   bool gen_preplan;
   std::vector<geometry_msgs::msg::PoseArray> split_reachable_rasters;
@@ -99,9 +99,10 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
   for (auto strip : raster_strips)
   {
     std::vector<size_t> failed_edges, failed_vertices;
-    std::cout << "Running Descartes on Strip " << ++count_strips << " of " << raster_strips.size() << std::endl;
+    ++count_strips;
+    RCLCPP_INFO(logger_, "Running Descartes on Strip %i of %i", count_strips, raster_strips.size());
     gen_preplan = generateDescartesSeed(strip, failed_edges, failed_vertices, joint_traj_msg_out_init);
-    std::cout << "DONE" << std::endl;
+    RCLCPP_INFO(logger_, "DONE");
 
     // Check if all rasters reachable
     if (!gen_preplan)
@@ -109,7 +110,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
       std::vector<geometry_msgs::msg::PoseArray> split_rasters;
       // Split up raster based on where planning failures occurred
       geometry_msgs::msg::PoseArray curr_failed_vertex_poses;
-      std::cout << "SOME POINTS UNREACHABLE, CLEANING..." << std::endl;
+      RCLCPP_INFO(logger_, "SOME POINTS UNREACHABLE, CLEANING...");
       crs_motion_planning::cleanRasterStrip(strip, failed_vertices, split_rasters, curr_failed_vertex_poses);
 
       // Store failed vertices
@@ -131,13 +132,13 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
           results->skipped_rasters.push_back(split_strip);
         }
       }
-      std::cout << "DONE" << std::endl;
+      RCLCPP_INFO(logger_, "DONE");
     }
     else
     {
       if (strip.poses.size() >= config_->minimum_raster_length)
       {
-        std::cout << "STRIP FULLY REACHABLE" << std::endl;
+        RCLCPP_INFO(logger_, "STRIP FULLY REACHABLE");
         results->reachable_waypoints.poses.insert(
             results->reachable_waypoints.poses.end(), strip.poses.begin(), strip.poses.end());
         split_reachable_rasters.push_back(std::move(strip));
@@ -151,7 +152,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
   }
   if (!any_successes)
   {
-    std::cout << "NO REACHABLE POINTS FOUND OR ALL REACHABLE STRIPS ARE TOO SHORT" << std::endl;
+    RCLCPP_ERROR(logger_, "NO REACHABLE POINTS FOUND OR ALL REACHABLE STRIPS ARE TOO SHORT");
     results->msg_out = "NO REACHABLE POINTS FOUND OR ALL REACHABLE STRIPS ARE TOO SHORT";
     return false;
   }
@@ -175,7 +176,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
     std::vector<size_t> failed_edges2, failed_vertices2;
     if (!generateDescartesSeed(combined_rasters, failed_edges2, failed_vertices2, global_descartes_traj_round1))
     {
-      std::cout << "PREVIOUSLY REACHABLE POINTS ARE NOW UNREACHABLE" << std::endl;
+      RCLCPP_ERROR(logger_, "PREVIOUSLY REACHABLE POINTS ARE NOW UNREACHABLE");
       results->msg_out = "PREVIOUSLY REACHABLE POINTS ARE NOW UNREACHABLE";
       return false;
     }
@@ -211,7 +212,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
       std::vector<size_t> failed_edges2, failed_vertices2;
       if (!generateDescartesSeed(strip, failed_edges2, failed_vertices2, curr_traj))
       {
-        std::cout << "PREVIOUSLY REACHABLE POINTS ARE NOW UNREACHABLE" << std::endl;
+        RCLCPP_ERROR(logger_, "PREVIOUSLY REACHABLE POINTS ARE NOW UNREACHABLE");
         results->msg_out = "PREVIOUSLY REACHABLE POINTS ARE NOW UNREACHABLE";
         return false;
       }
@@ -228,8 +229,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
   // Split by speed
   if (config_->required_tool_vel)
   {
-    std::cout << "CHECKING FOR SPLITS IN " << second_descartes_trajs.size() << " TRAJECTORIES BY TOOL SPEED"
-              << std::endl;
+    RCLCPP_INFO(logger_, "CHECKING FOR SPLITS IN %i TRAJECTORIES BY TOOL SPEED", second_descartes_trajs.size());
     for (auto curr_joint_traj : second_descartes_trajs)
     {
       // Split rasters based on signigicant joint motions
@@ -246,7 +246,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
                                                        resplit_rasters,
                                                        time_steps))
       {
-        std::cout << "FOUND A SPLIT" << std::endl;
+        RCLCPP_INFO(logger_, "FOUND A SPLIT");
         for (size_t i = 0; i < resplit_rasters.size(); ++i)
         {
           if (resplit_rasters[i].poses.size() >= config_->minimum_raster_length)
@@ -263,7 +263,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
       }
       else
       {
-        std::cout << "NO SPLITS" << std::endl;
+        RCLCPP_INFO(logger_, "NO SPLITS");
         post_speed_split_rasters.push_back(split_reachable_rasters[raster_n]);
         post_speed_split_trajs.push_back(std::move(curr_joint_traj));
         post_speed_split_time_steps.push_back(time_steps[0]);
@@ -370,7 +370,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
   results->descartes_trajectory_results = final_split_trajs;
 
   // trajopt
-  std::cout << "TIME TO OPTIMIZE" << std::endl;
+  RCLCPP_INFO(logger_, "TIME TO OPTIMIZE");
 
   // Run trajectories through trajopt
   std::string target_frame = config_->tcp_frame;
@@ -380,7 +380,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
     surface_coeffs << 10, 10, 10, 10, 10, 10;
   else
     surface_coeffs = config_->trajopt_surface_config.surface_coeffs;
-  std::cout << "BUILT CONFIG SETTINGS" << std::endl;
+  RCLCPP_INFO(logger_, "BUILT CONFIG SETTINGS");
 
   std::vector<trajectory_msgs::msg::JointTrajectory> trajopt_trajectories;
   std::vector<bool> trajopt_solved;
@@ -388,7 +388,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
   for (size_t i = 0; i < final_split_rasters.size(); ++i)
   {
     std::vector<tesseract_motion_planners::Waypoint::Ptr> curr_raster;
-    std::cout << "BUILDING WAYPOINT SET " << i + 1 << " OF " << final_split_rasters.size() << std::endl;
+    RCLCPP_INFO(logger_, "BUILDING WAYPOINT SET %i OF %i", i + 1, final_split_rasters.size());
     for (auto waypoint : final_split_rasters[i].poses)
     {
       Eigen::Vector3d surface_pose(waypoint.position.x, waypoint.position.y, waypoint.position.z);
@@ -428,18 +428,18 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
     tesseract_motion_planners::PlannerResponse planner_resp;
     tesseract_motion_planners::TrajOptMotionPlanner traj_surface_planner;
     traj_surface_planner.setConfiguration(traj_pc);
-    std::cout << "Solving raster: " << i + 1 << " of " << final_split_rasters.size() << std::endl;
+    RCLCPP_INFO(logger_, "Solving raster: %i of %i", i + 1, final_split_rasters.size());
     traj_surface_planner.solve(planner_resp, config_->trajopt_verbose_output);
 
     if (planner_resp.status.value() < 0)
     {
-      std::cout << "FAILED: " << planner_resp.status.message() << std::endl;
+      RCLCPP_INFO(logger_, "FAILED: %s", planner_resp.status.message().c_str());
       results->failed_rasters.push_back(final_split_rasters[i]);
       trajopt_solved.push_back(false);
     }
     else
     {
-      std::cout << "SUCCEEDED" << std::endl;
+      RCLCPP_INFO(logger_, "SUCCEEDED");
       Eigen::MatrixXd result_traj(planner_resp.joint_trajectory.trajectory.rows(),
                                   planner_resp.joint_trajectory.trajectory.cols());
       result_traj << planner_resp.joint_trajectory.trajectory;
@@ -452,10 +452,10 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
   }
   if (trajopt_trajectories.empty())
   {
-    std::cout << "NO TRAJECTORIES WERE ABLE TO BE SOLVED" << std::endl;
+    RCLCPP_ERROR(logger_, "NO TRAJECTORIES WERE ABLE TO BE SOLVED");
     return false;
   }
-  std::cout << "SETTING TIMESTAMPS" << std::endl;
+  RCLCPP_INFO(logger_, "SETTING TIMESTAMPS");
   // Assign trajectory timestamps for motion execution
   std::vector<double> traj_times;
   size_t trajopt_traj_n = 0;
@@ -464,8 +464,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
   {
     if (trajopt_solved[i])
     {
-      std::cout << "Raster: " << trajopt_traj_n + 1 << " of " << trajopt_trajectories.size() << " with "
-                << trajopt_trajectories[trajopt_traj_n].points.size() << " waypoints " << std::endl;
+      RCLCPP_INFO(logger_, "Raster: %i of %i with %i waypoints", trajopt_traj_n + 1, trajopt_trajectories.size(), trajopt_trajectories[trajopt_traj_n].points.size());
       trajopt_trajectories[trajopt_traj_n].header.frame_id = config_->world_frame;
       if (config_->required_tool_vel)
       {
@@ -489,7 +488,10 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
           curr_traj_time += final_time_steps[i][j];
         }
 
-        // trajopt_trajectories[trajopt_traj_n].points.back().time_from_start.sec = 0;
+        if (config_->use_gazebo_sim_timing)
+        {
+            trajopt_trajectories[trajopt_traj_n].points.back().time_from_start.sec = 0;
+        }
         traj_times.push_back(std::move(curr_traj_time));
         trajectory_msgs::msg::JointTrajectory curr_time_mod_traj;
         crs_motion_planning::timeParameterizeTrajectories(
@@ -504,7 +506,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
     }
   }
 
-  std::cout << "ALL DONE" << std::endl;
+  RCLCPP_INFO(logger_, "ALL DONE");
   results->final_raster_trajectories = std::move(time_mod_traj);
   return true;
 }
@@ -534,7 +536,7 @@ bool crsMotionPlanner::generateOMPLSeed(const tesseract_motion_planners::JointWa
   ompl_planner_config->n_output_states = config_->ompl_config.n_output_states;
   ompl_planner_config->longest_valid_segment_fraction = config_->ompl_config.longest_valid_segment_fraction;
   ompl_planner_config->longest_valid_segment_length = config_->ompl_config.longest_valid_segment_length;
-  std::cout << "OUTPUT STATES: " << config_->ompl_config.n_output_states << std::endl;
+  RCLCPP_INFO(logger_, "OUTPUT STATES: %i", config_->ompl_config.n_output_states);
   std::cout << "GENERATING OMPL SEED FROM \n"
             << start_pose->getPositions().matrix() << "\nTO\n"
             << end_pose->getPositions().matrix() << std::endl;
@@ -550,11 +552,11 @@ bool crsMotionPlanner::generateOMPLSeed(const tesseract_motion_planners::JointWa
   if (status.value() != tesseract_motion_planners::OMPLMotionPlannerStatusCategory::SolutionFound &&
       status.value() != tesseract_motion_planners::OMPLMotionPlannerStatusCategory::ErrorFoundValidSolutionInCollision)
   {
-    std::cout << "FAILED TO GENERATE OMPL SEED" << std::endl;
+    RCLCPP_ERROR(logger_, "FAILED TO GENERATE OMPL SEED");
     return false;
   }
 
-  std::cout << "OMPL SEED GENERATED" << std::endl;
+  RCLCPP_INFO(logger_, "OMPL SEED GENERATED");
 
   if (ompl_planner_response.joint_trajectory.trajectory.rows() < 5)
   {
@@ -584,7 +586,7 @@ bool crsMotionPlanner::trajoptFreespaceFromOMPL(const tesseract_motion_planners:
                                                 const tesseract_common::JointTrajectory& seed_trajectory,
                                                 trajectory_msgs::msg::JointTrajectory& joint_trajectory)
 {
-  std::cout << "SETTING UP TRAJOPT CONFIG" << std::endl;
+  RCLCPP_INFO(logger_, "SETTING UP TRAJOPT CONFIG");
   auto traj_pc = std::make_shared<tesseract_motion_planners::TrajOptPlannerFreespaceConfig>(
       config_->tesseract_local, config_->manipulator, config_->tcp_frame, config_->tool_offset);
   if (config_->use_trajopt_freespace)
@@ -600,7 +602,7 @@ bool crsMotionPlanner::trajoptFreespaceFromOMPL(const tesseract_motion_planners:
     traj_pc->longest_valid_segment_fraction = config_->trajopt_freespace_config.longest_valid_segment_fraction;
     traj_pc->longest_valid_segment_length = config_->trajopt_freespace_config.longest_valid_segment_length;
   }
-  std::cout << "OPTIMIZING WITH TRAJOPT" << std::endl;
+  RCLCPP_INFO(logger_, "OPTIMIZING WITH TRAJOPT");
   std::vector<tesseract_motion_planners::Waypoint::Ptr> trgt_wypts;
   trgt_wypts.push_back(start_pose);
   trgt_wypts.push_back(end_pose);
@@ -613,11 +615,11 @@ bool crsMotionPlanner::trajoptFreespaceFromOMPL(const tesseract_motion_planners:
   traj_motion_planner.solve(plan_resp, config_->trajopt_verbose_output);
   if (plan_resp.status.value() != 0)
   {
-    std::cout << "FAILED TO OPTIMIZE WITH TRAJOPT" << std::endl;
-    std::cout << plan_resp.status.message() << std::endl;
+    RCLCPP_ERROR(logger_, "FAILED TO OPTIMIZE WITH TRAJOPT");
+    RCLCPP_ERROR(logger_, "%s", plan_resp.status.message().c_str());
     return false;
   }
-  std::cout << "OPTIMIZED WITH TRAJOPT" << std::endl;
+  RCLCPP_INFO(logger_, "OPTIMIZED WITH TRAJOPT");
   // Store generated trajectory
   tesseract_common::TrajArray traj_array = plan_resp.joint_trajectory.trajectory;
   Eigen::MatrixXd traj_cumulative_trajectory(traj_array.rows(), traj_array.cols());
@@ -634,7 +636,7 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr& results)
   // Generate ompl seed from start to raster.begin().begin() (convert from trajectory_msg to eigen::vectorXd)
   if (config_->use_start)
   {
-    std::cout << "SETTING UP FIRST OMPL PROBLEM" << std::endl;
+    RCLCPP_INFO(logger_, "SETTING UP FIRST OMPL PROBLEM");
     auto begin_raster = std::make_shared<tesseract_motion_planners::JointWaypoint>(
         results->final_raster_trajectories[0].points[0].positions, results->final_raster_trajectories[0].joint_names);
     tesseract_common::JointTrajectory seed_trajectory;
@@ -644,6 +646,7 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr& results)
     if (!generateOMPLSeed(config_->start_pose, begin_raster, seed_trajectory))
     {
       results->msg_out = "Failed to generate ompl seed";
+      RCLCPP_ERROR(logger_, "Failed to generate ompl seed");
       return false;
     }
     config_->ompl_config.simplify = ompl_simplify;
@@ -657,6 +660,7 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr& results)
       if (!trajoptFreespaceFromOMPL(config_->start_pose, begin_raster, seed_trajectory, curr_joint_traj))
       {
         results->msg_out = "Failed to perform trajopt on first freespace motion";
+        RCLCPP_ERROR(logger_, "Failed to perform trajopt on first freespace motion");
         return false;
       }
     }
@@ -669,24 +673,24 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr& results)
     // Modify time
     if (config_->use_gazebo_sim_timing)
     {
-      std::cout << "MODIFYING TRAJECTORY TIME OUTPUT" << std::endl;
+      RCLCPP_INFO(logger_, "MODIFYING TRAJECTORY TIME OUTPUT");
       for (int i = 0; i < curr_joint_traj.points.size(); ++i)
       {
         curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.sec = 0;
         curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.nanosec = 1e8;
       }
     }
-    std::cout << "STORING TRAJECTORIES" << std::endl;
+    RCLCPP_INFO(logger_, "STORING TRAJECTORIES");
     results->ompl_start_end_trajectories.push_back(ompl_joint_traj);
     results->final_start_end_trajectories.push_back(curr_joint_traj);
     results->final_trajectories.push_back(curr_joint_traj);
   }
-  std::cout << "STORING FIRST RASTER" << std::endl;
+  RCLCPP_INFO(logger_, "STORING FIRST RASTER");
   results->final_trajectories.push_back(results->final_raster_trajectories[0]);
   // run seed through trajopt if using trajopt for freespace
   for (size_t i = 0; i < results->final_raster_trajectories.size() - 1; ++i)
   {
-    std::cout << "SOLVING FREESPACE IN BETWEEN RASTERS " << i << " AND " << i + 1 << std::endl;
+    RCLCPP_INFO(logger_, "SOLVING FREESPACE IN BETWEEN RASTERS %i AND %i", i, i + 1);
     // Generate ompl seed from raster[i].back() to raster[i+1].begin() (convert from trajectory_msg to eigen::vectorXd)
     // run seed through trajopt if using trajopt for freespace
     auto end_raster_i = std::make_shared<tesseract_motion_planners::JointWaypoint>(
@@ -699,6 +703,7 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr& results)
     if (!generateOMPLSeed(end_raster_i, start_raster_ip1, seed_trajectory))
     {
       results->msg_out = "Failed to generate ompl seed";
+      RCLCPP_ERROR(logger_, "Failed to generate ompl seed between rasters %i and %i", i, i + 1);
       return false;
     }
     trajectory_msgs::msg::JointTrajectory curr_joint_traj, ompl_joint_traj;
@@ -710,7 +715,8 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr& results)
     {
       if (!trajoptFreespaceFromOMPL(end_raster_i, start_raster_ip1, seed_trajectory, curr_joint_traj))
       {
-        results->msg_out = "Failed to perform trajopt on first freespace motion";
+        results->msg_out = "Failed to perform trajopt on a freespace motion";
+        RCLCPP_ERROR(logger_, "Failed to perform trajopt on ompl seed between rasters %i and %i", i, i + 1);
         return false;
       }
     }
@@ -723,27 +729,27 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr& results)
     // Modify time
     if (config_->use_gazebo_sim_timing)
     {
-      std::cout << "MODIFYING TRAJECTORY TIME OUTPUT" << std::endl;
+      RCLCPP_INFO(logger_, "MODIFYING TRAJECTORY TIME OUTPUT");
       for (int i = 0; i < curr_joint_traj.points.size(); ++i)
       {
         curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.sec = 0;
         curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.nanosec = 1e8;
       }
     }
-    std::cout << "STORING FREESPACE JOINT TRAJECTORIES" << std::endl;
+    RCLCPP_INFO(logger_, "STORING FREESPACE JOINT TRAJECTORIES");
     results->ompl_trajectories.push_back(ompl_joint_traj);
     results->final_freespace_trajectories.push_back(curr_joint_traj);
     results->final_trajectories.push_back(curr_joint_traj);
 
-    std::cout << "STORING RASTER " << i + 1 << std::endl;
+    RCLCPP_INFO(logger_, "STORING RASTER, %i", i+1);
     results->final_trajectories.push_back(results->final_raster_trajectories[i + 1]);
   }
-  std::cout << "FINAL FREESPACE MOTION" << std::endl;
+  RCLCPP_INFO(logger_, "FINAL FREESPACE MOTION");
 
   // Check if end exists
   if (config_->use_end)
   {
-    std::cout << "SETTING UP LAST OMPL PROBLEM" << std::endl;
+    RCLCPP_INFO(logger_, "SETTING UP LAST OMPL PROBLEM");
     auto end_raster = std::make_shared<tesseract_motion_planners::JointWaypoint>(
         results->final_raster_trajectories.back().points.back().positions,
         results->final_raster_trajectories.back().joint_names);
@@ -753,6 +759,7 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr& results)
     if (!generateOMPLSeed(end_raster, config_->end_pose, seed_trajectory))
     {
       results->msg_out = "Failed to generate ompl seed";
+      RCLCPP_ERROR(logger_, "Failed to generate ompl seed");
       return false;
     }
     config_->ompl_config.simplify = ompl_simplify;
@@ -765,7 +772,8 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr& results)
     {
       if (!trajoptFreespaceFromOMPL(end_raster, config_->end_pose, seed_trajectory, curr_joint_traj))
       {
-        results->msg_out = "Failed to perform trajopt on first freespace motion";
+        results->msg_out = "Failed to perform trajopt on last freespace motion";
+        RCLCPP_ERROR(logger_, "Failed to perform trajopt on last freespace motionT");
         return false;
       }
     }
@@ -777,14 +785,14 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr& results)
     // Modify time
     if (config_->use_gazebo_sim_timing)
     {
-      std::cout << "MODIFYING TRAJECTORY TIME OUTPUT" << std::endl;
+      RCLCPP_INFO(logger_, "MODIFYING TRAJECTORY TIME OUTPUT");
       for (int i = 0; i < curr_joint_traj.points.size(); ++i)
       {
         curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.sec = 0;
         curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.nanosec = 1e8;
       }
     }
-    std::cout << "STORING TRAJECTORIES" << std::endl;
+    RCLCPP_INFO(logger_, "STORING TRAJECTORIES");
     results->ompl_start_end_trajectories.push_back(ompl_joint_traj);
     results->final_start_end_trajectories.push_back(curr_joint_traj);
     results->final_trajectories.push_back(curr_joint_traj);
@@ -795,7 +803,7 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr& results)
 
 bool crsMotionPlanner::generateProcessPlan(pathPlanningResults::Ptr& results)
 {
-  std::cout << "generating surface plans" << std::endl;
+  RCLCPP_INFO(logger_, "generating surface plans");
   bool success_path = generateSurfacePlans(results);
   if (success_path)
   {
@@ -812,7 +820,7 @@ bool crsMotionPlanner::generateFreespacePlan(const tesseract_motion_planners::Jo
                                              const tesseract_motion_planners::JointWaypoint::Ptr& end_pose,
                                              trajectory_msgs::msg::JointTrajectory& joint_trajectory)
 {
-  std::cout << "SETTING UP OMPL PROBLEM" << std::endl;
+  RCLCPP_INFO(logger_, "SETTING UP OMPL PROBLEM");
   tesseract_common::JointTrajectory seed_trajectory;
   if (!generateOMPLSeed(start_pose, end_pose, seed_trajectory))
   {
@@ -834,7 +842,7 @@ bool crsMotionPlanner::generateFreespacePlan(const tesseract_motion_planners::Jo
     // Modify time
     if (config_->use_gazebo_sim_timing)
     {
-      std::cout << "MODIFYING TRAJECTORY TIME OUTPUT" << std::endl;
+      RCLCPP_INFO(logger_, "MODIFYING TRAJECTORY TIME OUTPUT");
       for (int i = 0; i < joint_trajectory.points.size(); ++i)
       {
         joint_trajectory.points[static_cast<size_t>(i)].time_from_start.sec = 0;
@@ -857,10 +865,10 @@ bool crsMotionPlanner::generateFreespacePlan(const tesseract_motion_planners::Jo
   tesseract_motion_planners::JointWaypoint::Ptr goal_waypoint;
   if (!findClosestJointOrientation(start_pose, end_pose, goal_waypoint))
   {
-    std::cout << "FAILED TO FIND A FEASIBLE SOLUTION" << std::endl;
+    RCLCPP_ERROR(logger_, "FAILED TO FIND A FEASIBLE SOLUTION");
     return false;
   }
-  std::cout << "PLANNING OMPL VIA JOINT WAYPOINTS" << std::endl;
+  RCLCPP_INFO(logger_, "PLANNING OMPL VIA JOINT WAYPOINTS");
   if (!generateFreespacePlan(start_pose, goal_waypoint, joint_trajectory))
   {
     return false;

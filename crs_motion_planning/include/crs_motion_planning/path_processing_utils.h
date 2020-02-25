@@ -1,6 +1,8 @@
 #ifndef CRS_MOTION_PLANNING_PATH_PROCESSING_UTILS_H
 #define CRS_MOTION_PLANNING_PATH_PROCESSING_UTILS_H
 
+#include <rclcpp/rclcpp.hpp>
+
 #include <yaml-cpp/yaml.h>
 #include <yaml-cpp/node/iterator.h>
 #include <yaml-cpp/node/impl.h>
