@@ -311,6 +311,18 @@
             </geometry>
             <origin rpy="0 0 0" xyz="-0.42 -1.1 -1.46" />
         </collision>
+        <collision> Front Wall
+            <geometry>
+                <box size="0.1 2.14 2.65" />
+            </geometry>
+            <origin rpy="0 0 0" xyz="0.4 -1.1 -0.175" />
+        </collision>
+        <collision> Back Wall
+            <geometry>
+                <box size="0.1 2.14 2.65" />
+            </geometry>
+            <origin rpy="0 0 0" xyz="-1.25 -1.1 -0.175" />
+        </collision>
         <collision> <!-- Top front beam-->
             <geometry>
                 <box size="0.22 0.12 2.65" />

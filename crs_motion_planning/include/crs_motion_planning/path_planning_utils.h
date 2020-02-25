@@ -182,7 +182,7 @@ struct pathPlanningResults
 class crsMotionPlanner
 {
 public:
-  crsMotionPlanner(pathPlanningConfig::Ptr config);
+  crsMotionPlanner(pathPlanningConfig::Ptr config, rclcpp::Logger logger);
   ~crsMotionPlanner() = default;
 
   void updateConfiguration(pathPlanningConfig::Ptr config);
@@ -258,6 +258,7 @@ public:
 
 protected:
   pathPlanningConfig::Ptr config_;
+  rclcpp::Logger logger_;
 };
 
 }  // namespace crs_motion_planning
