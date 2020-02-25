@@ -86,6 +86,4 @@ private:
 };
 }  // namespace crs_gazebo_plugins
 
-
-
 #endif /* INCLUDE_CRS_GAZEBO_PLUGINS_JOINT_POSE_TRAJECTORY_HPP_ */

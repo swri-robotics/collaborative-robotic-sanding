@@ -23,7 +23,7 @@
 
 #include <boost/format.hpp>
 
-static const double WAIT_SERVER_TIMEOUT = 10.0; // seconds
+static const double WAIT_SERVER_TIMEOUT = 10.0;  // seconds
 static const std::string FOLLOW_JOINT_TRAJECTORY_ACTION = "follow_joint_trajectory";
 
 class ProcessPlannerTestServer : public rclcpp::Node
@@ -40,15 +40,15 @@ public:
         "test_process_planner",
         std::bind(&ProcessPlannerTestServer::planService, this, std::placeholders::_1, std::placeholders::_2));
 
-    trajectory_exec_client_cbgroup_ = this->create_callback_group(
-        rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
-    trajectory_exec_client_ = rclcpp_action::create_client<control_msgs::action::FollowJointTrajectory>(
-        this->get_node_base_interface(),
-        this->get_node_graph_interface(),
-        this->get_node_logging_interface(),
-        this->get_node_waitables_interface(),
-        FOLLOW_JOINT_TRAJECTORY_ACTION,
-        trajectory_exec_client_cbgroup_);
+    trajectory_exec_client_cbgroup_ =
+        this->create_callback_group(rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
+    trajectory_exec_client_ =
+        rclcpp_action::create_client<control_msgs::action::FollowJointTrajectory>(this->get_node_base_interface(),
+                                                                                  this->get_node_graph_interface(),
+                                                                                  this->get_node_logging_interface(),
+                                                                                  this->get_node_waitables_interface(),
+                                                                                  FOLLOW_JOINT_TRAJECTORY_ACTION,
+                                                                                  trajectory_exec_client_cbgroup_);
 
     joint_state_listener_ = this->create_subscription<sensor_msgs::msg::JointState>(
         "crs/joint_states", 1, std::bind(&ProcessPlannerTestServer::jointCallback, this, std::placeholders::_1));
@@ -58,26 +58,23 @@ public:
     toolpath_filepath_ = ament_index_cpp::get_package_share_directory("crs_support") + "/toolpaths/scanned_part1/"
                                                                                        "job_90degrees.yaml";
     // waiting for server
-    if(!trajectory_exec_client_->wait_for_action_server(std::chrono::duration<double>(WAIT_SERVER_TIMEOUT)))
+    if (!trajectory_exec_client_->wait_for_action_server(std::chrono::duration<double>(WAIT_SERVER_TIMEOUT)))
     {
-      std::string err_msg = boost::str(boost::format("Failed to find action server %s") % FOLLOW_JOINT_TRAJECTORY_ACTION);
-      RCLCPP_ERROR(this->get_logger(),"%s", err_msg.c_str());
+      std::string err_msg =
+          boost::str(boost::format("Failed to find action server %s") % FOLLOW_JOINT_TRAJECTORY_ACTION);
+      RCLCPP_ERROR(this->get_logger(), "%s", err_msg.c_str());
       throw std::runtime_error(err_msg);
     }
     RCLCPP_INFO(this->get_logger(), "%s action client found", FOLLOW_JOINT_TRAJECTORY_ACTION.c_str());
   }
 
 private:
-
-  void jointCallback(const sensor_msgs::msg::JointState::SharedPtr joint_msg)
-  {
-    curr_joint_state_ = *joint_msg;
-  }
+  void jointCallback(const sensor_msgs::msg::JointState::SharedPtr joint_msg) { curr_joint_state_ = *joint_msg; }
 
   void planService(std::shared_ptr<std_srvs::srv::Trigger::Request> request,
                    std::shared_ptr<std_srvs::srv::Trigger::Response> response)
   {
-    std::cout<<"Planning now"<<std::endl;
+    std::cout << "Planning now" << std::endl;
     // Load rasters and get them in usable form
     std::string waypoint_origin_frame = "part";
     std::vector<geometry_msgs::msg::PoseArray> raster_strips;
@@ -152,7 +149,7 @@ private:
       std::vector<crs_msgs::msg::ProcessMotionPlan> process_plans = future.get()->plans;
       for (size_t j = 0; j < process_plans.size(); ++j)
       {
-        if(!rclcpp::ok())
+        if (!rclcpp::ok())
         {
           return;
         }
@@ -163,7 +160,7 @@ private:
         std::vector<trajectory_msgs::msg::JointTrajectory> freespace_motions = process_plans[j].free_motions;
         if (start_traj.points.size() > 0)
         {
-          if(!execTrajectory(trajectory_exec_client_, this->get_logger(), start_traj))
+          if (!execTrajectory(trajectory_exec_client_, this->get_logger(), start_traj))
           {
             return;
           }
@@ -172,23 +169,24 @@ private:
         for (size_t i = 0; i < freespace_motions.size(); ++i)
         {
           std::cout << "EXECUTING SURFACE TRAJECTORY\t" << i + 1 << " OF " << process_motions.size() << std::endl;
-          if(!execTrajectory(trajectory_exec_client_, this->get_logger(),process_motions[i]))
+          if (!execTrajectory(trajectory_exec_client_, this->get_logger(), process_motions[i]))
           {
             return;
           }
 
           std::cout << "EXECUTING FREESPACE TRAJECTORY\t" << i + 1 << " OF " << freespace_motions.size() << std::endl;
-          if(!execTrajectory(trajectory_exec_client_, this->get_logger(),freespace_motions[i]))
+          if (!execTrajectory(trajectory_exec_client_, this->get_logger(), freespace_motions[i]))
           {
             return;
           }
         }
 
-        std::cout << "EXECUTING SURFACE TRAJECTORY\t" << process_motions.size() << " OF " << process_motions.size() << std::endl;
-        execTrajectory(trajectory_exec_client_, this->get_logger(),process_motions.back());
+        std::cout << "EXECUTING SURFACE TRAJECTORY\t" << process_motions.size() << " OF " << process_motions.size()
+                  << std::endl;
+        execTrajectory(trajectory_exec_client_, this->get_logger(), process_motions.back());
         if (end_traj.points.size() > 0)
         {
-          if(!execTrajectory(trajectory_exec_client_, this->get_logger(),end_traj))
+          if (!execTrajectory(trajectory_exec_client_, this->get_logger(), end_traj))
           {
             return;
           }

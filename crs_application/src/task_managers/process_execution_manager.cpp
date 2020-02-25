@@ -36,7 +36,7 @@
 #include <boost/format.hpp>
 #include "crs_application/task_managers/process_execution_manager.h"
 
-static const double WAIT_SERVER_TIMEOUT = 10.0; // seconds
+static const double WAIT_SERVER_TIMEOUT = 10.0;  // seconds
 static const std::string MANAGER_NAME = "ProcessExecutionManager";
 static const std::string FOLLOW_JOINT_TRAJECTORY_ACTION = "follow_joint_trajectory";
 
@@ -44,29 +44,30 @@ namespace crs_application
 {
 namespace task_managers
 {
-ProcessExecutionManager::ProcessExecutionManager(std::shared_ptr<rclcpp::Node> node)
-  : node_(node)
+ProcessExecutionManager::ProcessExecutionManager(std::shared_ptr<rclcpp::Node> node) : node_(node)
 {
-  trajectory_exec_client_cbgroup_ = node_->create_callback_group(
-      rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
-  trajectory_exec_client_ = rclcpp_action::create_client<control_msgs::action::FollowJointTrajectory>(
-      node_->get_node_base_interface(),
-      node_->get_node_graph_interface(),
-      node_->get_node_logging_interface(),
-      node_->get_node_waitables_interface(),
-      FOLLOW_JOINT_TRAJECTORY_ACTION,
-      trajectory_exec_client_cbgroup_);
+  trajectory_exec_client_cbgroup_ =
+      node_->create_callback_group(rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
+  trajectory_exec_client_ =
+      rclcpp_action::create_client<control_msgs::action::FollowJointTrajectory>(node_->get_node_base_interface(),
+                                                                                node_->get_node_graph_interface(),
+                                                                                node_->get_node_logging_interface(),
+                                                                                node_->get_node_waitables_interface(),
+                                                                                FOLLOW_JOINT_TRAJECTORY_ACTION,
+                                                                                trajectory_exec_client_cbgroup_);
 }
 
 ProcessExecutionManager::~ProcessExecutionManager() {}
 
 common::ActionResult ProcessExecutionManager::init()
 {
-
   // waiting for server
-  if(!trajectory_exec_client_->wait_for_action_server(std::chrono::duration<double>(WAIT_SERVER_TIMEOUT)))
+  if (!trajectory_exec_client_->wait_for_action_server(std::chrono::duration<double>(WAIT_SERVER_TIMEOUT)))
   {
-    RCLCPP_ERROR(node_->get_logger(),"%s Failed to find action server %s", MANAGER_NAME.c_str(), FOLLOW_JOINT_TRAJECTORY_ACTION.c_str());
+    RCLCPP_ERROR(node_->get_logger(),
+                 "%s Failed to find action server %s",
+                 MANAGER_NAME.c_str(),
+                 FOLLOW_JOINT_TRAJECTORY_ACTION.c_str());
     return false;
   }
   return true;
@@ -235,7 +236,7 @@ common::ActionResult ProcessExecutionManager::execMoveReturn()
 common::ActionResult ProcessExecutionManager::cancelMotion()
 {
   using GS = action_msgs::msg::GoalStatus;
-  if(trajectory_exec_fut_.valid())
+  if (trajectory_exec_fut_.valid())
   {
     trajectory_exec_client_->async_cancel_all_goals();
     trajectory_exec_fut_ = std::shared_future<GoalHandleT::SharedPtr>();
@@ -267,7 +268,8 @@ common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_ms
   traj_dur = traj_dur + rclcpp::Duration(config_->traj_time_tolerance);
 
   // wait for goal
-  if(trajectory_exec_fut_.wait_for(std::chrono::duration<double>(GOAL_ACCEPT_TIMEOUT_PERIOD)) != std::future_status::ready)
+  if (trajectory_exec_fut_.wait_for(std::chrono::duration<double>(GOAL_ACCEPT_TIMEOUT_PERIOD)) !=
+      std::future_status::ready)
   {
     res.err_msg = "Timed out waiting for goal to be accepted";
     RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
@@ -277,7 +279,7 @@ common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_ms
 
   // get goal handle
   auto gh = trajectory_exec_fut_.get();
-  if(!gh)
+  if (!gh)
   {
     res.err_msg = "Goal was rejected";
     RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
@@ -286,7 +288,8 @@ common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_ms
   }
 
   // wait for result
-  if(trajectory_exec_client_->async_get_result(gh).wait_for(traj_dur.to_chrono<std::chrono::seconds>()) != std::future_status::ready)
+  if (trajectory_exec_client_->async_get_result(gh).wait_for(traj_dur.to_chrono<std::chrono::seconds>()) !=
+      std::future_status::ready)
   {
     res.err_msg = "Trajectory execution timed out";
     RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
@@ -294,8 +297,9 @@ common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_ms
     return res;
   }
 
-  rclcpp_action::ClientGoalHandle<FollowJointTrajectory>::WrappedResult wrapped_result = trajectory_exec_client_->async_get_result(gh).get();
-  if(wrapped_result.code != rclcpp_action::ResultCode::SUCCEEDED)
+  rclcpp_action::ClientGoalHandle<FollowJointTrajectory>::WrappedResult wrapped_result =
+      trajectory_exec_client_->async_get_result(gh).get();
+  if (wrapped_result.code != rclcpp_action::ResultCode::SUCCEEDED)
   {
     res.err_msg = wrapped_result.result->error_string;
     RCLCPP_ERROR(node_->get_logger(), "Trajectory execution failed with error message: %s", res.err_msg.c_str());
@@ -304,7 +308,7 @@ common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_ms
 
   // reset future
   trajectory_exec_fut_ = std::shared_future<GoalHandleT::SharedPtr>();
-  RCLCPP_INFO(node_->get_logger(),"%s Trajectory completed", MANAGER_NAME.c_str());
+  RCLCPP_INFO(node_->get_logger(), "%s Trajectory completed", MANAGER_NAME.c_str());
   return true;
 }
 

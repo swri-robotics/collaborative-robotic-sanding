@@ -110,7 +110,6 @@ bool timeParameterizeTrajectories(const trajectory_msgs::msg::JointTrajectory& g
                                   trajectory_msgs::msg::JointTrajectory& returned_traj,
                                   const bool gazebo_time = false);
 
-
 bool execTrajectory(rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SharedPtr ac,
                     const rclcpp::Logger& logger,
                     const trajectory_msgs::msg::JointTrajectory& traj);

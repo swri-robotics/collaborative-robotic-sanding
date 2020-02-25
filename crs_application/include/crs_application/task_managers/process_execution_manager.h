@@ -112,7 +112,6 @@ protected:
   // other
   int current_process_idx_ = 0;
   int current_media_change_idx_ = 0;
-
 };
 
 } /* namespace task_managers */

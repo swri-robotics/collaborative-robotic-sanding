@@ -99,15 +99,15 @@ public:
     joint_state_listener_ = this->create_subscription<sensor_msgs::msg::JointState>(
         JOINT_STATES_TOPIC, 1, std::bind(&MotionPlanningServer::jointCallback, this, std::placeholders::_1));
 
-    trajectory_exec_client_cbgroup_ = this->create_callback_group(
-        rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
-    trajectory_exec_client_ = rclcpp_action::create_client<control_msgs::action::FollowJointTrajectory>(
-        this->get_node_base_interface(),
-        this->get_node_graph_interface(),
-        this->get_node_logging_interface(),
-        this->get_node_waitables_interface(),
-        FOLLOW_JOINT_TRAJECTORY_ACTION,
-        trajectory_exec_client_cbgroup_);
+    trajectory_exec_client_cbgroup_ =
+        this->create_callback_group(rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
+    trajectory_exec_client_ =
+        rclcpp_action::create_client<control_msgs::action::FollowJointTrajectory>(this->get_node_base_interface(),
+                                                                                  this->get_node_graph_interface(),
+                                                                                  this->get_node_logging_interface(),
+                                                                                  this->get_node_waitables_interface(),
+                                                                                  FOLLOW_JOINT_TRAJECTORY_ACTION,
+                                                                                  trajectory_exec_client_cbgroup_);
 
     // openning files
     std::string urdf_path, srdf_path;
@@ -209,7 +209,6 @@ private:
   void planProcess(std::shared_ptr<crs_msgs::srv::PlanProcessMotions::Request> request,
                    std::shared_ptr<crs_msgs::srv::PlanProcessMotions::Response> response)
   {
-
     // Setup planner config with requested process planner service request data
     motion_planner_config_->tcp_frame = request->tool_link;
     motion_planner_config_->approach_distance = request->approach_dist;
@@ -407,8 +406,8 @@ private:
     {
       // Publish trajectory if desired
       std::cout << "EXECUTING TRAJECTORY" << std::endl;
-      //traj_publisher_->publish(response->output_trajectory);
-      if(!execTrajectory(trajectory_exec_client_, this->get_logger(),response->output_trajectory))
+      // traj_publisher_->publish(response->output_trajectory);
+      if (!execTrajectory(trajectory_exec_client_, this->get_logger(), response->output_trajectory))
       {
         return;
       }
