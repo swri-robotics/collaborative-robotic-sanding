@@ -13,6 +13,8 @@ find_package(crs_area_selection REQUIRED path)
 find_package(crs_msgs REQUIRED)
 find_package(crs_motion_planning REQUIRED)
 
+find_package(iterative_spline_parameterization REQUIRED)
+
 find_package(Qt5 REQUIRED COMPONENTS
   Core
   Widgets
