@@ -119,14 +119,14 @@ bool execTrajectory(rclcpp_action::Client<control_msgs::action::FollowJointTraje
                     const trajectory_msgs::msg::JointTrajectory& traj);
 
 bool timeParameterizeFreespace(const trajectory_msgs::msg::JointTrajectory& given_traj,
-                              const double& max_joint_vel,
-                              const double& max_joint_acc,
-                              trajectory_msgs::msg::JointTrajectory& returned_traj);
+                               const double& max_joint_vel,
+                               const double& max_joint_acc,
+                               trajectory_msgs::msg::JointTrajectory& returned_traj);
 
 bool timeParameterizeFreespace(const std::vector<trajectory_msgs::msg::JointTrajectory>& given_traj,
-                              const double& max_joint_vel,
-                              const double& max_joint_acc,
-                              std::vector<trajectory_msgs::msg::JointTrajectory>& returned_traj);
+                               const double& max_joint_vel,
+                               const double& max_joint_acc,
+                               std::vector<trajectory_msgs::msg::JointTrajectory>& returned_traj);
 
 }  // namespace crs_motion_planning
 
