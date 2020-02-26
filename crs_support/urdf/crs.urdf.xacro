@@ -311,6 +311,18 @@
             </geometry>
             <origin rpy="0 0 0" xyz="-0.42 -1.1 -1.46" />
         </collision>
+        <collision> Front Wall
+            <geometry>
+                <box size="0.1 2.14 2.65" />
+            </geometry>
+            <origin rpy="0 0 0" xyz="0.4 -1.1 -0.175" />
+        </collision>
+        <collision> Back Wall
+            <geometry>
+                <box size="0.1 2.14 2.65" />
+            </geometry>
+            <origin rpy="0 0 0" xyz="-1.25 -1.1 -0.175" />
+        </collision>
         <collision> <!-- Top front beam-->
             <geometry>
                 <box size="0.22 0.12 2.65" />
@@ -548,15 +560,25 @@
           <joint_name>${prefix}wrist_2_joint</joint_name>
           <joint_name>${prefix}wrist_3_joint</joint_name>
         </plugin>
+        <!-- Replaced by the crs_gazebo_plugins_joint_pose_trajectory plugin which hosts an action server instead
         <plugin name='gazebo_ros_joint_pose_trajectory' filename='libgazebo_ros_joint_pose_trajectory.so'>
             <ros>
               <namespace>/demo</namespace>
               <argument>set_joint_trajectory:=set_trajectory_test</argument>
             </ros>
             <update_rate>20</update_rate>
+        </plugin> -->
+        <plugin name='crs_gazebo_plugins_joint_pose_trajectory' filename='libcrs_gazebo_plugins_joint_pose_trajectory.so'>
+            <ros>
+              <namespace>sim</namespace>
+              <argument>follow_joint_trajectory:=${prefix}follow_joint_trajectory</argument>
+            </ros>
+            <update_rate>20</update_rate>
         </plugin>
     </gazebo>
   </xacro:macro>
+  
+  <!-- Instantiating  crs workcell urdf -->
   <xacro:arg name="prefix" default=""/>
   <xacro:crs_workcell prefix="$(arg prefix)"/>
 </robot>

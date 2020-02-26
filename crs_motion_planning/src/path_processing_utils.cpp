@@ -1,3 +1,7 @@
+
+static const double TRAJECTORY_TIME_TOLERANCE = 5.0;  // seconds
+static const double WAIT_RESULT_TIMEOUT = 1.0;        // seconds
+
 #include <crs_motion_planning/path_processing_utils.h>
 
 bool crs_motion_planning::parsePathFromFile(const std::string& yaml_filepath,
@@ -303,4 +307,123 @@ void crs_motion_planning::addApproachAndRetreat(const geometry_msgs::msg::PoseAr
   {
     returned_raster.poses.push_back(retreat_pose_msg);
   }
+}
+
+bool crs_motion_planning::timeParameterizeTrajectories(const trajectory_msgs::msg::JointTrajectory& given_traj,
+                                                       trajectory_msgs::msg::JointTrajectory& returned_traj,
+                                                       const bool gazebo_time)
+{
+  double curr_time = 0, prev_time_diff = 0;
+  size_t joint_num = given_traj.joint_names.size();
+  std::vector<double> prev_pose(joint_num), prev_vel(joint_num), prev_accel(joint_num);
+  returned_traj = given_traj;
+  for (size_t i = 1; i < given_traj.points.size(); ++i)
+  {
+    if (gazebo_time)
+    {
+      curr_time = 0;
+    }
+    double time_diff = given_traj.points[i - 1].time_from_start.sec +
+                       static_cast<double>(given_traj.points[i - 1].time_from_start.nanosec) / 1e9 - curr_time;
+    for (size_t j = 0; j < joint_num; ++j)
+    {
+      double pose_diff = given_traj.points[i].positions[j] - given_traj.points[i - 1].positions[j];
+      returned_traj.points[i - 1].velocities.push_back(pose_diff / time_diff);
+    }
+    if (i > 1)
+    {
+      for (size_t j = 0; j < joint_num; ++j)
+      {
+        double vel_diff = returned_traj.points[i - 1].velocities[j] - returned_traj.points[i - 2].velocities[j];
+        returned_traj.points[i - 2].accelerations.push_back(vel_diff / prev_time_diff);
+      }
+    }
+    curr_time += time_diff;
+    prev_time_diff = time_diff;
+  }
+  std::vector<double> zeros_vec;
+  for (int i = 0; i < 6; ++i)
+    zeros_vec.push_back(0.0);
+  returned_traj.points.back().velocities = zeros_vec;
+  for (size_t j = 1; j < joint_num; ++j)
+  {
+    double vel_diff = returned_traj.points.rbegin()[0].velocities[j] - returned_traj.points.rbegin()[1].velocities[j];
+    returned_traj.points.rbegin()[1].accelerations.push_back(vel_diff / prev_time_diff);
+  }
+  returned_traj.points.back().accelerations = zeros_vec;
+
+  return true;
+}
+
+bool crs_motion_planning::execTrajectory(
+    rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SharedPtr ac,
+    const rclcpp::Logger& logger,
+    const trajectory_msgs::msg::JointTrajectory& traj)
+{
+  using namespace control_msgs::action;
+  using namespace rclcpp_action;
+  using GoalHandleT = Client<FollowJointTrajectory>::GoalHandle;
+
+  rclcpp::Duration traj_dur(traj.points.back().time_from_start);
+  bool res = false;
+  std::string err_msg;
+
+  auto print_traj_time = [&](const trajectory_msgs::msg::JointTrajectory& traj) {
+    RCLCPP_ERROR(logger, "Trajectory with %lu points time data", traj.points.size());
+    for (std::size_t i = 0; i < traj.points.size(); i++)
+    {
+      const auto& p = traj.points[i];
+      RCLCPP_ERROR(logger, "\tPoint %lu : %f secs", rclcpp::Duration(p.time_from_start).seconds());
+    }
+  };
+
+  FollowJointTrajectory::Goal goal;
+  goal.trajectory = traj;
+  auto goal_options = rclcpp_action::Client<FollowJointTrajectory>::SendGoalOptions();
+  // TODO populate tolerances
+
+  // send goal
+  std::shared_future<GoalHandleT::SharedPtr> trajectory_exec_fut = ac->async_send_goal(goal);
+  traj_dur = traj_dur + rclcpp::Duration(std::chrono::duration<double>(TRAJECTORY_TIME_TOLERANCE));
+
+  // wait for goal acceptance
+  std::future_status status = trajectory_exec_fut.wait_for(std::chrono::duration<double>(WAIT_RESULT_TIMEOUT));
+  if (status != std::future_status::ready)
+  {
+    err_msg = "Action request was not accepted in time";
+    RCLCPP_ERROR(logger, "%s", err_msg.c_str());
+    ac->async_cancel_all_goals();
+    return res;
+  }
+
+  auto gh = trajectory_exec_fut.get();
+  if (!gh)
+  {
+    RCLCPP_ERROR(logger, "Goal was rejected by server");
+    return res;
+  }
+
+  // getting result
+  RCLCPP_INFO(logger, "Waiting %f seconds for goal", traj_dur.seconds());
+  auto result_fut = ac->async_get_result(gh);
+  status = result_fut.wait_for(traj_dur.to_chrono<std::chrono::seconds>());
+  if (status != std::future_status::ready)
+  {
+    print_traj_time(traj);
+    err_msg = "trajectory execution timed out";
+    RCLCPP_ERROR(logger, "%s", err_msg.c_str());
+    return res;
+  }
+
+  rclcpp_action::ClientGoalHandle<FollowJointTrajectory>::WrappedResult wrapped_result = result_fut.get();
+  if (wrapped_result.code != rclcpp_action::ResultCode::SUCCEEDED)
+  {
+    err_msg = wrapped_result.result->error_string;
+    RCLCPP_ERROR(logger, "Trajectory execution failed with error message: %s", err_msg.c_str());
+    return res;
+  }
+
+  // reset future
+  RCLCPP_INFO(logger, "Trajectory completed");
+  return true;
 }

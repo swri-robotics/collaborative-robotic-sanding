@@ -1,6 +1,8 @@
 #ifndef CRS_MOTION_PLANNING_PATH_PROCESSING_UTILS_H
 #define CRS_MOTION_PLANNING_PATH_PROCESSING_UTILS_H
 
+#include <rclcpp/rclcpp.hpp>
+
 #include <yaml-cpp/yaml.h>
 #include <yaml-cpp/node/iterator.h>
 #include <yaml-cpp/node/impl.h>
@@ -13,6 +15,9 @@
 #include <tf2/transform_storage.h>
 #include <tf2/transform_datatypes.h>
 #include <tf2_eigen/tf2_eigen.h>
+
+#include <rclcpp_action/rclcpp_action.hpp>
+#include <control_msgs/action/follow_joint_trajectory.hpp>
 
 #include <tesseract_common/types.h>
 
@@ -102,6 +107,15 @@ void addApproachAndRetreat(const geometry_msgs::msg::PoseArray& given_raster,
                            const double& approach_dist,
                            const double& retreat_dist,
                            geometry_msgs::msg::PoseArray& returned_raster);
+
+bool timeParameterizeTrajectories(const trajectory_msgs::msg::JointTrajectory& given_traj,
+                                  trajectory_msgs::msg::JointTrajectory& returned_traj,
+                                  const bool gazebo_time = false);
+
+bool execTrajectory(rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SharedPtr ac,
+                    const rclcpp::Logger& logger,
+                    const trajectory_msgs::msg::JointTrajectory& traj);
+
 }  // namespace crs_motion_planning
 
 #endif  // CRS_MOTION_PLANNING_PATH_PROCESSING_UTILS_H

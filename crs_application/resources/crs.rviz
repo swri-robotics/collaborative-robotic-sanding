@@ -44,7 +44,7 @@ Visualization Manager:
       Plane Cell Count: 10
       Reference Frame: <Fixed Frame>
       Value: true
-    - Alpha: 0.5
+    - Alpha: 1
       Class: rviz_default_plugins/RobotModel
       Collision Enabled: false
       Description File: ""
@@ -62,62 +62,77 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        base:
+        preview/base:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        base_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        camera_link_optical:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        ee_link:
+        preview/base_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        eoat_link:
+        preview/camera_link_optical:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        preview/ee_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        forearm_link:
+        preview/eoat_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        gazebo_camera_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        part:
+        preview/forearm_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        robot_stand:
+        preview/gazebo_camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        preview/part:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        sander_center_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        shoulder_link:
+        preview/robot_stand:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        tool0:
+        preview/sander_center_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        upper_arm_link:
+        preview/shoulder_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        preview/tool0:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        preview/upper_arm_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        preview/wrist_1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        preview/wrist_2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        preview/wrist_3_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -126,21 +141,6 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        wrist_1_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        wrist_2_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        wrist_3_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
       Name: RobotMotionPreview
       TF Prefix: ""
       Update Interval: 0
@@ -167,6 +167,38 @@ Visualization Manager:
           Value: false
         part:
           Value: false
+        preview/base:
+          Value: true
+        preview/base_link:
+          Value: true
+        preview/camera_link_optical:
+          Value: true
+        preview/ee_link:
+          Value: true
+        preview/eoat_link:
+          Value: true
+        preview/forearm_link:
+          Value: true
+        preview/gazebo_camera_link:
+          Value: true
+        preview/part:
+          Value: true
+        preview/robot_stand:
+          Value: true
+        preview/sander_center_link:
+          Value: true
+        preview/shoulder_link:
+          Value: true
+        preview/tool0:
+          Value: true
+        preview/upper_arm_link:
+          Value: true
+        preview/wrist_1_link:
+          Value: true
+        preview/wrist_2_link:
+          Value: true
+        preview/wrist_3_link:
+          Value: true
         robot_stand:
           Value: false
         sander_center_link:
@@ -208,6 +240,26 @@ Visualization Manager:
             {}
           part:
             {}
+          preview/robot_stand:
+            preview/base:
+              preview/base_link:
+                preview/shoulder_link:
+                  preview/upper_arm_link:
+                    preview/forearm_link:
+                      preview/wrist_1_link:
+                        preview/wrist_2_link:
+                          preview/wrist_3_link:
+                            preview/ee_link:
+                              {}
+                            preview/tool0:
+                              preview/eoat_link:
+                                preview/camera_link_optical:
+                                  preview/gazebo_camera_link:
+                                    {}
+                                preview/sander_center_link:
+                                  {}
+            preview/part:
+              {}
           robot_stand:
             {}
           sander_center_link:
@@ -230,37 +282,37 @@ Visualization Manager:
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        "": true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /original_raster_paths
+        Value: /crs/original_raster_paths
       Value: true
     - Class: rviz_default_plugins/MarkerArray
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        "": true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /fixed_raster_paths
+        Value: /crs/fixed_raster_paths
       Value: true
     - Class: rviz_default_plugins/Marker
       Enabled: true
       Name: Marker
       Namespaces:
-        "": true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
         History Policy: Keep Last
         Reliability Policy: Reliable
-        Value: /failed_vertices
+        Value: /crs/failed_vertices
       Value: true
     - Alpha: 1
       Autocompute Intensity Bounds: true
@@ -353,10 +405,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.46539875864982605
+      Pitch: 0.40039870142936707
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.6003984808921814
+      Yaw: 0.6453993320465088
     Saved: ~
 Window Geometry:
   Displays:

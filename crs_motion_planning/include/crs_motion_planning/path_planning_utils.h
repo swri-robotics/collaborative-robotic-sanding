@@ -58,6 +58,7 @@ struct trajoptSurfaceConfig
   trajopt::InitInfo::Type init_type = trajopt::InitInfo::GIVEN_TRAJ;
 
   double longest_valid_segment_fraction = 0.01;
+  double longest_valid_segment_length = 0.5;
 
   Eigen::VectorXd surface_coeffs;  // Defaults to 6 10s
 
@@ -81,6 +82,9 @@ struct omplConfig
   int max_solutions = 10;
 
   int n_output_states = 20;
+
+  double longest_valid_segment_fraction = 0.01;
+  double longest_valid_segment_length = 0.5;
 };
 
 struct trajoptFreespaceConfig
@@ -95,6 +99,7 @@ struct trajoptFreespaceConfig
   trajopt::InitInfo::Type init_type = trajopt::InitInfo::GIVEN_TRAJ;
 
   double longest_valid_segment_fraction = 0.01;
+  double longest_valid_segment_length = 0.5;
 
   tesseract_collision::ContactTestType contact_test_type = tesseract_collision::ContactTestType::CLOSEST;
 };
@@ -144,6 +149,9 @@ struct pathPlanningConfig
   bool trajopt_verbose_output = false;
 
   bool use_gazebo_sim_timing = false;
+
+  bool combine_strips = false;
+  bool global_descartes = true;
 };
 
 struct pathPlanningResults
@@ -174,7 +182,7 @@ struct pathPlanningResults
 class crsMotionPlanner
 {
 public:
-  crsMotionPlanner(pathPlanningConfig::Ptr config);
+  crsMotionPlanner(pathPlanningConfig::Ptr config, rclcpp::Logger logger);
   ~crsMotionPlanner() = default;
 
   void updateConfiguration(pathPlanningConfig::Ptr config);
@@ -239,8 +247,18 @@ public:
                              const tesseract_motion_planners::CartesianWaypoint::Ptr& end_pose,
                              trajectory_msgs::msg::JointTrajectory& joint_trajectory);
 
+  ///
+  /// \brief findClosestJointOrientation Finds the closest joint state given start pose at the end cartesian pose
+  /// \return success
+  ///
+  bool findClosestJointOrientation(const tesseract_motion_planners::JointWaypoint::Ptr& start_pose,
+                                   const tesseract_motion_planners::CartesianWaypoint::Ptr& end_pose,
+                                   tesseract_motion_planners::JointWaypoint::Ptr& returned_pose,
+                                   const double& axial_step = -1);
+
 protected:
   pathPlanningConfig::Ptr config_;
+  rclcpp::Logger logger_;
 };
 
 }  // namespace crs_motion_planning
