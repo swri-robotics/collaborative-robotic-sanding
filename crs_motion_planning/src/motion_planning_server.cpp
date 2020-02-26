@@ -45,6 +45,7 @@ static const std::string TOOL0_FRAME = "tool0_frame";
 static const std::string MANIPULATOR_GROUP = "manipulator_group";
 static const std::string NUM_FREEPSACE_STEPS = "num_steps";
 static const std::string MAX_JOINT_VELOCITY = "max_joint_velocity";
+static const std::string MAX_JOINT_ACCELERATION = "max_joint_acceleration";
 static const std::string MIN_RASTER_LENGTH = "min_raster_length";
 static const std::string GAZEBO_SIM_TIMING = "use_gazebo_simulation_time";
 static const std::string TRAJOPT_VERBOSE = "set_trajopt_verbose";
@@ -75,7 +76,8 @@ public:
     this->declare_parameter(param_names::TOOL0_FRAME, "tool0");
     this->declare_parameter(param_names::MANIPULATOR_GROUP, "manipulator");
     this->declare_parameter(param_names::NUM_FREEPSACE_STEPS, 20);
-    this->declare_parameter(param_names::MAX_JOINT_VELOCITY, 0.5);
+    this->declare_parameter(param_names::MAX_JOINT_VELOCITY, 0.2);
+    this->declare_parameter(param_names::MAX_JOINT_ACCELERATION, 0.5);
     this->declare_parameter(param_names::MIN_RASTER_LENGTH, 3);
     this->declare_parameter(param_names::GAZEBO_SIM_TIMING, false);
     this->declare_parameter(param_names::TRAJOPT_VERBOSE, false);
@@ -193,6 +195,8 @@ public:
     motion_planner_config_->tool0_frame = this->get_parameter(param_names::TOOL0_FRAME).as_string();
     motion_planner_config_->max_joint_vel =
         this->get_parameter(param_names::MAX_JOINT_VELOCITY).as_double();  // 5.0;//1.5;
+    motion_planner_config_->max_joint_acc =
+        this->get_parameter(param_names::MAX_JOINT_ACCELERATION).as_double();
     motion_planner_config_->minimum_raster_length = this->get_parameter(param_names::MIN_RASTER_LENGTH).as_int();
     motion_planner_config_->add_approach_and_retreat = true;
     motion_planner_config_->required_tool_vel = true;

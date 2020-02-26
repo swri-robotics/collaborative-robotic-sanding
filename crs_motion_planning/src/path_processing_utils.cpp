@@ -427,3 +427,77 @@ bool crs_motion_planning::execTrajectory(
   RCLCPP_INFO(logger, "Trajectory completed");
   return true;
 }
+
+bool crs_motion_planning::timeParameterizeFreespace(const trajectory_msgs::msg::JointTrajectory& given_traj,
+                                                    const double& max_joint_vel,
+                                                    const double& max_joint_acc,
+                                                    trajectory_msgs::msg::JointTrajectory& returned_traj)
+{
+    returned_traj.joint_names = given_traj.joint_names;
+    returned_traj.header = given_traj.header;
+
+    if (given_traj.points.size() < 2)
+    {
+        returned_traj.points = given_traj.points;
+        returned_traj.points.front().velocities = std::vector<std::double_t>(given_traj.points.front().positions.size(), 0.0);
+        returned_traj.points.front().accelerations = std::vector<std::double_t>(given_traj.points.front().positions.size(), 0.0);
+        return true;
+    }
+
+    std::vector<iterative_spline_parameterization::TrajectoryState> waypoints;
+    for (auto point : given_traj.points)
+    {
+        Eigen::Matrix<double, 6, 1>  joint_angles(point.positions.data());
+        waypoints.push_back(iterative_spline_parameterization::TrajectoryState(joint_angles, Eigen::Matrix<double, 6, 1>::Zero(), Eigen::Matrix<double, 6, 1>::Zero(), 0.0));
+    }
+
+    bool add_points = false;
+    if (waypoints.size() <= 3)
+        add_points = true;
+
+    iterative_spline_parameterization::IterativeSplineParameterization isp(add_points);
+    isp.computeTimeStamps(waypoints, max_joint_vel, max_joint_acc);
+
+    // Make sure not two adjacent points share the same timestep
+    for(size_t i = 0; i < (waypoints.size() - 1); i ++)
+    {
+        if((waypoints[i+1].time - waypoints[i].time) < 1e-8)
+        {
+            waypoints.erase(waypoints.begin()+i);
+            i--;
+        }
+    }
+
+    for (auto waypoint : waypoints)
+    {
+        trajectory_msgs::msg::JointTrajectoryPoint traj_point;
+        traj_point.time_from_start = rclcpp::Duration(std::chrono::duration<double>(waypoint.time));
+
+        traj_point.positions.resize(waypoint.positions.size());
+        Eigen::VectorXd::Map(&traj_point.positions[0], waypoint.positions.size()) = waypoint.positions;
+
+        traj_point.velocities.resize(waypoint.velocities.size());
+        Eigen::VectorXd::Map(&traj_point.velocities[0], waypoint.velocities.size()) = waypoint.velocities;
+
+        traj_point.accelerations.resize(waypoint.accelerations.size());
+        Eigen::VectorXd::Map(&traj_point.accelerations[0], waypoint.accelerations.size()) = waypoint.accelerations;
+
+        returned_traj.points.push_back(traj_point);
+    }
+
+    return true;
+}
+
+bool crs_motion_planning::timeParameterizeFreespace(const std::vector<trajectory_msgs::msg::JointTrajectory>& given_traj,
+                                                    const double& max_joint_vel,
+                                                    const double& max_joint_acc,
+                                                    std::vector<trajectory_msgs::msg::JointTrajectory>& returned_traj)
+{
+    for (auto traj : given_traj)
+    {
+        trajectory_msgs::msg::JointTrajectory curr_traj;
+        crs_motion_planning::timeParameterizeFreespace(traj, max_joint_vel, max_joint_acc, curr_traj);
+        returned_traj.push_back(curr_traj);
+    }
+    return true;
+}

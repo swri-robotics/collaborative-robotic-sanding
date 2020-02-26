@@ -48,6 +48,8 @@ find_package(tf2_geometry_msgs REQUIRED)
 
 find_package(yaml-cpp REQUIRED)
 
+find_package(iterative_spline_parameterization REQUIRED)
+
 add_library(${PROJECT_NAME}_path_processing_utils SHARED src/path_processing_utils.cpp)
 target_include_directories(${PROJECT_NAME}_path_processing_utils PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
@@ -71,6 +73,7 @@ target_link_libraries(${PROJECT_NAME}_path_processing_utils
   ${control_msgs_LIBRARIES}
   tesseract::tesseract_common
   Eigen3::Eigen
+  iterative_spline_parameterization::iterative_spline_parameterization
   )
 
 add_library(${PROJECT_NAME}_path_planning_utils SHARED src/path_planning_utils.cpp)

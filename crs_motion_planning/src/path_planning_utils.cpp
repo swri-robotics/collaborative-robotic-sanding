@@ -678,14 +678,20 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr& results)
 
     curr_joint_traj.header.frame_id = config_->world_frame;
     // Modify time
+    RCLCPP_INFO(logger_, "MODIFYING TRAJECTORY TIME OUTPUT");
     if (config_->use_gazebo_sim_timing)
     {
-      RCLCPP_INFO(logger_, "MODIFYING TRAJECTORY TIME OUTPUT");
       for (int i = 0; i < curr_joint_traj.points.size(); ++i)
       {
         curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.sec = 0;
         curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.nanosec = 1e8;
       }
+    }
+    else
+    {
+        trajectory_msgs::msg::JointTrajectory new_traj;
+        crs_motion_planning::timeParameterizeFreespace(curr_joint_traj, config_->max_joint_vel, config_->max_joint_acc, new_traj);
+        curr_joint_traj = new_traj;
     }
     RCLCPP_INFO(logger_, "STORING TRAJECTORIES");
     results->ompl_start_end_trajectories.push_back(ompl_joint_traj);
@@ -734,14 +740,20 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr& results)
 
     curr_joint_traj.header.frame_id = config_->world_frame;
     // Modify time
+    RCLCPP_INFO(logger_, "MODIFYING TRAJECTORY TIME OUTPUT");
     if (config_->use_gazebo_sim_timing)
     {
-      RCLCPP_INFO(logger_, "MODIFYING TRAJECTORY TIME OUTPUT");
       for (int i = 0; i < curr_joint_traj.points.size(); ++i)
       {
         curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.sec = 0;
         curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.nanosec = 1e8;
       }
+    }
+    else
+    {
+        trajectory_msgs::msg::JointTrajectory new_traj;
+        crs_motion_planning::timeParameterizeFreespace(curr_joint_traj, config_->max_joint_vel, config_->max_joint_acc, new_traj);
+        curr_joint_traj = new_traj;
     }
     RCLCPP_INFO(logger_, "STORING FREESPACE JOINT TRAJECTORIES");
     results->ompl_trajectories.push_back(ompl_joint_traj);
@@ -790,14 +802,20 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr& results)
     }
     curr_joint_traj.header.frame_id = config_->world_frame;
     // Modify time
+    RCLCPP_INFO(logger_, "MODIFYING TRAJECTORY TIME OUTPUT");
     if (config_->use_gazebo_sim_timing)
     {
-      RCLCPP_INFO(logger_, "MODIFYING TRAJECTORY TIME OUTPUT");
       for (int i = 0; i < curr_joint_traj.points.size(); ++i)
       {
         curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.sec = 0;
         curr_joint_traj.points[static_cast<size_t>(i)].time_from_start.nanosec = 1e8;
       }
+    }
+    else
+    {
+        trajectory_msgs::msg::JointTrajectory new_traj;
+        crs_motion_planning::timeParameterizeFreespace(curr_joint_traj, config_->max_joint_vel, config_->max_joint_acc, new_traj);
+        curr_joint_traj = new_traj;
     }
     RCLCPP_INFO(logger_, "STORING TRAJECTORIES");
     results->ompl_start_end_trajectories.push_back(ompl_joint_traj);
@@ -844,22 +862,27 @@ bool crsMotionPlanner::generateFreespacePlan(const tesseract_motion_planners::Jo
     {
       return false;
     }
-
-    joint_trajectory.header.frame_id = config_->world_frame;
-    // Modify time
-    if (config_->use_gazebo_sim_timing)
-    {
-      RCLCPP_INFO(logger_, "MODIFYING TRAJECTORY TIME OUTPUT");
-      for (int i = 0; i < joint_trajectory.points.size(); ++i)
-      {
-        joint_trajectory.points[static_cast<size_t>(i)].time_from_start.sec = 0;
-        joint_trajectory.points[static_cast<size_t>(i)].time_from_start.nanosec = 1e8;
-      }
-    }
   }
   else
   {
     joint_trajectory = ompl_joint_traj;
+  }
+  joint_trajectory.header.frame_id = config_->world_frame;
+  // Modify time
+  if (config_->use_gazebo_sim_timing)
+  {
+    RCLCPP_INFO(logger_, "MODIFYING TRAJECTORY TIME OUTPUT");
+    for (int i = 0; i < joint_trajectory.points.size(); ++i)
+    {
+      joint_trajectory.points[static_cast<size_t>(i)].time_from_start.sec = 0;
+      joint_trajectory.points[static_cast<size_t>(i)].time_from_start.nanosec = 1e8;
+    }
+  }
+  else
+  {
+      trajectory_msgs::msg::JointTrajectory new_traj;
+      crs_motion_planning::timeParameterizeFreespace(joint_trajectory, config_->max_joint_vel, config_->max_joint_acc, new_traj);
+      joint_trajectory = new_traj;
   }
 
   return true;

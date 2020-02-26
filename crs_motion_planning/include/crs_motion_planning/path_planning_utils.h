@@ -143,6 +143,7 @@ struct pathPlanningConfig
   bool required_tool_vel = false;
   double tool_speed = 0.03;    // m/s
   double max_joint_vel = 0.2;  // rad/s
+  double max_joint_acc = 0.5;  //rad/s^2
 
   size_t minimum_raster_length = 2;
 
