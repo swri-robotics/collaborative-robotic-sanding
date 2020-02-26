@@ -195,8 +195,7 @@ public:
     motion_planner_config_->tool0_frame = this->get_parameter(param_names::TOOL0_FRAME).as_string();
     motion_planner_config_->max_joint_vel =
         this->get_parameter(param_names::MAX_JOINT_VELOCITY).as_double();  // 5.0;//1.5;
-    motion_planner_config_->max_joint_acc =
-        this->get_parameter(param_names::MAX_JOINT_ACCELERATION).as_double();
+    motion_planner_config_->max_joint_acc = this->get_parameter(param_names::MAX_JOINT_ACCELERATION).as_double();
     motion_planner_config_->minimum_raster_length = this->get_parameter(param_names::MIN_RASTER_LENGTH).as_int();
     motion_planner_config_->add_approach_and_retreat = true;
     motion_planner_config_->required_tool_vel = true;

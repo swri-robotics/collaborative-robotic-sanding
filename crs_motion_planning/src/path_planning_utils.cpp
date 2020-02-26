@@ -689,9 +689,10 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr& results)
     }
     else
     {
-        trajectory_msgs::msg::JointTrajectory new_traj;
-        crs_motion_planning::timeParameterizeFreespace(curr_joint_traj, config_->max_joint_vel, config_->max_joint_acc, new_traj);
-        curr_joint_traj = new_traj;
+      trajectory_msgs::msg::JointTrajectory new_traj;
+      crs_motion_planning::timeParameterizeFreespace(
+          curr_joint_traj, config_->max_joint_vel, config_->max_joint_acc, new_traj);
+      curr_joint_traj = new_traj;
     }
     RCLCPP_INFO(logger_, "STORING TRAJECTORIES");
     results->ompl_start_end_trajectories.push_back(ompl_joint_traj);
@@ -751,9 +752,10 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr& results)
     }
     else
     {
-        trajectory_msgs::msg::JointTrajectory new_traj;
-        crs_motion_planning::timeParameterizeFreespace(curr_joint_traj, config_->max_joint_vel, config_->max_joint_acc, new_traj);
-        curr_joint_traj = new_traj;
+      trajectory_msgs::msg::JointTrajectory new_traj;
+      crs_motion_planning::timeParameterizeFreespace(
+          curr_joint_traj, config_->max_joint_vel, config_->max_joint_acc, new_traj);
+      curr_joint_traj = new_traj;
     }
     RCLCPP_INFO(logger_, "STORING FREESPACE JOINT TRAJECTORIES");
     results->ompl_trajectories.push_back(ompl_joint_traj);
@@ -813,9 +815,10 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr& results)
     }
     else
     {
-        trajectory_msgs::msg::JointTrajectory new_traj;
-        crs_motion_planning::timeParameterizeFreespace(curr_joint_traj, config_->max_joint_vel, config_->max_joint_acc, new_traj);
-        curr_joint_traj = new_traj;
+      trajectory_msgs::msg::JointTrajectory new_traj;
+      crs_motion_planning::timeParameterizeFreespace(
+          curr_joint_traj, config_->max_joint_vel, config_->max_joint_acc, new_traj);
+      curr_joint_traj = new_traj;
     }
     RCLCPP_INFO(logger_, "STORING TRAJECTORIES");
     results->ompl_start_end_trajectories.push_back(ompl_joint_traj);
@@ -880,9 +883,10 @@ bool crsMotionPlanner::generateFreespacePlan(const tesseract_motion_planners::Jo
   }
   else
   {
-      trajectory_msgs::msg::JointTrajectory new_traj;
-      crs_motion_planning::timeParameterizeFreespace(joint_trajectory, config_->max_joint_vel, config_->max_joint_acc, new_traj);
-      joint_trajectory = new_traj;
+    trajectory_msgs::msg::JointTrajectory new_traj;
+    crs_motion_planning::timeParameterizeFreespace(
+        joint_trajectory, config_->max_joint_vel, config_->max_joint_acc, new_traj);
+    joint_trajectory = new_traj;
   }
 
   return true;
