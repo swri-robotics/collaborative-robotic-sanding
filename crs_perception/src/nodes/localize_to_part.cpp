@@ -2,9 +2,13 @@
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl/registration/icp.h>
+#include <pcl/common/transforms.h>
 #include <pcl/conversions.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include <tf2/convert.h>
+#include <tf2_eigen/tf2_eigen.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_ros/buffer.h>
 
 #include <geometry_msgs/msg/transform_stamped.hpp>
 #include <crs_msgs/srv/load_part.hpp>
@@ -16,7 +20,12 @@ namespace crs_perception
 class LocalizeToPart : public rclcpp::Node
 {
 public:
-  LocalizeToPart(const rclcpp::NodeOptions& options) : rclcpp::Node("localize_to_part", options), part_loaded_(false)
+  LocalizeToPart(const rclcpp::NodeOptions& options)
+    : Node("localize_to_part", options)
+    , part_loaded_(false)
+    , world_frame_("world")
+    , clock_(std::make_shared<rclcpp::Clock>(RCL_ROS_TIME))
+    , tf_buffer_(clock_)
   {
     part_point_cloud_ = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
 
@@ -51,7 +60,12 @@ private:
   rclcpp::Service<crs_msgs::srv::LoadPart>::SharedPtr load_part_service_;
   rclcpp::Service<crs_msgs::srv::LocalizeToPart>::SharedPtr localize_to_part_service_;
 
+  std::shared_ptr<rclcpp::Node> node_;
   bool part_loaded_;
+  std::string world_frame_;
+  rclcpp::Clock::SharedPtr clock_;
+  tf2_ros::Buffer tf_buffer_;
+
 
   pcl::PointCloud<pcl::PointXYZ>::Ptr part_point_cloud_;
 
@@ -79,22 +93,45 @@ private:
                             const std::shared_ptr<crs_msgs::srv::LocalizeToPart::Response> response)
   {
     (void)request_header;
+    RCLCPP_INFO(node_->get_logger(), "Test 1 ba");
     if (part_loaded_)
     {
       pcl::PointCloud<pcl::PointXYZ>::Ptr combined_point_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
+      RCLCPP_INFO(node_->get_logger(), "Test 1 a");
       for (auto& point_cloud_msg : request->point_clouds)
       {
+      RCLCPP_INFO(node_->get_logger(), "Test 2 a");
+        geometry_msgs::msg::TransformStamped transform;
+        try
+        {
+          transform = tf_buffer_.lookupTransform(world_frame_, point_cloud_msg.header.frame_id, point_cloud_msg.header.stamp);
+        }
+        catch (tf2::TransformException ex)
+        {
+          RCLCPP_ERROR(get_logger(), "%s", ex.what());
+          response->success = false;
+          response->error = "Failed to transform point cloud to " + world_frame_ + " frame";
+          return;
+        }
+
         pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
+        pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
 
         pcl::fromROSMsg(point_cloud_msg, *point_cloud);
-        *combined_point_cloud += *point_cloud;
+        pcl::transformPointCloud(*point_cloud, *transformed_cloud, 
+                                 tf2::transformToEigen(transform).matrix());
+
+        *combined_point_cloud += *transformed_cloud;
       }
+      RCLCPP_INFO(node_->get_logger(), "Test 3 a");
 
       pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
       icp.setInputSource(combined_point_cloud);
       icp.setInputTarget(part_point_cloud_);
+      RCLCPP_INFO(node_->get_logger(), "Test 4 a");
       pcl::PointCloud<pcl::PointXYZ> final;
       icp.align(final);
+      RCLCPP_INFO(node_->get_logger(), "Test 5 a");
       // todo(ayoungs): use convergence and fitness score?
       // std::cout << "has converged:" << icp.hasConverged() << " score: " <<
       // icp.getFitnessScore() << std::endl;
@@ -115,7 +152,7 @@ private:
     }
     else
     {
-      response->success = true;
+      response->success = false;
       response->error = "Missing part. Please load a part first.";
     }
   }
