@@ -24,6 +24,8 @@
 #include <Eigen/Eigen>
 #include <vector>
 
+#include <iterative_spline_parameterization/iterative_spline_parameterization.h>
+
 namespace crs_motion_planning
 {
 ///
@@ -115,6 +117,16 @@ bool timeParameterizeTrajectories(const trajectory_msgs::msg::JointTrajectory& g
 bool execTrajectory(rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SharedPtr ac,
                     const rclcpp::Logger& logger,
                     const trajectory_msgs::msg::JointTrajectory& traj);
+
+bool timeParameterizeFreespace(const trajectory_msgs::msg::JointTrajectory& given_traj,
+                               const double& max_joint_vel,
+                               const double& max_joint_acc,
+                               trajectory_msgs::msg::JointTrajectory& returned_traj);
+
+bool timeParameterizeFreespace(const std::vector<trajectory_msgs::msg::JointTrajectory>& given_traj,
+                               const double& max_joint_vel,
+                               const double& max_joint_acc,
+                               std::vector<trajectory_msgs::msg::JointTrajectory>& returned_traj);
 
 }  // namespace crs_motion_planning
 
