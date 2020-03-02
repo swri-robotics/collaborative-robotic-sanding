@@ -1,4 +1,4 @@
-#include <vtkOBJReader.h>
+#include <vtkSTLReader.h>
 #include <vtkSmartPointer.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>

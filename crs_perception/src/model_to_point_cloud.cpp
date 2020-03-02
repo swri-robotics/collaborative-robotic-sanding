@@ -13,7 +13,7 @@ bool ModelToPointCloud::convertToPCL(pcl::PointCloud<pcl::PointXYZ>::Ptr point_c
   // todo(ayoungs): handle multiple file formats?
   // todo(ayoungs): handle error for bad file
   vtkSmartPointer<vtkPolyData> polydata1 = vtkSmartPointer<vtkPolyData>::New();
-  vtkSmartPointer<vtkOBJReader> readerQuery = vtkSmartPointer<vtkOBJReader>::New();
+  vtkSmartPointer<vtkSTLReader> readerQuery = vtkSmartPointer<vtkSTLReader>::New();
   readerQuery->SetFileName(file_path_.c_str());
   readerQuery->Update();
   polydata1 = readerQuery->GetOutput();
