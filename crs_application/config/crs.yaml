@@ -1,0 +1,33 @@
+crs:
+  general: {}
+  motion_planning:
+    home_position:
+      joint_names: []
+      joint_position: []
+    process_path:
+      tool_speed: 0.05
+      offset_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # [px, py, pz, rx, ry, rz] relative to default tool
+      retreat_dist: 0.03
+      approac_dist: 0.03
+      tool_frame: "tool0"
+    media_change:
+      change_time: 300.0 # seconds
+      change_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # [px, py, pz, rx, ry, rz] in world coordinates
+    preview:
+      time_scaling: 1.0
+  scan_acquisition: 
+    scan_poses:
+      - pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]  # radians
+      - pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      - pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      - pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      - pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    tool_frame: "camera"
+    skip_on_failure: true
+  process_execution:
+    time_tolerance: 5.0 # seconds
+    joint_tolerance: [0.035, 0.035, 0.035, 0.035, 0.035, 0.035] # radians
+  part_registration:
+    part_file: ""      # relative to known data directory
+    toolpath_file: ""  # relative to known data directory
+  part_rework: {}

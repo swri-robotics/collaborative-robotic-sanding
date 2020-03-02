@@ -158,23 +158,48 @@ common::ActionResult CRSExecutive::configure()
   if (!res.get()->success)
   {
     RCLCPP_ERROR(
-        node_->get_logger(), "%s configution failed with err msg: ", node_->get_name(), res.get()->err_msg.c_str());
+        node_->get_logger(), "%s configuration service failed with err msg: ", node_->get_name(), res.get()->err_msg.c_str());
     return false;
   }
 
   process_config_ = res.get()->config;
-  RCLCPP_ERROR(node_->get_logger(), "%s Got Configuration", node_->get_name());
-  return configureManagers();
+  RCLCPP_INFO(node_->get_logger(), "%s Got Configuration", node_->get_name());
+
+  // parsing
+  static const std::string CRS_YAML_ELEMENT = "crs";
+  YAML::Node config = YAML::Load(process_config_.yaml_config);
+  YAML::Node crs_config = config[CRS_YAML_ELEMENT];
+  if(!crs_config)
+  {
+    common::ActionResult result;
+    result.err_msg = boost::str(boost::format("Did not find the '%s' element in the yaml configuration") % CRS_YAML_ELEMENT);
+    result.succeeded = false;
+    RCLCPP_ERROR(node_->get_logger(),"%s",result.err_msg.c_str());
+    return result;
+  }
+
+  return configureManagers(crs_config);
 }
 
-bool CRSExecutive::configureManagers()
+bool CRSExecutive::configureManagers(YAML::Node& node)
 {
-  // TODO: populate each config structure from the data in process_config_
+  using namespace config;
 
-  return scan_acqt_mngr_->configure(config::ScanAcquisitionConfig{}) &&
-         motion_planning_mngr_->configure(config::MotionPlanningConfig{}) &&
-         part_regt_mngr_->configure(config::PartRegistrationConfig{}) &&
-         process_exec_mngr_->configure(config::ProcessExecutionConfig{}) &&
+  std::string err_msg;
+  boost::optional<ScanAcquisitionConfig> sc_config = config::parse<ScanAcquisitionConfig>(node, err_msg);
+  boost::optional<MotionPlanningConfig> mp_config = sc_config ? config::parse<MotionPlanningConfig>(node, err_msg) : boost::none;
+  boost::optional<PartRegistrationConfig> pr_config = mp_config ? config::parse<PartRegistrationConfig>(node, err_msg) : boost::none;
+  boost::optional<ProcessExecutionConfig> pe_config = pr_config ? config::parse<ProcessExecutionConfig>(node, err_msg) : boost::none;
+  if(!sc_config || !mp_config || !pr_config || !pe_config)
+  {
+    RCLCPP_ERROR(node_->get_logger(),"Failed to parse configurations from yaml, err msg: %s", err_msg.c_str());
+    return false;
+  }
+
+  return scan_acqt_mngr_->configure(sc_config.get()) &&
+         motion_planning_mngr_->configure(mp_config.get()) &&
+         part_regt_mngr_->configure(pr_config.get()) &&
+         process_exec_mngr_->configure(pe_config.get()) &&
          part_rework_mngr_->configure(config::PartReworkConfig{});
 }
 

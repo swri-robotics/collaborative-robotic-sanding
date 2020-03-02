@@ -46,6 +46,7 @@
 #include <scxml_core/state_machine.h>
 #include <QObject>
 
+#include "crs_application/common/config.h"
 #include "crs_application/task_managers/motion_planning_manager.h"
 #include "crs_application/task_managers/part_registration_manager.h"
 #include "crs_application/task_managers/part_rework_manager.h"
@@ -101,7 +102,7 @@ protected:
 
   // support methods
   bool addStateCallbacks(const std::map<std::string, StateCallbackInfo>& st_callbacks_map);
-  bool configureManagers();
+  bool configureManagers(YAML::Node& node);
 
   std::shared_ptr<scxml_core::StateMachine> sm_;
   std::string current_state_;
