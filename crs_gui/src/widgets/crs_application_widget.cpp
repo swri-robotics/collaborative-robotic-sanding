@@ -169,6 +169,7 @@ void CRSApplicationWidget::onPartPathSelected(const std::string selected_part, c
 
     RCLCPP_WARN(GUI_LOGGER,"config file '%s' not found, copying default '%s'", config_file.c_str(),
                 default_config_path_.c_str());
+    fs::create_directories(fs::path(config_file).parent_path());
     fs::copy(fs::path(default_config_path_), fs::path(config_file));
   }
 
