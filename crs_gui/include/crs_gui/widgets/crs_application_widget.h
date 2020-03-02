@@ -19,6 +19,10 @@
 
 #include <QWidget>
 
+#include <yaml-cpp/yaml.h>
+#include <yaml-cpp/node/node.h>
+#include <yaml-cpp/emitter.h>
+
 #include <rclcpp/rclcpp.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 #include <std_msgs/msg/string.hpp>
@@ -74,6 +78,16 @@ protected:
   visualization_msgs::msg::MarkerArray current_toolpath_marker_;
   rclcpp::TimerBase::SharedPtr toolpath_marker_timer_;
   void toolpathMarkerTimerCb();
+
+  std::string default_config_path_;
+  std::string config_file_path_;
+  std::string toolpath_file_;
+  std::string cad_part_file_;
+  YAML::Node config_node_;
+  bool loadConfig(const std::string& config_file);
+  bool updateConfig();
+  bool saveConfig();
+
 
   visualization_msgs::msg::MarkerArray delete_all_marker_;
 
