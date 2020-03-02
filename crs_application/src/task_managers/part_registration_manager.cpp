@@ -48,10 +48,8 @@ PartRegistrationManager::~PartRegistrationManager() {}
 common::ActionResult PartRegistrationManager::init()
 {
   // todo(ayoungs): wait on service?
-  load_part_client_ = node_->create_client<crs_msgs::srv::LoadPart>("load_part");
-  localize_to_part_client_ = node_->create_client<crs_msgs::srv::LocalizeToPart>("localize_to_part");
-
-  node_->get_parameter("part_file", part_file_);
+  load_part_client_ = node_->create_client<crs_msgs::srv::LoadPart>("/crs/load_part");
+  localize_to_part_client_ = node_->create_client<crs_msgs::srv::LocalizeToPart>("/crs/localize_to_part");
 
   return true;
 }
@@ -59,9 +57,10 @@ common::ActionResult PartRegistrationManager::init()
 common::ActionResult PartRegistrationManager::configure(const PartRegistrationConfig& config)
 {
   auto load_part_request = std::make_shared<crs_msgs::srv::LoadPart::Request>();
-  load_part_request->path_to_part = part_file_;
+  load_part_request->path_to_part = "/home/ayoungs/workspaces/crs/src/collaborative-robotic-sanding/crs_support/meshes/Parts/visual/part1_ch.stl";
 
   auto result_future = load_part_client_->async_send_request(load_part_request);
+    RCLCPP_ERROR(node_->get_logger(), "Load Part test");
   if (rclcpp::spin_until_future_complete(node_, result_future) != rclcpp::executor::FutureReturnCode::SUCCESS)
   {
     RCLCPP_ERROR(node_->get_logger(), "Load Part service call failed");
@@ -75,6 +74,7 @@ common::ActionResult PartRegistrationManager::configure(const PartRegistrationCo
     return false;
   }
 
+    RCLCPP_ERROR(node_->get_logger(), "Load Part success");
   return true;
 }
 
@@ -92,18 +92,24 @@ common::ActionResult PartRegistrationManager::setInput(const datatypes::ScanAcqu
 
 common::ActionResult PartRegistrationManager::computeTransform()
 {
+  RCLCPP_INFO(node_->get_logger(), "Test 1");
   // todo(ayoungs) get vector of point clouds from scan_acquisition_manager
   auto localize_to_part_request = std::make_shared<crs_msgs::srv::LocalizeToPart::Request>();
+  RCLCPP_INFO(node_->get_logger(), "Test 2");
   localize_to_part_request->point_clouds = std::vector<sensor_msgs::msg::PointCloud2>();
+  RCLCPP_INFO(node_->get_logger(), "Test 3");
 
   auto localize_result_future = localize_to_part_client_->async_send_request(localize_to_part_request);
+  RCLCPP_INFO(node_->get_logger(), "Test 4");
   if (rclcpp::spin_until_future_complete(node_, localize_result_future) != rclcpp::executor::FutureReturnCode::SUCCESS)
   {
+    RCLCPP_INFO(node_->get_logger(), "Test 5");
     RCLCPP_ERROR(node_->get_logger(), "Localize to Part service call failed");
     return false;
   }
   auto localize_result = localize_result_future.get();
   // todo(ayoungs) save off transform
+    RCLCPP_INFO(node_->get_logger(), "Test 6");
   return true;
 }
 

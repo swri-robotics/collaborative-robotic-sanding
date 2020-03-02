@@ -34,7 +34,6 @@
  */
 
 #include <boost/format.hpp>
-#include <tf2/convert.h>
 #include "crs_application/task_managers/scan_acquisition_manager.h"
 
 static const double WAIT_FOR_SERVICE_PERIOD = 10.0;
@@ -51,12 +50,9 @@ ScanAcquisitionManager::ScanAcquisitionManager(std::shared_ptr<rclcpp::Node> nod
   : node_(node)
   , scan_poses_(std::vector<geometry_msgs::msg::Transform>())
   , tool_frame_("")
-  , world_frame_("world")
   , max_time_since_last_point_cloud_(0.1)
   , point_clouds_(std::vector<sensor_msgs::msg::PointCloud2>())
   , scan_index_(0)
-  , clock_(std::make_shared<rclcpp::Clock>(RCL_ROS_TIME))
-  , tf_buffer_(clock_)
 {
 }
 
@@ -188,32 +184,13 @@ common::ActionResult ScanAcquisitionManager::capture()
   // TODO(ayoungs): transform point cloud
 
   // TODO asses if the logic below is still needed
-  RCLCPP_ERROR(node_->get_logger(), "here 1");
   if (node_->now() - curr_point_cloud_.header.stamp >= rclcpp::Duration(max_time_since_last_point_cloud_))
   {
-  RCLCPP_ERROR(node_->get_logger(), "here 2");
-
-
-    geometry_msgs::msg::TransformStamped transform;
-    try
-    {
-      transform = tf_buffer_.lookupTransform(world_frame_, curr_point_cloud_.header.frame_id, tf2::TimePointZero);
-    }
-    catch (tf2::TransformException ex)
-    {
-      RCLCPP_ERROR(node_->get_logger(), "%s", ex.what());
-      return false;
-    }
-
-    sensor_msgs::msg::PointCloud2 transformed_cloud;
-    tf2::doTransform(curr_point_cloud_, transformed_cloud, transform);
-
     point_clouds_.push_back(curr_point_cloud_);
     return true;
   }
   else
   {
-  RCLCPP_ERROR(node_->get_logger(), "here 3");
     return false;
   }
 }
