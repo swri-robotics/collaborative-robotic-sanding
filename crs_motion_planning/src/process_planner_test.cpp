@@ -67,7 +67,7 @@ public:
         std::bind(&ProcessPlannerTestServer::testPartLoader, this, std::placeholders::_1, std::placeholders::_2));
 
     part_filepath_ = ament_index_cpp::get_package_share_directory("crs_support") + "/meshes/Parts/visual/"
-                                                                                       "part1_ch.stl";
+                                                                                   "part1_ch.stl";
     // waiting for server
     if (!trajectory_exec_client_->wait_for_action_server(std::chrono::duration<double>(WAIT_SERVER_TIMEOUT)))
     {
@@ -216,22 +216,21 @@ private:
   void testPartLoader(std::shared_ptr<std_srvs::srv::Trigger::Request> request,
                       std::shared_ptr<std_srvs::srv::Trigger::Response> response)
   {
-      geometry_msgs::msg::Pose part_pose;
-      part_pose.position.x = -0.439;
-      part_pose.position.y = -0.14;
-      part_pose.position.z = 1.1;
+    geometry_msgs::msg::Pose part_pose;
+    part_pose.position.x = -0.439;
+    part_pose.position.y = -0.14;
+    part_pose.position.z = 1.1;
 
-      part_pose.orientation.x = 0.5;
-      part_pose.orientation.y = -0.5;
-      part_pose.orientation.z = 0.5;
-      part_pose.orientation.w = 0.5;
+    part_pose.orientation.x = 0.5;
+    part_pose.orientation.y = -0.5;
+    part_pose.orientation.z = 0.5;
+    part_pose.orientation.w = 0.5;
 
-      auto load_part_request = std::make_shared<crs_msgs::srv::LoadPart::Request>();
-      load_part_request->path_to_part = part_filepath_;
-      load_part_request->part_origin = part_pose;
+    auto load_part_request = std::make_shared<crs_msgs::srv::LoadPart::Request>();
+    load_part_request->path_to_part = part_filepath_;
+    load_part_request->part_origin = part_pose;
 
-      part_loader_client_->async_send_request(load_part_request);
-
+    part_loader_client_->async_send_request(load_part_request);
   }
 
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr test_process_planner_service_;
