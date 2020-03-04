@@ -374,7 +374,7 @@
         <parent link="${prefix}eoat_link"/>
         <child link="${prefix}sander_center_link" />
     </joint>
-    <link name="${prefix}part" >
+<!--    <link name="${prefix}part" >
         <visual>
             <origin rpy="0 0 0" xyz="0 0 0" />
             <geometry>
@@ -384,18 +384,17 @@
                 <color rgba="0.0 0.7 0.0 1.0" />
             </material>
         </visual>
-<!--        <collision>
+        <collision>
             <geometry>
                 <mesh filename="package://crs_support/meshes/Parts/collision/part1_ch.stl" />
             </geometry>
-        </collision>-->
+        </collision>
     </link>
     <joint name="${prefix}robot_stand_to_part_joint" type= "fixed">
         <origin xyz="-0.439 -1.1 -0.14" rpy= "-3.1416 0.0 -1.571"/>
-<!--        <origin xyz="-0.439 -1.2 -0.14" rpy= "-3.1416 0.0 -1.571"/>-->
         <parent link="${prefix}robot_stand"/>
         <child link="${prefix}part"/>
-    </joint>
+    </joint>-->
 
     <transmission name="trans_shoulder_pan_joint">
         <type>transmission_interface/SimpleTransmission</type>
