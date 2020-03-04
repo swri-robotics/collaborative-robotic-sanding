@@ -45,9 +45,9 @@ public:
     if (enable_debug_visualizations_)
     {
       // todo(ayoungs: investigate if this behaves like a latched topic
-      loaded_part_pc_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("loaded_part_point_cloud", 1);
-      tf_loaded_part_pc_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("tf_loaded_part_point_cloud", 1);
-      combined_pc_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("combined_scanned_point_clouds", 1);
+      loaded_part_pc_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("loaded_part_point_cloud", rclcpp::QoS(1).transient_local());
+      tf_loaded_part_pc_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("tf_loaded_part_point_cloud", rclcpp::QoS(1).transient_local());
+      combined_pc_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("combined_scanned_point_clouds", rclcpp::QoS(1).transient_local());
     }
 
     // services
