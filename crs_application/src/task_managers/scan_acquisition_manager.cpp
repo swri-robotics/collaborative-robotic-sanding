@@ -237,13 +237,13 @@ common::ActionResult ScanAcquisitionManager::checkPreReqs()
   tf.rotation.y = -0.2422523;
   tf.rotation.z = 0.3;
   scan_poses_.push_back(tf);
-
-  tf.translation.x = 0.0;
-  tf.translation.y = -0.53;
+tf
+  .translation.x = 0.0;
+  tf.translation.y = 0.0;
   tf.translation.z = 1.7;
   tf.rotation.w = -0.0483246;
   tf.rotation.x = -0.9690091;
-  tf.rotation.y = 0.0;
+  tf.rotation.y = -0.2422523;
   tf.rotation.z = 0.3;
   scan_poses_.push_back(tf);
 
