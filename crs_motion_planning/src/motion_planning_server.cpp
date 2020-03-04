@@ -10,6 +10,11 @@
 
 #include <crs_msgs/srv/call_freespace_motion.hpp>
 #include <crs_msgs/srv/plan_process_motions.hpp>
+#include <crs_msgs/srv/load_part.hpp>
+
+#include <tesseract_msgs/srv/modify_environment.hpp>
+#include <tesseract_msgs/msg/tesseract_state.hpp>
+#include <tesseract_geometry/mesh_parser.h>
 
 #include <tf2/transform_storage.h>
 #include <tf2/transform_datatypes.h>
@@ -33,6 +38,15 @@ static const std::string FINAL_RASTER_PATHS_TOPIC = "fixed_raster_paths";
 static const std::string UNREACHABLE_VERTICES_TOPIC = "failed_vertices";
 static const std::string FOLLOW_JOINT_TRAJECTORY_ACTION = "follow_joint_trajectory";
 
+static const std::string LOAD_PART_SERVICE = "load_part_tesseract_env";
+static const std::string REMOVE_PART_SERVICE = "remove_part_tesseract_env";
+static const std::string MODIFY_ENVIRONMENT_SERVICE_NAME = "modify_tesseract";
+static const std::string ENVIRONMENT_UPDATE_TOPIC_NAME = "monitored_tesseract";
+static const std::string ENVIRONMENT_ID = "crs";
+
+static const std::string LOADED_PART_LINK_NAME = "part";
+static const std::string LOADED_PART_JOINT_NAME = "world_to_part_joint";
+
 namespace param_names
 {
 static const std::string URDF_PATH = "urdf_path";
@@ -50,6 +64,7 @@ static const std::string MIN_RASTER_LENGTH = "min_raster_length";
 static const std::string GAZEBO_SIM_TIMING = "use_gazebo_simulation_time";
 static const std::string TRAJOPT_VERBOSE = "set_trajopt_verbose";
 }  // namespace param_names
+
 
 class MotionPlanningServer : public rclcpp::Node
 {
@@ -111,6 +126,16 @@ public:
                                                                                   FOLLOW_JOINT_TRAJECTORY_ACTION,
                                                                                   trajectory_exec_client_cbgroup_);
 
+    load_part_service_ = this->create_service<crs_msgs::srv::LoadPart>(
+        LOAD_PART_SERVICE,
+        std::bind(&MotionPlanningServer::loadPartTesseract, this, std::placeholders::_1, std::placeholders::_2));
+    remove_part_service_ = this->create_service<std_srvs::srv::Trigger>(
+        REMOVE_PART_SERVICE,
+        std::bind(&MotionPlanningServer::removePartTesseract, this, std::placeholders::_1, std::placeholders::_2));
+    modify_env_client_ = this->create_client<tesseract_msgs::srv::ModifyEnvironment>(MODIFY_ENVIRONMENT_SERVICE_NAME);
+    env_state_sub_ = this->create_subscription<tesseract_msgs::msg::TesseractState>(
+        ENVIRONMENT_UPDATE_TOPIC_NAME, 10, std::bind(&MotionPlanningServer::envCallback, this, std::placeholders::_1));
+
     // openning files
     std::string urdf_path, srdf_path;
     urdf_path = this->get_parameter(param_names::URDF_PATH).as_string();
@@ -132,9 +157,9 @@ public:
     const std::string urdf_content = file_string_contents[0];
     const std::string srdf_content = file_string_contents[1];
 
-    tesseract::Tesseract::Ptr tesseract_local = std::make_shared<tesseract::Tesseract>();
+    tesseract_local_ = std::make_shared<tesseract::Tesseract>();
     tesseract_scene_graph::ResourceLocator::Ptr locator = std::make_shared<tesseract_rosutils::ROSResourceLocator>();
-    tesseract_local->init(urdf_content, srdf_content, locator);
+    tesseract_local_->init(urdf_content, srdf_content, locator);
 
     // Set up planning config variable
     crs_motion_planning::descartesConfig descartes_config;
@@ -168,23 +193,21 @@ public:
     crs_motion_planning::trajoptFreespaceConfig trajopt_freespace_config;
     tesseract_motion_planners::CollisionCostConfig coll_cost_config_fs;
     coll_cost_config_fs.enabled = true;
-    coll_cost_config_fs.buffer_margin = 0.05;
+    coll_cost_config_fs.buffer_margin = 0.02;
     coll_cost_config_fs.coeff = 15;
     tesseract_motion_planners::CollisionConstraintConfig coll_cnt_config_fs;
     coll_cnt_config_fs.enabled = true;
     coll_cnt_config_fs.safety_margin = 0.005;
-    //    coll_cnt_config_fs.type = trajopt::CollisionEvaluatorType::DISCRETE_CONTINUOUS;
     trajopt_freespace_config.coll_cst_cfg = coll_cost_config_fs;
     trajopt_freespace_config.coll_cnt_cfg = coll_cnt_config_fs;
-    trajopt_freespace_config.longest_valid_segment_fraction = 0.001;
+    trajopt_freespace_config.longest_valid_segment_length = 0.01;
     trajopt_freespace_config.contact_test_type = tesseract_collision::ContactTestType::ALL;
-    //    trajopt_freespace_config.contact_test_type = tesseract_collision::ContactTestType::CLOSEST;
     trajopt_freespace_config.smooth_velocities = true;
     trajopt_freespace_config.smooth_accelerations = true;
     trajopt_freespace_config.smooth_jerks = true;
 
     motion_planner_config_ = std::make_shared<crs_motion_planning::pathPlanningConfig>();
-    motion_planner_config_->tesseract_local = tesseract_local;
+    motion_planner_config_->tesseract_local = tesseract_local_;
     motion_planner_config_->descartes_config = descartes_config;
     motion_planner_config_->trajopt_surface_config = trajopt_surface_config;
     motion_planner_config_->ompl_config = ompl_config;
@@ -209,6 +232,13 @@ public:
 
 private:
   void jointCallback(const sensor_msgs::msg::JointState::SharedPtr joint_msg) { curr_joint_state_ = *joint_msg; }
+  void envCallback(const tesseract_msgs::msg::TesseractState::SharedPtr msg)
+  {
+      tesseract_revision_ = msg->revision;
+      const tesseract_environment::Environment::Ptr env = tesseract_local_->getEnvironment();
+      if(!tesseract_rosutils::processMsg(env, *msg))
+          RCLCPP_ERROR(this->get_logger(), "Failed to update local Tesseract state");
+  }
   void planProcess(std::shared_ptr<crs_msgs::srv::PlanProcessMotions::Request> request,
                    std::shared_ptr<crs_msgs::srv::PlanProcessMotions::Response> response)
   {
@@ -235,6 +265,15 @@ private:
     bool success;
     std::vector<trajectory_msgs::msg::JointTrajectory> trajopt_trajectories;
     auto path_plan_results = std::make_shared<crs_motion_planning::pathPlanningResults>();
+
+    // Clear old visualizations
+    visualization_msgs::msg::Marker marker_eraser;
+    visualization_msgs::msg::MarkerArray marker_eraser_array;
+    marker_eraser.action = visualization_msgs::msg::Marker::DELETEALL;
+    marker_eraser_array.markers.push_back(marker_eraser);
+    original_path_publisher_->publish(marker_eraser_array);
+    corrected_path_publisher_->publish(marker_eraser_array);
+    failed_vertex_publisher_->publish(marker_eraser);
 
     for (size_t i = 0; i < request->process_paths.size(); ++i)
     {
@@ -387,13 +426,6 @@ private:
           crs_motion_planner.generateFreespacePlan(joint_start_waypoint, goal_waypoint, response->output_trajectory);
     }
 
-    // Modify time
-    for (size_t i = 0; i < response->output_trajectory.points.size(); ++i)
-    {
-      response->output_trajectory.points[i].time_from_start.sec = 0;
-      response->output_trajectory.points[i].time_from_start.nanosec = 0;  // 2e8;
-    }
-
     if (success && response->output_trajectory.points.size() > 0)
     {
       response->success = true;
@@ -417,6 +449,105 @@ private:
     }
   }
 
+  void loadPartTesseract(std::shared_ptr<crs_msgs::srv::LoadPart::Request> request,
+                         std::shared_ptr<crs_msgs::srv::LoadPart::Response> response)
+  {
+      std::vector<tesseract_geometry::Mesh::Ptr> meshes = tesseract_geometry::createMeshFromPath<tesseract_geometry::Mesh>(request->path_to_part);
+
+      std::shared_ptr<tesseract_common::VectorVector3d> conv_hull_vertices(new tesseract_common::VectorVector3d);
+      std::shared_ptr<Eigen::VectorXi> conv_hull_faces(new Eigen::VectorXi);
+
+      tesseract_collision::createConvexHull(*conv_hull_vertices, *conv_hull_faces, *meshes[0]->getVertices());
+      tesseract_geometry::ConvexMesh conv_mesh = tesseract_geometry::ConvexMesh(conv_hull_vertices, conv_hull_faces);
+
+      tesseract_msgs::msg::Geometry link_geom;
+      tesseract_rosutils::toMsg(link_geom, conv_mesh);
+
+      std::vector<tesseract_msgs::msg::VisualGeometry> vis_geom_vector;
+      tesseract_msgs::msg::VisualGeometry link_vis_geom;
+      link_vis_geom.geometry = link_geom;
+      link_vis_geom.origin = tf2::toMsg(Eigen::Isometry3d::Identity());
+      vis_geom_vector.push_back(link_vis_geom);
+
+      std::vector<tesseract_msgs::msg::CollisionGeometry> coll_geom_vector;
+      tesseract_msgs::msg::CollisionGeometry link_coll_geom;
+      link_coll_geom.geometry = link_geom;
+      link_vis_geom.origin = tf2::toMsg(Eigen::Isometry3d::Identity());
+      coll_geom_vector.push_back(link_coll_geom);
+
+      tesseract_msgs::msg::Link added_link;
+      added_link.name = LOADED_PART_LINK_NAME;
+      added_link.visual = vis_geom_vector;
+      added_link.collision = coll_geom_vector;
+      added_link.inertial.empty = true;
+
+      tesseract_msgs::msg::Joint added_joint;
+      added_joint.name = LOADED_PART_JOINT_NAME;
+      added_joint.type = tesseract_msgs::msg::Joint::FIXED;
+      added_joint.child_link_name = LOADED_PART_LINK_NAME;
+      added_joint.parent_link_name = this->get_parameter(param_names::WORLD_FRAME).as_string();
+      added_joint.parent_to_joint_origin_transform = request->part_origin;
+      added_joint.limits.empty = true;
+
+      std::vector<tesseract_msgs::msg::EnvironmentCommand> env_command_vector;
+      tesseract_msgs::msg::EnvironmentCommand env_command;
+      env_command.command = tesseract_msgs::msg::EnvironmentCommand::ADD;
+      env_command.add_link = added_link;
+      env_command.add_joint = added_joint;
+
+      env_command_vector.push_back(env_command);
+
+      auto mod_env_request = std::make_shared<tesseract_msgs::srv::ModifyEnvironment::Request>();
+      mod_env_request->id = ENVIRONMENT_ID;
+      mod_env_request->revision = tesseract_revision_;
+      mod_env_request->commands = env_command_vector;
+
+      if (!modify_env_client_->wait_for_service(std::chrono::seconds(1)))
+      {
+        RCLCPP_ERROR(this->get_logger(), "ModifyEnvironment Service unavailable");
+        return;
+      }
+      auto result_future = modify_env_client_->async_send_request(mod_env_request);
+
+      RCLCPP_INFO(this->get_logger(), "Part successfully added to tesseract environment");
+      response->success = true;
+      response->error = "No Errors";
+      return;
+  }
+
+  void removePartTesseract(std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+                           std::shared_ptr<std_srvs::srv::Trigger::Response> response)
+  {
+
+      std::vector<tesseract_msgs::msg::EnvironmentCommand> env_command_vector;
+      tesseract_msgs::msg::EnvironmentCommand env_remove_joint_command, env_remove_part_command;
+      env_remove_joint_command.command = tesseract_msgs::msg::EnvironmentCommand::REMOVE_JOINT;
+      env_remove_joint_command.remove_joint = LOADED_PART_JOINT_NAME;
+
+      env_remove_part_command.command = tesseract_msgs::msg::EnvironmentCommand::REMOVE_LINK;
+      env_remove_part_command.remove_link = LOADED_PART_LINK_NAME;
+
+      env_command_vector.push_back(env_remove_part_command);
+
+      auto mod_env_request = std::make_shared<tesseract_msgs::srv::ModifyEnvironment::Request>();
+      mod_env_request->id = ENVIRONMENT_ID;
+      mod_env_request->revision = tesseract_revision_;
+      mod_env_request->commands = env_command_vector;
+
+      if (!modify_env_client_->wait_for_service(std::chrono::seconds(1)))
+      {
+        RCLCPP_ERROR(this->get_logger(), "ModifyEnvironment Service unavailable");
+        return;
+      }
+
+      auto result_future = modify_env_client_->async_send_request(mod_env_request);
+
+      RCLCPP_INFO(this->get_logger(), "Part successfully removed from tesseract environment");
+      response->success = true;
+      response->message = "No Errors";
+      return;
+  }
+
   rclcpp::Service<crs_msgs::srv::PlanProcessMotions>::SharedPtr plan_process_service_;
   rclcpp::Service<crs_msgs::srv::CallFreespaceMotion>::SharedPtr plan_freespace_service_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr original_path_publisher_,
@@ -424,12 +555,19 @@ private:
   rclcpp::Publisher<visualization_msgs::msg::Marker>::SharedPtr failed_vertex_publisher_;
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_listener_;
 
+  rclcpp::Service<crs_msgs::srv::LoadPart>::SharedPtr load_part_service_;
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr remove_part_service_;
+  rclcpp::Client<tesseract_msgs::srv::ModifyEnvironment>::SharedPtr modify_env_client_;
+  rclcpp::Subscription<tesseract_msgs::msg::TesseractState>::SharedPtr env_state_sub_;
+
   rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SharedPtr trajectory_exec_client_;
   rclcpp::callback_group::CallbackGroup::SharedPtr trajectory_exec_client_cbgroup_;
 
+  tesseract::Tesseract::Ptr tesseract_local_;
   crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config_;
 
   sensor_msgs::msg::JointState curr_joint_state_;
+  std::size_t tesseract_revision_ = 0;
 };
 
 int main(int argc, char** argv)
