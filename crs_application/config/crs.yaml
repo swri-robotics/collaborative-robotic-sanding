@@ -2,8 +2,8 @@ crs:
   general: {}
   motion_planning:
     home_position:
-      joint_names: ["j1"]
-      joint_position: [0.0]
+      joint_names: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
+      joint_position: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     process_path:
       tool_speed: 0.05
       offset_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # [px, py, pz, rx, ry, rz] relative to default tool
