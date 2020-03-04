@@ -1,8 +1,9 @@
+#include <rclcpp/logging.hpp>
+#include <crs_motion_planning/path_processing_utils.h>
 
 static const double TRAJECTORY_TIME_TOLERANCE = 5.0;  // seconds
 static const double WAIT_RESULT_TIMEOUT = 1.0;        // seconds
-
-#include <crs_motion_planning/path_processing_utils.h>
+static const rclcpp::Logger LOGGER = rclcpp::get_logger("PATH_PROCESSING_UTILS");
 
 bool crs_motion_planning::parsePathFromFile(const std::string& yaml_filepath,
                                             const std::string& waypoint_origin_frame,
@@ -10,13 +11,36 @@ bool crs_motion_planning::parsePathFromFile(const std::string& yaml_filepath,
 {
   std::vector<geometry_msgs::msg::PoseArray> temp_raster_strips;
   YAML::Node full_yaml_node = YAML::LoadFile(yaml_filepath);
+  if(!full_yaml_node)
+  {
+    RCLCPP_ERROR(LOGGER, "Failed to load into YAML from file %s", yaml_filepath.c_str());
+    return false;
+  }
+
+  if(full_yaml_node.Type() != YAML::NodeType::Sequence)
+  {
+    RCLCPP_WARN(LOGGER, "Top level YAML element is not a sequence but a %i type", static_cast<int>(full_yaml_node.Type()));
+    return false;
+  }
+
   YAML::Node paths = full_yaml_node[0]["paths"];
+  if(!paths || paths.Type() != YAML::NodeType::Sequence)
+  {
+    RCLCPP_ERROR(LOGGER, "The 'path' YAML element was not found or is not a sequence");
+    return false;
+  }
+
   std::double_t offset_strip = 0.0;
   for (YAML::const_iterator path_it = paths.begin(); path_it != paths.end(); ++path_it)
   {
     std::vector<geometry_msgs::msg::PoseStamped> temp_poses;
     geometry_msgs::msg::PoseArray curr_pose_array;
     YAML::Node strip = (*path_it)["poses"];
+    if(!strip)
+    {
+      RCLCPP_ERROR(LOGGER, "The 'poses' YAML element was not found");
+      return false;
+    }
     for (YAML::const_iterator pose_it = strip.begin(); pose_it != strip.end(); ++pose_it)
     {
       const YAML::Node& pose = *pose_it;

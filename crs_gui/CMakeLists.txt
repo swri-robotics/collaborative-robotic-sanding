@@ -1,6 +1,16 @@
 cmake_minimum_required(VERSION 3.5.0)
 project(crs_gui VERSION 0.1.0 LANGUAGES CXX)
 
+# Default to C99
+if(NOT CMAKE_C_STANDARD)
+  set(CMAKE_C_STANDARD 99)
+endif()
+
+# Default to C++14
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 14)
+endif() 
+
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(pluginlib REQUIRED)
@@ -89,10 +99,10 @@ target_include_directories(${PROJECT_NAME}_widgets PUBLIC ${crs_area_selection_I
     endif()
   endforeach()
 target_link_libraries(${PROJECT_NAME}_widgets
+  ${YAML_CPP_LIBRARIES}
   Qt5::Widgets
   crs_area_selection::crs_area_selection_area_selection
   crs_motion_planning::crs_motion_planning_path_processing_utils
-  ${YAML_CPP_LIBRARIES}
 )
 
 # Rviz Panel
@@ -191,6 +201,7 @@ ament_export_dependencies(
     rclcpp
     shape_msgs
     std_srvs)
+    #yaml-cpp)
 
 pluginlib_export_plugin_description_file(rviz_common plugin_description.xml)
 

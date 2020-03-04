@@ -22,6 +22,10 @@
 #include <QProgressBar>
 #include <QProgressDialog>
 
+#include <yaml-cpp/yaml.h>
+#include <yaml-cpp/node/node.h>
+#include <yaml-cpp/emitter.h>
+
 #include <chrono>
 
 #include <ament_index_cpp/get_package_share_directory.hpp>
@@ -57,19 +61,13 @@ static const std::vector<std::string> CONFIG_REQUIRED_FIELDS = {"general", "moti
                                                    "process_execution", "part_registration"};
 static const std::vector<std::string> CONFIG_PART_REG_FIELDS = {"part_file", "toolpath_file"};
 
-// logging
-static const rclcpp::Logger GUI_LOGGER = rclcpp::get_logger("CRS_GUI");
-
 namespace crs_gui
 {
 CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node,
-                                           QWidget* parent,
-                                           std::string database_directory)
+                                           QWidget* parent)
   : QWidget(parent)
   , ui_(new Ui::CRSApplication)
   , node_(node)
-  , database_directory_(database_directory)
-  , part_selector_widget_(new PartSelectionWidget(parent, database_directory))
   , area_selection_widget_(new PolygonAreaSelectionWidget(node, WORLD_FRAME, WORLD_FRAME))
   , state_machine_interface_widget_(new StateMachineInterfaceWidget(node))
 {
@@ -82,12 +80,12 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node,
       node_->create_service<crs_msgs::srv::GetConfiguration>(GET_CONFIGURATION_SERVICE, get_configuration_cb);
 
   // load parameters
-  const std::vector<std::string> parameter_names = { "default_config" };
+  const std::vector<std::string> parameter_names = { "default_config_file", "database_dir" };
   if(std::any_of(parameter_names.begin(), parameter_names.end(),[this](const std::string& p){
     rclcpp::ParameterValue pv =node_->declare_parameter(p);
     if( pv.get_type() == rclcpp::ParameterType::PARAMETER_NOT_SET)
     {
-      RCLCPP_ERROR(GUI_LOGGER,"Failed to find parameter %s", p.c_str());
+      RCLCPP_ERROR(node_->get_logger(),"Failed to find parameter %s", p.c_str());
       return true;
     }
     return false;
@@ -95,6 +93,8 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node,
   {
     throw std::runtime_error("Failed to load parameter");
   }
+  default_config_path_ = node_->get_parameter(parameter_names[0]).as_string();
+  database_directory_ =  node_->get_parameter(parameter_names[1]).as_string();
 
   // Set up ROS interfaces for area selection
   mesh_marker_pub_.reset();
@@ -113,6 +113,9 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node,
   marker.action = marker.DELETEALL;
   delete_all_marker_.markers.push_back(marker);
 
+  // create part selection widget
+  part_selector_widget_.reset(new PartSelectionWidget(parent, database_directory_));
+
   //  // Add the widgets to the UI
   ui_->vertical_layout_part_selector->addWidget(part_selector_widget_.get());
   ui_->vertical_layout_area_selection->addWidget(area_selection_widget_.get());
@@ -120,17 +123,14 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node,
 
   // Connect signals and slots
   connect(part_selector_widget_.get(), &PartSelectionWidget::partSelected, this, &CRSApplicationWidget::onPartSelected);
-  connect(part_selector_widget_.get(),
-          &PartSelectionWidget::partPathSelected,
-          this,
-          &CRSApplicationWidget::onPartPathSelected);
+  connect(part_selector_widget_.get(), &PartSelectionWidget::partPathSelected, this, &CRSApplicationWidget::onPartPathSelected);
 }
 
 CRSApplicationWidget::~CRSApplicationWidget() = default;
 
 void CRSApplicationWidget::onPartSelected(const std::string selected_part)
 {
-  RCLCPP_INFO(GUI_LOGGER, "Selected Part: %s", selected_part.c_str());
+  RCLCPP_INFO(node_->get_logger(), "Selected Part: %s", selected_part.c_str());
   visualization_msgs::msg::Marker marker;
   marker.header.frame_id = WORLD_FRAME;
 
@@ -151,6 +151,7 @@ void CRSApplicationWidget::onPartSelected(const std::string selected_part)
 void CRSApplicationWidget::onPartPathSelected(const std::string selected_part, const std::string selected_path)
 {
   namespace fs = boost::filesystem;
+  RCLCPP_INFO(node_->get_logger(), "Selected Toolpath: %s", selected_path.c_str());
 
   // Read toolpath yamls
   toolpath_file_ = (fs::path(database_directory_) / fs::path(selected_part) /
@@ -163,17 +164,23 @@ void CRSApplicationWidget::onPartPathSelected(const std::string selected_part, c
   {
     if(!fs::exists(fs::path(default_config_path_)))
     {
-      RCLCPP_ERROR(GUI_LOGGER,"Default config file '%s' was not found",default_config_path_.c_str());
+      RCLCPP_ERROR(node_->get_logger(),"Default config file '%s' was not found",default_config_path_.c_str());
       return;
     }
 
-    RCLCPP_WARN(GUI_LOGGER,"config file '%s' not found, copying default '%s'", config_file.c_str(),
+    RCLCPP_WARN(node_->get_logger(),"config file '%s' not found, copying default '%s'", config_file.c_str(),
                 default_config_path_.c_str());
     fs::create_directories(fs::path(config_file).parent_path());
-    fs::copy(fs::path(default_config_path_), fs::path(config_file));
+    fs::copy_file(fs::path(default_config_path_), fs::path(config_file));
   }
 
-  RCLCPP_INFO(GUI_LOGGER,"Loading Toolpath: %s", toolpath_file_.c_str());
+  if(!fs::exists(fs::path(toolpath_file_)))
+  {
+    RCLCPP_ERROR(node_->get_logger(),"Toolpath file '%s' was not found",toolpath_file_.c_str());
+    return;
+  }
+
+  RCLCPP_INFO(node_->get_logger(),"Loading Toolpath: %s", toolpath_file_.c_str());
   std::vector<geometry_msgs::msg::PoseArray> rasters;
   crs_motion_planning::parsePathFromFile(toolpath_file_, WORLD_FRAME, rasters);
 
@@ -208,26 +215,44 @@ void CRSApplicationWidget::getConfigurationCb(crs_msgs::srv::GetConfiguration::R
 
 bool CRSApplicationWidget::loadConfig(const std::string& config_file)
 {
-  config_node_ = YAML::LoadFile(config_file);
-  if(!config_node_)
+  YAML::Node config_node = YAML::LoadFile(config_file);
+  if(!config_node)
   {
-    RCLCPP_ERROR(GUI_LOGGER,"Failed to load config file %s", config_file);
+    RCLCPP_ERROR(node_->get_logger(),"Failed to load config file %s", config_file.c_str());
     return false;
   }
+  RCLCPP_INFO(node_->get_logger(), "Loaded config yaml %s", config_file.c_str());
+  std::cout<<YAML::Clone(config_node)<<std::endl;
 
   // check fields
-  YAML::Node crs_node = config_node_[CONFIG_ROOT_ITEM];
-  if(!crs_node || std::any_of(CONFIG_REQUIRED_FIELDS.begin(), CONFIG_REQUIRED_FIELDS.end(), [&crs_node] (const std::string& f){
-    if(crs_node[f].IsNull())
-    {
-      RCLCPP_ERROR(GUI_LOGGER,"Config file %s is missing required field '%s'", f.c_str());
-      return true;
-    }
-    return false;
-  }))
+  try
   {
-    return false;
+    if(!config_node[CONFIG_ROOT_ITEM])
+    {
+      RCLCPP_ERROR(node_->get_logger(), "Top element %s was not found in the yaml", CONFIG_ROOT_ITEM.c_str());
+      return false;
+    }
+
+    YAML::Node crs_node = config_node[CONFIG_ROOT_ITEM];
+    if(!crs_node || std::any_of(CONFIG_REQUIRED_FIELDS.begin(), CONFIG_REQUIRED_FIELDS.end(), [this, &crs_node] (
+        const std::string& f){
+      auto node = crs_node[f];
+      if(!node)
+      {
+        RCLCPP_ERROR(node_->get_logger(),"Config file %s is missing required field '%s'", f.c_str());
+        return true;
+      }
+      return false;
+    }))
+    {
+      return false;
+    }
   }
+  catch(YAML::InvalidNode& e)
+  {
+    RCLCPP_ERROR(node_->get_logger(),"Failed to parse config file %s with msg: %S", config_file.c_str(), e.what());
+  }
+  config_node_ = std::make_shared<YAML::Node>(YAML::Clone(config_node));
   config_file_path_ = config_file;
   return true;
 }
@@ -236,18 +261,18 @@ bool CRSApplicationWidget::updateConfig()
 {
   if(!config_node_)
   {
-    RCLCPP_ERROR(GUI_LOGGER,"No config file has been loaded, can not update");
+    RCLCPP_ERROR(node_->get_logger(),"No config file has been loaded, can not update");
     return false;
   }
 
   try
   {
-    config_node_[CONFIG_ROOT_ITEM][CONFIG_REQUIRED_FIELDS[4]][CONFIG_PART_REG_FIELDS[0]] = cad_part_file_;
-    config_node_[CONFIG_ROOT_ITEM][CONFIG_REQUIRED_FIELDS[4]][CONFIG_PART_REG_FIELDS[1]] = toolpath_file_;
+    (*config_node_)[CONFIG_ROOT_ITEM][CONFIG_REQUIRED_FIELDS[4]][CONFIG_PART_REG_FIELDS[0]] = cad_part_file_;
+    (*config_node_)[CONFIG_ROOT_ITEM][CONFIG_REQUIRED_FIELDS[4]][CONFIG_PART_REG_FIELDS[1]] = toolpath_file_;
   }
   catch(YAML::InvalidNode& e)
   {
-    RCLCPP_ERROR(GUI_LOGGER,"Failed to write to config with err msg: %s", e.what());
+    RCLCPP_ERROR(node_->get_logger(),"Failed to write to config with err msg: %s", e.what());
     return false;
   }
   return true;
@@ -257,12 +282,12 @@ bool CRSApplicationWidget::saveConfig()
 {
   if(!config_node_)
   {
-    RCLCPP_ERROR(GUI_LOGGER,"No config file has been loaded, can not save");
+    RCLCPP_ERROR(node_->get_logger(),"No config file has been loaded, can not save");
     return false;
   }
 
   std::ofstream config_out(config_file_path_);
-  config_out << config_node_;
+  config_out << *config_node_;
   config_out.close();
   return true;
 }
