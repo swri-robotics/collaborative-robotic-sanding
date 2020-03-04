@@ -16,6 +16,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # find dependencies
+find_package(Boost COMPONENTS system filesystem REQUIRED)
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
@@ -60,6 +61,10 @@ target_include_directories(${PROJECT_NAME}_node PUBLIC
 target_include_directories(${PROJECT_NAME}_node SYSTEM PUBLIC)
 ament_target_dependencies(${PROJECT_NAME}_node rclcpp rclcpp_components crs_msgs control_msgs tf2_eigen rclcpp_action)
 
+add_executable(test_yaml_parsing src/test_yaml_parsing.cpp)
+target_link_libraries(test_yaml_parsing ${YAML_CPP_LIBRARIES} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY})
+ament_target_dependencies(test_yaml_parsing rclcpp rclcpp_components)
+
 ##################################
 # install
 ##################################
@@ -68,10 +73,10 @@ install(TARGETS ${PACKAGE_LIBRARIES}
   EXPORT ${PROJECT_NAME}-targets
   DESTINATION lib)
 
-install(TARGETS ${PROJECT_NAME}_node
+install(TARGETS ${PROJECT_NAME}_node test_yaml_parsing
 DESTINATION lib/${PROJECT_NAME})
 
-install(DIRECTORY resources launch
+install(DIRECTORY resources launch config
   DESTINATION share/${PROJECT_NAME}/
   PATTERN ".svn" EXCLUDE
 )

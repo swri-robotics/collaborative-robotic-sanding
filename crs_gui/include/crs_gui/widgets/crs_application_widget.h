@@ -19,10 +19,6 @@
 
 #include <QWidget>
 
-#include <yaml-cpp/yaml.h>
-#include <yaml-cpp/node/node.h>
-#include <yaml-cpp/emitter.h>
-
 #include <rclcpp/rclcpp.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 #include <std_msgs/msg/string.hpp>
@@ -30,6 +26,11 @@
 #include <crs_msgs/srv/execute_action.hpp>
 #include <crs_msgs/srv/get_configuration.hpp>
 #include <string>
+
+namespace YAML
+{
+  class Node;
+}
 
 namespace Ui
 {
@@ -47,15 +48,17 @@ class CRSApplicationWidget : public QWidget
   Q_OBJECT
 public:
   CRSApplicationWidget(rclcpp::Node::SharedPtr node,
-                       QWidget* parent = nullptr,
-                       std::string database_directory = std::string(std::getenv("HOME")) + "/.local/share/"
-                                                                                           "offline_generated_paths");
+                       QWidget* parent = nullptr);
   ~CRSApplicationWidget();
 protected Q_SLOTS:
 
   void onPartSelected(const std::string);
 
   void onPartPathSelected(const std::string, const std::string);
+
+  bool loadConfig(const std::string& config_file);
+  bool updateConfig();
+  bool saveConfig();
 
 protected:
   std::unique_ptr<Ui::CRSApplication> ui_;
@@ -83,11 +86,7 @@ protected:
   std::string config_file_path_;
   std::string toolpath_file_;
   std::string cad_part_file_;
-  YAML::Node config_node_;
-  bool loadConfig(const std::string& config_file);
-  bool updateConfig();
-  bool saveConfig();
-
+  std::shared_ptr<YAML::Node> config_node_;
 
   visualization_msgs::msg::MarkerArray delete_all_marker_;
 

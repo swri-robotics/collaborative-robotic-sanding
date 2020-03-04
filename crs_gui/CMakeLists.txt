@@ -102,7 +102,6 @@ target_link_libraries(${PROJECT_NAME}_widgets PUBLIC
   Qt5::Widgets
   crs_area_selection::crs_area_selection_area_selection
   crs_motion_planning::crs_motion_planning_path_processing_utils
-  ${YAML_CPP_LIBRARIES}
 )
 ament_target_dependencies(${PROJECT_NAME}_widgets PUBLIC rclcpp shape_msgs std_srvs crs_msgs)
 
@@ -200,6 +199,7 @@ ament_export_dependencies(
     rclcpp
     shape_msgs
     std_srvs)
+    #yaml-cpp)
 
 pluginlib_export_plugin_description_file(rviz_common plugin_description.xml)
 
