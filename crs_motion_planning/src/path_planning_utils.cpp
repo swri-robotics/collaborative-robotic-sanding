@@ -38,6 +38,7 @@ bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray
   world_to_sander = curr_transforms.find(config_->tcp_frame)->second;
   world_to_tool0 = curr_transforms.find(config_->tool0_frame)->second;
   tool0_to_sander = world_to_tool0.inverse() * world_to_sander;
+  tool0_to_sander = tool0_to_sander * config_->tool_offset;
   descartes_light::KinematicsInterfaceD::Ptr kin_interface =
       std::make_shared<ur_ikfast_kinematics::UR10eKinematicsD>(world_to_base_link, tool0_to_sander, nullptr, nullptr);
 
@@ -349,7 +350,6 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
       // Store new raster and trajectory in final vector to pass to trajopt
       final_split_rasters.push_back(modified_raster);
       final_split_trajs.push_back(new_raster_traj);
-
       // Update time parameterization if required
       if (config_->required_tool_vel)
       {
@@ -935,6 +935,7 @@ bool crsMotionPlanner::findClosestJointOrientation(const tesseract_motion_planne
   world_to_sander = curr_transforms.find(config_->tcp_frame)->second;
   world_to_tool0 = curr_transforms.find(config_->tool0_frame)->second;
   tool0_to_sander = world_to_tool0.inverse() * world_to_sander;
+  tool0_to_sander = tool0_to_sander * config_->tool_offset;
   descartes_light::KinematicsInterfaceD::Ptr kin_interface =
       std::make_shared<ur_ikfast_kinematics::UR10eKinematicsD>(world_to_base_link, tool0_to_sander, nullptr, nullptr);
 
