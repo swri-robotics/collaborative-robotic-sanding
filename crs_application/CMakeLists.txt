@@ -27,7 +27,7 @@ find_package(rclcpp_action REQUIRED)
 find_package(scxml_core REQUIRED)
 find_package(Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Eigen3 REQUIRED NO_MODULE)
-find_package(yaml-cpp REQUIRED)
+find_package(yaml_cpp_vendor REQUIRED)
 
 ##################################
 # build
@@ -43,13 +43,12 @@ add_library(${PROJECT_NAME} SHARED
 target_link_libraries(${PROJECT_NAME} 
   scxml_core::scxml_core
   Eigen3::Eigen
-  ${YAML_CPP_LIBRARIES}
 )
 target_include_directories(${PROJECT_NAME} PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:include>")
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC)
-ament_target_dependencies(${PROJECT_NAME} rclcpp rclcpp_components crs_msgs control_msgs tf2_eigen rclcpp_action)
+ament_target_dependencies(${PROJECT_NAME} rclcpp rclcpp_components crs_msgs control_msgs tf2_eigen rclcpp_action yaml_cpp_vendor)
 
 add_executable(${PROJECT_NAME}_node src/crs_application.cpp)
 target_link_libraries(${PROJECT_NAME}_node 
@@ -61,10 +60,6 @@ target_include_directories(${PROJECT_NAME}_node PUBLIC
 target_include_directories(${PROJECT_NAME}_node SYSTEM PUBLIC)
 ament_target_dependencies(${PROJECT_NAME}_node rclcpp rclcpp_components crs_msgs control_msgs tf2_eigen rclcpp_action)
 
-add_executable(test_yaml_parsing src/test_yaml_parsing.cpp)
-target_link_libraries(test_yaml_parsing ${YAML_CPP_LIBRARIES} ${Boost_FILESYSTEM_LIBRARY} ${Boost_SYSTEM_LIBRARY})
-ament_target_dependencies(test_yaml_parsing rclcpp rclcpp_components)
-
 ##################################
 # install
 ##################################
@@ -73,7 +68,7 @@ install(TARGETS ${PACKAGE_LIBRARIES}
   EXPORT ${PROJECT_NAME}-targets
   DESTINATION lib)
 
-install(TARGETS ${PROJECT_NAME}_node test_yaml_parsing
+install(TARGETS ${PROJECT_NAME}_node
 DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY resources launch config

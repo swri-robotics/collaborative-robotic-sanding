@@ -122,19 +122,21 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node,
   ui_->vertical_layout_sm_interface->addWidget(state_machine_interface_widget_.get());
 
   // Connect signals and slots
-  connect(part_selector_widget_.get(), &PartSelectionWidget::partSelected, this, &CRSApplicationWidget::onPartSelected);
-  connect(part_selector_widget_.get(), &PartSelectionWidget::partPathSelected, this, &CRSApplicationWidget::onPartPathSelected);
+  connect(part_selector_widget_.get(), &PartSelectionWidget::partSelected, this, &CRSApplicationWidget::onPartSelected,
+          Qt::QueuedConnection);
+  connect(part_selector_widget_.get(), &PartSelectionWidget::partPathSelected, this, &CRSApplicationWidget::onPartPathSelected,
+          Qt::QueuedConnection);
 }
 
 CRSApplicationWidget::~CRSApplicationWidget() = default;
 
-void CRSApplicationWidget::onPartSelected(const std::string selected_part)
+void CRSApplicationWidget::onPartSelected(const QString selected_part)
 {
-  RCLCPP_INFO(node_->get_logger(), "Selected Part: %s", selected_part.c_str());
+  RCLCPP_INFO(node_->get_logger(), "Selected Part: %s", selected_part.toStdString().c_str());
   visualization_msgs::msg::Marker marker;
   marker.header.frame_id = WORLD_FRAME;
 
-  cad_part_file_ = "file://" + database_directory_ + "/" + selected_part + "/" + selected_part + CAD_EXT;
+  cad_part_file_ = "file://" + database_directory_ + "/" + selected_part.toStdString() + "/" + selected_part.toStdString() + CAD_EXT;
   marker.mesh_resource = cad_part_file_;
   marker.mesh_use_embedded_materials = true;
   marker.scale.x = 1.0;
@@ -148,9 +150,11 @@ void CRSApplicationWidget::onPartSelected(const std::string selected_part)
   current_mesh_marker_ = array;
 }
 
-void CRSApplicationWidget::onPartPathSelected(const std::string selected_part, const std::string selected_path)
+void CRSApplicationWidget::onPartPathSelected(const QString qselected_part, const QString qselected_path)
 {
   namespace fs = boost::filesystem;
+  std::string selected_part = qselected_part.toStdString();
+  std::string selected_path = qselected_path.toStdString();
   RCLCPP_INFO(node_->get_logger(), "Selected Toolpath: %s", selected_path.c_str());
 
   // Read toolpath yamls
@@ -213,8 +217,10 @@ void CRSApplicationWidget::getConfigurationCb(crs_msgs::srv::GetConfiguration::R
   res->success = true;
 }
 
-bool CRSApplicationWidget::loadConfig(const std::string& config_file)
+bool CRSApplicationWidget::loadConfig(const std::string config_file)
 {
+  namespace fs = boost::filesystem;
+  config_node_.reset();
   YAML::Node config_node = YAML::LoadFile(config_file);
   if(!config_node)
   {
@@ -289,6 +295,7 @@ bool CRSApplicationWidget::saveConfig()
   std::ofstream config_out(config_file_path_);
   config_out << *config_node_;
   config_out.close();
+  RCLCPP_INFO(node_->get_logger(),"Saved yaml config to %s", config_file_path_.c_str());
   return true;
 }
 

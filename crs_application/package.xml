@@ -16,6 +16,7 @@
   <depend>tf2_eigen</depend>
   <depend>rclcpp_action</depend>
   <depend>control_msgs</depend>
+  <depend>yaml_cpp_vendor</depend>  
   
   <exec_depend>launch_xml</exec_depend>
 

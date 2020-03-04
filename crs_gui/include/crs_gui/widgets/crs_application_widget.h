@@ -50,13 +50,13 @@ public:
   CRSApplicationWidget(rclcpp::Node::SharedPtr node,
                        QWidget* parent = nullptr);
   ~CRSApplicationWidget();
-protected Q_SLOTS:
+protected slots:
 
-  void onPartSelected(const std::string);
+  void onPartSelected(const QString selected_part);
 
-  void onPartPathSelected(const std::string, const std::string);
+  void onPartPathSelected(const QString qselected_part, const QString qselected_path);
 
-  bool loadConfig(const std::string& config_file);
+  bool loadConfig(const std::string config_file);
   bool updateConfig();
   bool saveConfig();
 
