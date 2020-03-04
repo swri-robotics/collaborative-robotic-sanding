@@ -67,7 +67,7 @@ public:
         std::bind(&ProcessPlannerTestServer::testPartLoader, this, std::placeholders::_1, std::placeholders::_2));
 
     part_filepath_ = ament_index_cpp::get_package_share_directory("crs_support") + "/meshes/Parts/visual/"
-                                                                                       "part1_ch.ply";
+                                                                                       "part1_ch.stl";
     // waiting for server
     if (!trajectory_exec_client_->wait_for_action_server(std::chrono::duration<double>(WAIT_SERVER_TIMEOUT)))
     {
@@ -101,7 +101,7 @@ private:
     geometry_msgs::msg::TransformStamped world_to_goal_frame;
     try
     {
-      world_to_goal_frame = tf_buffer_.lookupTransform("world", waypoint_origin_frame, time_point)
+      world_to_goal_frame = tf_buffer_.lookupTransform("world", waypoint_origin_frame, time_point);
     }
     catch (tf2::LookupException& e)
     {
