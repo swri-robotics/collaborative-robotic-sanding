@@ -99,7 +99,7 @@ target_include_directories(${PROJECT_NAME}_widgets PUBLIC ${crs_area_selection_I
     endif()
   endforeach()
 target_link_libraries(${PROJECT_NAME}_widgets
-  ${YAML_CPP_LIBRARIES}
+ # ${YAML_CPP_LIBRARIES}
   Qt5::Widgets
   crs_area_selection::crs_area_selection_area_selection
   crs_motion_planning::crs_motion_planning_path_processing_utils
