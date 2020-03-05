@@ -83,6 +83,7 @@ namespace config
 
   struct PartRegistrationConfig
   {
+    std::string target_frame_id;
     std::string part_file;
     std::string toolpath_file;
   };

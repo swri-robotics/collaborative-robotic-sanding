@@ -39,6 +39,7 @@
 #include <memory>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
 #include "crs_application/common/common.h"
 #include "crs_application/common/datatypes.h"
 #include "crs_application/common/config.h"
@@ -65,6 +66,7 @@ public:
   // Process Actions
   common::ActionResult computeTransform();
   common::ActionResult showPreview();
+  common::ActionResult hidePreview();
   common::ActionResult applyTransform();
 
   // Results
@@ -74,9 +76,14 @@ protected:
   std::shared_ptr<rclcpp::Node> node_;
   std::shared_ptr<datatypes::ScanAcquisitionResult> input_ = nullptr;
   datatypes::ProcessToolpathData result_;
+  geometry_msgs::msg::TransformStamped part_transform_;
+
 
   // parameters
-  std::string part_file_;
+  std::shared_ptr< config::PartRegistrationConfig> config_;
+
+  // publishers
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr preview_markers_pub_;
 
   // service clients
   rclcpp::Client<crs_msgs::srv::LoadPart>::SharedPtr load_part_client_;

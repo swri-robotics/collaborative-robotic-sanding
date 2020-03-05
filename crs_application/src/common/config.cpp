@@ -78,6 +78,7 @@ namespace config_fields
   namespace part_registration
   {
     static const std::string TOP_LEVEL = "part_registration";
+    static const std::string TARGET_FRAME_ID = "target_frame_id";
     static const std::string PART_FILE = "part_file";
     static const std::string TOOLPATH_FILE = "toolpath_file";
   }
@@ -279,8 +280,9 @@ namespace config
         return boost::none;
       }
 
-      if(hasFields(root_node,TOP_LEVEL, {PART_FILE, TOOLPATH_FILE}))
+      if(hasFields(root_node,TOP_LEVEL, {TARGET_FRAME_ID, PART_FILE, TOOLPATH_FILE}))
       {
+        cfg.target_frame_id = root_node[TARGET_FRAME_ID].as<std::string>();
         cfg.part_file = root_node[PART_FILE].as<std::string>();
         cfg.toolpath_file = root_node[TOOLPATH_FILE].as<bool>();
       }

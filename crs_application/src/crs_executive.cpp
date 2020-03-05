@@ -147,18 +147,10 @@ common::ActionResult CRSExecutive::configure()
 
   GetConfiguration::Request::SharedPtr req = std::make_shared<GetConfiguration::Request>();
   std::shared_future<GetConfiguration::Response::SharedPtr> res = get_config_client_->async_send_request(req);
-
-  if (rclcpp::spin_until_future_complete(
-          node_->get_node_base_interface(), res, std::chrono::duration<double>(WAIT_SERVICE_COMPLETION_PERIOD)) !=
-      rclcpp::executor::FutureReturnCode::SUCCESS)
+  std::future_status status = res.wait_for(std::chrono::duration<double>(WAIT_SERVICE_COMPLETION_PERIOD));
+  if(status != std::future_status::ready)
   {
-    RCLCPP_ERROR(node_->get_logger(), "%s Failed to get configuration", node_->get_name());
-    return false;
-  }
-  if (!res.get()->success)
-  {
-    RCLCPP_ERROR(
-        node_->get_logger(), "%s configuration service failed with err msg: ", node_->get_name(), res.get()->err_msg.c_str());
+    RCLCPP_ERROR(node_->get_logger(),"Call to get config service timed out");
     return false;
   }
 
@@ -267,7 +259,12 @@ bool CRSExecutive::setup()
   }
 
   // create connections
-  get_config_client_ = node_->create_client<crs_msgs::srv::GetConfiguration>(GET_CONFIGURATION_SERVICE);
+  get_config_callback_group_ = node_->create_callback_group(
+      rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
+  get_config_client_ = node_->create_client<crs_msgs::srv::GetConfiguration>(GET_CONFIGURATION_SERVICE,
+                                                                             rmw_qos_profile_services_default,
+                                                                             get_config_callback_group_);
+
   std::vector<rclcpp::ClientBase*> optional_clients = { get_config_client_.get() };
   for (auto& c : optional_clients)
   {
