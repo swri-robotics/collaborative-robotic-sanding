@@ -76,8 +76,13 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node,
   // Set up ROS Interfaces to crs_application
   auto get_configuration_cb =
       std::bind(&CRSApplicationWidget::getConfigurationCb, this, std::placeholders::_1, std::placeholders::_2);
+  get_config_callback_group_ = node_->create_callback_group(
+      rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
   get_configuration_srv_ =
-      node_->create_service<crs_msgs::srv::GetConfiguration>(GET_CONFIGURATION_SERVICE, get_configuration_cb);
+      node_->create_service<crs_msgs::srv::GetConfiguration>(GET_CONFIGURATION_SERVICE,
+                                                             get_configuration_cb,
+                                                             rmw_qos_profile_services_default,
+                                                             get_config_callback_group_);
 
   // load parameters
   const std::vector<std::string> parameter_names = { "default_config_file", "database_dir" };
@@ -136,8 +141,8 @@ void CRSApplicationWidget::onPartSelected(const QString selected_part)
   visualization_msgs::msg::Marker marker;
   marker.header.frame_id = WORLD_FRAME;
 
-  cad_part_file_ = "file://" + database_directory_ + "/" + selected_part.toStdString() + "/" + selected_part.toStdString() + CAD_EXT;
-  marker.mesh_resource = cad_part_file_;
+  cad_part_file_ = database_directory_ + "/" + selected_part.toStdString() + "/" + selected_part.toStdString() + CAD_EXT;
+  marker.mesh_resource = "file://" + cad_part_file_;
   marker.mesh_use_embedded_materials = true;
   marker.scale.x = 1.0;
   marker.scale.y = 1.0;

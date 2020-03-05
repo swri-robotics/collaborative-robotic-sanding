@@ -18,13 +18,23 @@
 #include <crs_gui/widgets/crs_application_widget.h>
 #include <QVBoxLayout>
 
+
+static const float TIMER_INTERVAL_DURATION = 50; // ms
 namespace crs_gui
 {
 ApplicationPanel::ApplicationPanel(QWidget* parent)
   : rviz_common::Panel(parent)
   , node_(new rclcpp::Node("application_panel_node"))
-  , application_widget_(new CRSApplicationWidget(node_, this))
 {
+  //executor_.add_node(node_);
+  application_widget_.reset(new CRSApplicationWidget(node_, this));
+  timer_ = new QTimer(this);
+  connect(timer_, &QTimer::timeout, this, [this](){
+    executor_.spin_some(rclcpp::Duration::from_seconds(
+        TIMER_INTERVAL_DURATION/1000.0f).to_chrono<std::chrono::nanoseconds>());
+  });
+  //timer_->start(TIMER_INTERVAL_DURATION);
+
 }
 
 void ApplicationPanel::onInitialize()
