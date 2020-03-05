@@ -247,6 +247,7 @@ ament_export_dependencies(
     tf2_ros
     tf2_eigen
     tf2_geometry_msgs
-    yaml_cpp_vendor)
+    yaml_cpp_vendor
+    iterative_spline_parameterization)
 
 ament_package()

@@ -41,6 +41,8 @@
   <depend>descartes_samplers</depend>
 
   <depend>tf2</depend>
+  
+  <depend>iterative_spline_parameterization</depend>
 
   <depend>yaml_cpp_vendor</depend>
   <depend>action_msgs</depend>
