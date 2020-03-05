@@ -5,6 +5,19 @@ static const double TRAJECTORY_TIME_TOLERANCE = 5.0;  // seconds
 static const double WAIT_RESULT_TIMEOUT = 1.0;        // seconds
 static const rclcpp::Logger LOGGER = rclcpp::get_logger("PATH_PROCESSING_UTILS");
 
+
+static geometry_msgs::msg::Pose pose3DtoPoseMsg(const std::array<float,6>& p)
+{
+  using namespace Eigen;
+  geometry_msgs::msg::Pose pose_msg;
+  Eigen::Affine3d eigen_pose = Translation3d(Vector3d(std::get<0>(p),std::get<1>(p),std::get<2>(p))) *
+      AngleAxisd(std::get<3>(p),Vector3d::UnitX()) * AngleAxisd(std::get<4>(p),Vector3d::UnitY()) *
+      AngleAxisd(std::get<5>(p),Vector3d::UnitZ());
+
+  pose_msg = tf2::toMsg(eigen_pose);
+  return std::move(pose_msg);
+}
+
 bool crs_motion_planning::parsePathFromFile(const std::string& yaml_filepath,
                                             const std::string& waypoint_origin_frame,
                                             std::vector<geometry_msgs::msg::PoseArray>& raster_strips)
@@ -92,6 +105,178 @@ bool crs_motion_planning::parsePathFromFile(const std::string& yaml_filepath,
   raster_strips.reserve(temp_raster_strips.size());
   raster_strips = temp_raster_strips;
   return true;
+}
+
+void crs_motion_planning::tesseractRosutilsToMsg(trajectory_msgs::msg::JointTrajectory& traj_msg,
+                                                 const std::vector<std::string>& joint_names,
+                                                 const Eigen::Ref<const tesseract_common::TrajArray>& traj)
+{
+  assert(joint_names.size() == static_cast<unsigned>(traj.cols()));
+
+  // Initialze the whole traject with the current state.
+  std::map<std::string, int> jn_to_index;
+  traj_msg.joint_names.resize(joint_names.size());
+  traj_msg.points.resize(static_cast<size_t>(traj.rows()));
+
+  for (int i = 0; i < traj.rows(); ++i)
+  {
+    trajectory_msgs::msg::JointTrajectoryPoint jtp;
+    jtp.positions.resize(static_cast<size_t>(traj.cols()));
+
+    for (int j = 0; j < traj.cols(); ++j)
+    {
+      if (i == 0)
+        traj_msg.joint_names[static_cast<size_t>(j)] = joint_names[static_cast<size_t>(j)];
+
+      jtp.positions[static_cast<size_t>(j)] = traj(i, j);
+    }
+
+    jtp.time_from_start = rclcpp::Duration(i, 0);
+    traj_msg.points[static_cast<size_t>(i)] = jtp;
+  }
+}
+
+
+visualization_msgs::msg::Marker crs_motion_planning::meshToMarker(const std::string &file_path,
+                                                                  const std::string& ns,
+                                                                  const std::string& frame_id,
+                                                                  const std::array<float, 4> color)
+{
+  visualization_msgs::msg::Marker m;
+  m.ns = ns;
+  m.header.frame_id = frame_id;
+  m.type = m.MESH_RESOURCE;
+  m.action = m.ADD;
+  m.pose = tf2::toMsg(Eigen::Isometry3d::Identity());
+  m.lifetime = rclcpp::Duration(0);
+  m.mesh_resource = "file://" + file_path;
+  std::tie(m.scale.x, m.scale.y, m.scale.z)  = std::make_tuple(1.0, 1.0, 1.0);
+  std::tie(m.color.r, m.color.g, m.color.b, m.color.a) = std::make_tuple(color[0], color[1], color[2], color[3]);
+  return m;
+}
+
+visualization_msgs::msg::MarkerArray crs_motion_planning::convertToAxisMarkers(const std::vector<geometry_msgs::msg::PoseArray>& path,
+                           const std::string& frame_id,
+                           const std::string& ns,
+                           const std::size_t& start_id,
+                           const double& axis_scale,
+                           const double& axis_length,
+                           const std::array<float,6>& offset)
+{
+  using namespace Eigen;
+
+  visualization_msgs::msg::MarkerArray markers;
+
+  auto create_line_marker = [&](const int id, const std::tuple<float, float, float, float>& rgba) -> visualization_msgs::msg::Marker
+  {
+    visualization_msgs::msg::Marker line_marker;
+    line_marker.action = line_marker.ADD;
+    std::tie(line_marker.color.r, line_marker.color.g, line_marker.color.b, line_marker.color.a) = rgba;
+    line_marker.header.frame_id = frame_id;
+    line_marker.type = line_marker.LINE_LIST;
+    line_marker.id = id;
+    line_marker.lifetime = rclcpp::Duration(0);
+    line_marker.ns = ns;
+    std::tie(line_marker.scale.x, line_marker.scale.y, line_marker.scale.z) = std::make_tuple(axis_scale, 0.0, 0.0);
+    line_marker.pose = pose3DtoPoseMsg(offset);
+    return std::move(line_marker);
+  };
+
+  // markers for each axis line
+  int marker_id = start_id;
+  visualization_msgs::msg::Marker x_axis_marker = create_line_marker(++marker_id,std::make_tuple(1.0, 0.0, 0.0, 1.0));
+  visualization_msgs::msg::Marker y_axis_marker = create_line_marker(++marker_id,std::make_tuple(0.0, 1.0, 0.0, 1.0));
+  visualization_msgs::msg::Marker z_axis_marker = create_line_marker(++marker_id,std::make_tuple(0.0, 0.0, 1.0, 1.0));
+
+  auto add_axis_line = [](const Isometry3d& eigen_pose, const Vector3d& dir,
+      const geometry_msgs::msg::Point& p1, visualization_msgs::msg::Marker& marker){
+
+    geometry_msgs::msg::Point p2;
+    Eigen::Vector3d line_endpoint;
+
+    // axis endpoint
+    line_endpoint = eigen_pose * dir;
+    std::tie(p2.x, p2.y, p2.z)  = std::make_tuple(line_endpoint.x(), line_endpoint.y(), line_endpoint.z());
+
+    // adding line
+    marker.points.push_back(p1);
+    marker.points.push_back(p2);
+  };
+
+  for(auto& poses : path)
+  {
+    for(auto& pose : poses.poses)
+    {
+      Eigen::Isometry3d eigen_pose;
+      tf2::fromMsg(pose,eigen_pose);
+
+      geometry_msgs::msg::Point p1;
+      std::tie(p1.x, p1.y, p1.z) = std::make_tuple(pose.position.x, pose.position.y, pose.position.z);
+
+      add_axis_line(eigen_pose,Vector3d::UnitX()* axis_length,p1, x_axis_marker);
+      add_axis_line(eigen_pose,Vector3d::UnitY()* axis_length,p1, y_axis_marker);
+      add_axis_line(eigen_pose,Vector3d::UnitZ()* axis_length,p1, z_axis_marker);
+    }
+
+  }
+
+  markers.markers.push_back(x_axis_marker);
+  markers.markers.push_back(y_axis_marker);
+  markers.markers.push_back(z_axis_marker);
+  return std::move(markers);
+}
+
+visualization_msgs::msg::MarkerArray crs_motion_planning::convertToDottedLineMarker(const std::vector<geometry_msgs::msg::PoseArray>& path,
+                            const std::string& frame_id,
+                            const std::string& ns,
+                            const std::size_t& start_id,
+                            const std::array<float,6>& offset,
+                            const float& line_width,
+                            const float& point_size)
+{
+  visualization_msgs::msg::MarkerArray markers_msgs;
+  visualization_msgs::msg::Marker line_marker, points_marker;
+
+  // configure line marker
+  line_marker.action = line_marker.ADD;
+  std::tie(line_marker.color.r, line_marker.color.g, line_marker.color.b, line_marker.color.a) = std::make_tuple(1.0, 1.0, 0.2, 1.0);
+  line_marker.header.frame_id = frame_id;
+  line_marker.type = line_marker.LINE_STRIP;
+  line_marker.id = start_id;
+  line_marker.lifetime = rclcpp::Duration(0);
+  line_marker.ns = ns;
+  std::tie(line_marker.scale.x, line_marker.scale.y, line_marker.scale.z) = std::make_tuple(line_width, 0.0, 0.0);
+  line_marker.pose = pose3DtoPoseMsg(offset);
+
+  // configure point marker
+  points_marker = line_marker;
+  points_marker.type = points_marker.POINTS;
+  points_marker.ns = ns;
+  std::tie(points_marker.color.r, points_marker.color.g, points_marker.color.b, points_marker.color.a) = std::make_tuple(0.1, .8, 0.2, 1.0);
+  std::tie(points_marker.scale.x, points_marker.scale.y, points_marker.scale.z) = std::make_tuple(point_size,point_size,point_size);
+
+  int id_counter = start_id;
+  for(auto& poses : path)
+  {
+    line_marker.points.clear();
+    points_marker.points.clear();
+    line_marker.points.reserve(poses.poses.size());
+    points_marker.points.reserve(poses.poses.size());
+    for(auto& pose : poses.poses)
+    {
+      geometry_msgs::msg::Point p;
+      std::tie(p.x, p.y, p.z) = std::make_tuple(pose.position.x, pose.position.y, pose.position.z);
+      line_marker.points.push_back(p);
+      points_marker.points.push_back(p);
+    }
+
+    line_marker.id = (++id_counter);
+    points_marker.id = (++id_counter);
+    markers_msgs.markers.push_back(line_marker);
+    markers_msgs.markers.push_back(points_marker);
+  }
+
+  return markers_msgs;
 }
 
 void crs_motion_planning::rasterStripsToMarkerArray(const geometry_msgs::msg::PoseArray& strip,
