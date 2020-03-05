@@ -120,6 +120,7 @@ protected:
   std::shared_ptr<task_managers::PartReworkManager> part_rework_mngr_;
 
   // rclcpp
+  rclcpp::callback_group::CallbackGroup::SharedPtr get_config_callback_group_;
   rclcpp::Client<crs_msgs::srv::GetConfiguration>::SharedPtr get_config_client_;
   rclcpp::TimerBase::SharedPtr state_pub_timer_;
 

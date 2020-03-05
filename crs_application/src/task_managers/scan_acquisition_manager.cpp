@@ -38,6 +38,7 @@
 
 static const double WAIT_FOR_SERVICE_PERIOD = 10.0;
 static const double WAIT_MESSAGE_TIMEOUT = 2.0;
+static const std::size_t POSES_ARRAY_SIZE = 7;
 static const std::string POINT_CLOUD_TOPIC = "/crs/custom_camera/custom_points";
 static const std::string FREESPACE_MOTION_PLAN_SERVICE = "/plan_freespace_motion";
 static const std::string MANAGER_NAME = "ScanAcquisitionManager";
@@ -94,30 +95,37 @@ common::ActionResult ScanAcquisitionManager::init()
 
 common::ActionResult ScanAcquisitionManager::configure(const config::ScanAcquisitionConfig& config)
 {
-  scan_poses_ = config.scan_poses;
-
-  scan_poses_ = std::vector<geometry_msgs::msg::Transform>();
-  geometry_msgs::msg::Transform tf = geometry_msgs::msg::Transform();
-  tf.translation.x = 0.0;
-  tf.translation.y = -0.6;
-  tf.translation.z = 1.7;
-  tf.rotation.w = -0.1843;
-  tf.rotation.x = 0.0;
-  tf.rotation.y = 0.8791;
-  tf.rotation.z = 0.4395;
-  scan_poses_.push_back(tf);
-
-
-  if (scan_poses_.size() == 0)
+  common::ActionResult res;
+  if(config.scan_poses.empty())
   {
-    RCLCPP_ERROR(node_->get_logger(), "No scan positions provided.");
-    return false;
+    res.err_msg = "no scan poses were found in configuration";
+    res.succeeded = false;
+    RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg);
+    return res;
   }
-  else
+
+  scan_poses_.clear();
+  for(std::size_t i = 0; i < config.scan_poses.size(); i++)
   {
-    RCLCPP_INFO(node_->get_logger(), "test");
-    return true;
+    geometry_msgs::msg::Transform tf;
+    auto& t = tf.translation;
+    auto& q = tf.rotation;
+    const std::vector<double>& pose_data = config.scan_poses[i];
+    if(pose_data.size() < POSES_ARRAY_SIZE)
+    {
+      res.err_msg = boost::str(boost::format("Scan Pose has less than %lu elements") % POSES_ARRAY_SIZE);
+      res.succeeded = false;
+      RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg);
+      return res;
+    }
+    std::tie(t.x, t.y, t.z) = std::make_tuple(pose_data[0], pose_data[1], pose_data[2]);
+    std::tie(q.x, q.y, q.z, q.w) = std::make_tuple(pose_data[3], pose_data[4], pose_data[5], pose_data[6]);
+    scan_poses_.push_back(tf);
   }
+
+  tool_frame_ = config.tool_frame;
+
+  RCLCPP_INFO(node_->get_logger(), "%s got %lu scan poses",MANAGER_NAME.c_str(), scan_poses_.size());
 }
 
 common::ActionResult ScanAcquisitionManager::verify()
@@ -215,38 +223,6 @@ common::ActionResult ScanAcquisitionManager::checkQueue()
 common::ActionResult ScanAcquisitionManager::checkPreReqs()
 {
   common::ActionResult res;
-
-  //todo(ayoungs): here only for testing purposes before the UI configure is availalbe
-  tool_frame_ = "camera_link_optical";
-  scan_poses_ = std::vector<geometry_msgs::msg::Transform>();
-  geometry_msgs::msg::Transform tf = geometry_msgs::msg::Transform();
-  tf.translation.x = 0.0;
-  tf.translation.y = -0.6;
-  tf.translation.z = 1.7;
-  tf.rotation.w = -0.1843;
-  tf.rotation.x = 0.0;
-  tf.rotation.y = 0.8791;
-  tf.rotation.z = 0.4395;
-  scan_poses_.push_back(tf);
-
-  tf.translation.x = 0.0;
-  tf.translation.y = -0.53;
-  tf.translation.z = 1.7;
-  tf.rotation.w = -0.0483246;
-  tf.rotation.x = -0.9690091;
-  tf.rotation.y = -0.2422523;
-  tf.rotation.z = 0.3;
-  scan_poses_.push_back(tf);
-tf
-  .translation.x = 0.0;
-  tf.translation.y = 0.0;
-  tf.translation.z = 1.7;
-  tf.rotation.w = -0.0483246;
-  tf.rotation.x = -0.9690091;
-  tf.rotation.y = -0.2422523;
-  tf.rotation.z = 0.3;
-  scan_poses_.push_back(tf);
-
 
   if (scan_poses_.empty())
   {

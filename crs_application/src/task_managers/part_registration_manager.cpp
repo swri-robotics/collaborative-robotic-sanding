@@ -37,6 +37,17 @@
 
 #include <sensor_msgs/msg/point_cloud2.hpp>
 
+#include <tf2_eigen/tf2_eigen.h>
+#include <crs_motion_planning/path_processing_utils.h>
+
+static const double WAIT_SERVICE_DURATION = 2.0;            // secs
+static const std::string PREVIEW_TOPIC = "part_registration_preview";
+static const std::string LOAD_PART_SERVICE = "load_part";
+static const std::string LOCALIZE_TO_PART_SERVICE = "localize_to_part";
+static const std::string MANAGER_NAME = "PartRegistrationManager";
+static const std::string MARKER_NS_PART = "part";
+static const std::string MARKER_NS_TOOLPATH = "toolpath";
+
 namespace crs_application
 {
 namespace task_managers
@@ -47,19 +58,33 @@ PartRegistrationManager::~PartRegistrationManager() {}
 
 common::ActionResult PartRegistrationManager::init()
 {
-  // todo(ayoungs): wait on service?
-  load_part_client_ = node_->create_client<crs_msgs::srv::LoadPart>("/load_part");
-  localize_to_part_client_ = node_->create_client<crs_msgs::srv::LocalizeToPart>("/localize_to_part");
+  // setting up publishers
+  preview_markers_pub_ = node_->create_publisher<visualization_msgs::msg::MarkerArray>(PREVIEW_TOPIC,rclcpp::QoS(1));
+
+  // setting up service clients
+  load_part_client_ = node_->create_client<crs_msgs::srv::LoadPart>(LOAD_PART_SERVICE);
+  localize_to_part_client_ = node_->create_client<crs_msgs::srv::LocalizeToPart>(LOCALIZE_TO_PART_SERVICE);
+
+  // wait on service
+  std::vector<rclcpp::ClientBase*> clients = {load_part_client_.get(), localize_to_part_client_.get()};
+  if (std::all_of(clients.begin(), clients.end(), [](rclcpp::ClientBase* c) {
+        return c->wait_for_service(std::chrono::duration<float>(WAIT_SERVICE_DURATION));
+      }))
+  {
+    RCLCPP_WARN(node_->get_logger(), "%s: One or more services were not found", MANAGER_NAME.c_str());
+    return false;
+  }
 
   return true;
 }
 
 common::ActionResult PartRegistrationManager::configure(const config::PartRegistrationConfig& config)
 {
-  auto load_part_request = std::make_shared<crs_msgs::srv::LoadPart::Request>();
+  // saving config
+  config_ = std::make_shared<config::PartRegistrationConfig>(config);
 
-  // todo(ayoungs): once there is a user config, this should come from the config
-  load_part_request->path_to_part = "/home/ayoungs/workspaces/crs/src/collaborative-robotic-sanding/crs_support/meshes/Parts/visual/part1_ch.stl";
+  auto load_part_request = std::make_shared<crs_msgs::srv::LoadPart::Request>();
+  load_part_request->path_to_part = config.part_file;
 
   auto result_future = load_part_client_->async_send_request(load_part_request);
   if (rclcpp::spin_until_future_complete(node_, result_future) != rclcpp::executor::FutureReturnCode::SUCCESS)
@@ -79,9 +104,47 @@ common::ActionResult PartRegistrationManager::configure(const config::PartRegist
   return true;
 }
 
+common::ActionResult PartRegistrationManager::hidePreview()
+{
+  using namespace visualization_msgs;
+  msg::MarkerArray markers;
+  msg::Marker m;
+  m.action = m.DELETEALL;
+  markers.markers.push_back(m);
+
+  // publishing now
+  preview_markers_pub_->publish(markers);
+  return true;
+}
+
 common::ActionResult PartRegistrationManager::showPreview()
 {
-  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
+  using namespace visualization_msgs;
+
+  common::ActionResult res;
+  if(result_.rasters.empty())
+  {
+    res.err_msg = "No rasters to preview";
+    res.succeeded = false;
+    RCLCPP_ERROR_STREAM(node_->get_logger(),MANAGER_NAME << ": " << res.err_msg);
+    return res;
+  }
+
+  hidePreview();
+
+  // creating markers
+  msg::Marker part_marker = crs_motion_planning::meshToMarker(
+      config_->part_file,MARKER_NS_PART, config_->target_frame_id);
+  part_marker.pose = tf2::toMsg(tf2::transformToEigen(part_transform_.transform));
+
+  msg::MarkerArray markers = crs_motion_planning::convertToDottedLineMarker(result_.rasters,
+                                                                                config_->target_frame_id,
+                                                                                MARKER_NS_TOOLPATH);
+  markers.markers.push_back(part_marker);
+
+  // publishing now
+  preview_markers_pub_->publish(markers);
+
   return true;
 }
 
@@ -94,12 +157,18 @@ common::ActionResult PartRegistrationManager::setInput(const datatypes::ScanAcqu
 
 common::ActionResult PartRegistrationManager::computeTransform()
 {
-  //todo(ayoungs): delete this after user configuration for loading parts works
-  PartRegistrationConfig config;
-  configure(config);
+  common::ActionResult res;
+  if(!config_)
+  {
+    res.err_msg = "configuration has not been set";
+    res.succeeded = false;
+    RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
+    return res;
+  }
 
   auto localize_to_part_request = std::make_shared<crs_msgs::srv::LocalizeToPart::Request>();
   localize_to_part_request->point_clouds = input_->point_clouds;
+  localize_to_part_request->frame = config_->target_frame_id;
 
   auto localize_result_future = localize_to_part_client_->async_send_request(localize_to_part_request);
   if (rclcpp::spin_until_future_complete(node_, localize_result_future) != rclcpp::executor::FutureReturnCode::SUCCESS)
@@ -114,13 +183,35 @@ common::ActionResult PartRegistrationManager::computeTransform()
     RCLCPP_ERROR(node_->get_logger(), "Failed to localize part: %s", localize_result->error.c_str());
     return false;
   }
-  // todo(ayoungs) save off transform
+  part_transform_ = localize_result->transform;
+  RCLCPP_INFO_STREAM(node_->get_logger(),MANAGER_NAME << " Saved transform");
+
   return true;
 }
 
 common::ActionResult PartRegistrationManager::applyTransform()
 {
-  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
+  std::vector<geometry_msgs::msg::PoseArray> raster_strips;
+  crs_motion_planning::parsePathFromFile(config_->toolpath_file, config_->target_frame_id, raster_strips);
+
+  auto apply_transform = [](const geometry_msgs::msg::Pose& p, const geometry_msgs::msg::Transform& t) -> geometry_msgs::msg::Pose
+  {
+    using namespace Eigen;
+    Isometry3d t_eig = tf2::transformToEigen(t);
+    Isometry3d p_eig;
+    tf2::fromMsg(p,p_eig);
+    return tf2::toMsg(t_eig * p_eig);
+  };
+  for(auto& poses : raster_strips)
+  {
+    for(std::size_t i = 0; i < poses.poses.size(); i++)
+    {
+      poses.poses[i] = apply_transform(poses.poses[i], part_transform_.transform);
+    }
+  }
+  result_.rasters = raster_strips;
+  RCLCPP_INFO_STREAM(node_->get_logger(),MANAGER_NAME << " Transformed raster strips and saved them");
+
   return true;
 }
 
