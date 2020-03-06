@@ -278,7 +278,7 @@
         <visual>
             <origin rpy="1.57079632679 0 0" xyz="0 0 -0.1168" />
             <geometry>
-                <mesh filename="package://crs_support/meshes/Mockup/visual/mockup_frame_v3.stl" />
+                <mesh filename="package://crs_support/meshes/Mockup/visual/Mockup3_6_Frame_noTools_small.stl" />
             </geometry>
             <material name="LightGrey">
                 <color rgba="0.7 0.7 0.7 1.0" />
@@ -287,7 +287,7 @@
         <visual>
             <origin rpy="1.57079632679 0 0" xyz="0 0 -0.1168" />
             <geometry>
-                <mesh filename="package://crs_support/meshes/Mockup/visual/mockup_cart_v3.stl" />
+                <mesh filename="package://crs_support/meshes/Mockup/visual/mockup_cart_v4.stl" />
             </geometry>
             <material name="LightGrey">
                 <color rgba="0.7 0.7 0.7 1.0" />
@@ -296,44 +296,44 @@
         <collision>
             <origin rpy="1.57079632679 0 0" xyz="0 0 -0.1168" />
             <geometry>
-                <mesh filename="package://crs_support/meshes/Mockup/collision/mockup_cart_collision_v3.stl" />
+                <mesh filename="package://crs_support/meshes/Mockup/collision/Mockup3_6_Cart_collision.stl" />
             </geometry>
         </collision>
         <collision> <!-- Right Wall-->
             <geometry>
-                <box size="1.02 2.14 0.1" />
+                <box size="3.0 2.14 0.1" />
             </geometry>
-            <origin rpy="0 0 0" xyz="-0.42 -1.1 1.105" />
+            <origin rpy="0 0 0" xyz="-0.5 -1.1 1.38" />
         </collision>
         <collision> <!-- Left Wall-->
             <geometry>
-                <box size="1.02 2.14 0.1" />
+                <box size="3.0 2.14 0.1" />
             </geometry>
-            <origin rpy="0 0 0" xyz="-0.42 -1.1 -1.46" />
+            <origin rpy="0 0 0" xyz="-0.5 -1.1 -1.33" />
         </collision>
         <collision> Front Wall
             <geometry>
-                <box size="0.1 2.14 2.65" />
+                <box size="0.1 2.14 3.0" />
             </geometry>
-            <origin rpy="0 0 0" xyz="0.4 -1.1 -0.175" />
+            <origin rpy="0 0 0" xyz="0.85 -1.1 0.0" />
         </collision>
         <collision> Back Wall
             <geometry>
-                <box size="0.1 2.14 2.65" />
+                <box size="0.1 2.14 3.0" />
             </geometry>
-            <origin rpy="0 0 0" xyz="-1.25 -1.1 -0.175" />
+            <origin rpy="0 0 0" xyz="-2.06 -1.1 0.0" />
         </collision>
         <collision> <!-- Top front beam-->
             <geometry>
-                <box size="0.22 0.12 2.65" />
+                <box size="1.25 0.12 3.0" />
             </geometry>
-            <origin rpy="0 0 0" xyz="0.036983 -2.145 -0.175" />
+            <origin rpy="0 0 0" xyz="0.38 -2.135 0.0" />
         </collision>
         <collision> <!-- Top back beam-->
             <geometry>
-                <box size="0.22 0.12 2.65" />
+                <box size="1.25 0.12 3.0" />
             </geometry>
-            <origin rpy="0 0 0" xyz="-0.867 -2.145 -0.175" />
+            <origin rpy="0 0 0" xyz="-1.56 -2.135 0.0" />
         </collision>
 
         <inertial>
@@ -345,7 +345,7 @@
     <joint name="${prefix}robot_base_joint" type="fixed">
         <parent link="${prefix}robot_stand" />
         <child link="${prefix}base" />
-        <origin rpy="0 1.571 0" xyz="0.036983 -2.0948 0.58 " />
+        <origin rpy="0 1.570796 0" xyz="-0.148896 -2.047406 0.6277 " />
         <axis xyz="1 0 0"/>
         <limit effort="1.0" lower="-0.1" upper="1.9" velocity=".01" />
     </joint>
