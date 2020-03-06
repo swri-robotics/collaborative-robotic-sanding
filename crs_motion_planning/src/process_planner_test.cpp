@@ -85,7 +85,7 @@ private:
   void planService(std::shared_ptr<std_srvs::srv::Trigger::Request> request,
                    std::shared_ptr<std_srvs::srv::Trigger::Response> response)
   {
-    std::cout << "Planning now" << std::endl;
+    RCLCPP_INFO(this->get_logger(), "Planning now");
     // Load rasters and get them in usable form
     std::string waypoint_origin_frame = "part";
     std::vector<geometry_msgs::msg::PoseArray> raster_strips;
@@ -148,7 +148,7 @@ private:
     call_process_plan_client_->async_send_request(proc_req, process_plan_cb);
 
     response->success = true;
-    response->message = "TRAJECTORIES PUBLISHED";
+    response->message = "Plan Sent";
   }
 
   void processPlanCallback(const rclcpp::Client<crs_msgs::srv::PlanProcessMotions>::SharedFuture future)
@@ -165,13 +165,14 @@ private:
         {
           return;
         }
-        std::cout << "EXECUTING PROCESS TRAJECTORY\t" << j + 1 << " OF " << process_plans.size() << std::endl;
+        RCLCPP_INFO(this->get_logger(), "EXECUTING PROCESS\t%i OF %i", j + 1, process_plans.size());
         trajectory_msgs::msg::JointTrajectory start_traj = process_plans[j].start;
         trajectory_msgs::msg::JointTrajectory end_traj = process_plans[j].end;
         std::vector<trajectory_msgs::msg::JointTrajectory> process_motions = process_plans[j].process_motions;
         std::vector<trajectory_msgs::msg::JointTrajectory> freespace_motions = process_plans[j].free_motions;
         if (start_traj.points.size() > 0)
         {
+          RCLCPP_INFO(this->get_logger(), "EXECUTING FIRST FREESPACE");
           if (!execTrajectory(trajectory_exec_client_, this->get_logger(), start_traj))
           {
             return;
@@ -180,24 +181,24 @@ private:
 
         for (size_t i = 0; i < freespace_motions.size(); ++i)
         {
-          std::cout << "EXECUTING SURFACE TRAJECTORY\t" << i + 1 << " OF " << process_motions.size() << std::endl;
+          RCLCPP_INFO(this->get_logger(), "EXECUTING SURFACE TRAJECTORY\t%i OF %i", i + 1, process_motions.size());
           if (!execTrajectory(trajectory_exec_client_, this->get_logger(), process_motions[i]))
           {
             return;
           }
 
-          std::cout << "EXECUTING FREESPACE TRAJECTORY\t" << i + 1 << " OF " << freespace_motions.size() << std::endl;
+          RCLCPP_INFO(this->get_logger(), "EXECUTING FREESPACE TRAJECTORY\t%i OF %i", i + 1, freespace_motions.size());
           if (!execTrajectory(trajectory_exec_client_, this->get_logger(), freespace_motions[i]))
           {
             return;
           }
         }
 
-        std::cout << "EXECUTING SURFACE TRAJECTORY\t" << process_motions.size() << " OF " << process_motions.size()
-                  << std::endl;
+        RCLCPP_INFO(this->get_logger(), "EXECUTING SURFACE TRAJECTORY\t%i OF %i", process_motions.size(), process_motions.size());
         execTrajectory(trajectory_exec_client_, this->get_logger(), process_motions.back());
         if (end_traj.points.size() > 0)
         {
+          RCLCPP_INFO(this->get_logger(), "EXECUTING FINAL FREESPACE");
           if (!execTrajectory(trajectory_exec_client_, this->get_logger(), end_traj))
           {
             return;
