@@ -333,9 +333,9 @@
         </collision>
         <collision> Back Wall top beam
             <geometry>
-                <box size="0.1 0.15 3.0" />
+                <box size="1.25 0.12 3.0" />
             </geometry>
-            <origin rpy="0 0 0" xyz="-2.06 -2.135 0.0" />
+            <origin rpy="0 0 0" xyz="0.38 -2.135 0.0" />
         </collision>
         <collision> Back Wall Half right
             <geometry>
@@ -606,7 +606,7 @@
             -->
             <ros>
               <namespace>custom_ns</namespace>
-              <argument>camera/image_raw:=camera/image</argument>
+              <argument>camera/image_raw:=camera/custom_image</argument>
               <argument>camera/image_depth:=camera/custom_image_depth</argument>
               <argument>camera/camera_info:=camera/custom_info_raw</argument>
               <argument>camera/camera_info_depth:=camera/custom_info_depth</argument>
