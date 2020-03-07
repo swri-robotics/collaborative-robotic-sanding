@@ -21,6 +21,8 @@
 #include <QStateMachine>
 #include <QProgressBar>
 #include <QProgressDialog>
+#include <QtConcurrent/QtConcurrentRun>
+#include <QFuture>
 
 #include <yaml-cpp/yaml.h>
 #include <yaml-cpp/node/node.h>
@@ -76,13 +78,9 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node,
   // Set up ROS Interfaces to crs_application
   auto get_configuration_cb =
       std::bind(&CRSApplicationWidget::getConfigurationCb, this, std::placeholders::_1, std::placeholders::_2);
-  get_config_callback_group_ = node_->create_callback_group(
-      rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
   get_configuration_srv_ =
       node_->create_service<crs_msgs::srv::GetConfiguration>(GET_CONFIGURATION_SERVICE,
-                                                             get_configuration_cb,
-                                                             rmw_qos_profile_services_default,
-                                                             get_config_callback_group_);
+                                                             get_configuration_cb);
 
   // load parameters
   const std::vector<std::string> parameter_names = { "default_config_file", "database_dir" };
@@ -220,6 +218,8 @@ void CRSApplicationWidget::getConfigurationCb(crs_msgs::srv::GetConfiguration::R
 
   res->config.yaml_config = config_file_path_;
   res->success = true;
+  RCLCPP_INFO(node_->get_logger(),"Sent configuration yaml file %s", res->config.yaml_config.c_str());
+  return;
 }
 
 bool CRSApplicationWidget::loadConfig(const std::string config_file)

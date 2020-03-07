@@ -38,7 +38,8 @@
 
 static const std::string GET_CONFIGURATION_SERVICE = "get_configuration";
 static const double WAIT_FOR_SERVICE_PERIOD = 5.0;
-static const double WAIT_SERVICE_COMPLETION_PERIOD = 10.0;
+static const double WAIT_SERVICE_COMPLETION_PERIOD = 2.0;
+static const std::string CRS_YAML_ELEMENT = "crs";
 
 namespace parameter_names
 {
@@ -145,32 +146,50 @@ common::ActionResult CRSExecutive::configure()
     return false;
   }
 
+  auto call_config = [&](const crs_msgs::msg::ProcessConfiguration config_msg) ->common::ActionResult  {
+    process_config_ = config_msg;
+    RCLCPP_INFO(node_->get_logger(), "%s Got Configuration", node_->get_name());
+
+    // parsing
+    YAML::Node config = YAML::LoadFile(process_config_.yaml_config);
+    if(!config)
+    {
+      common::ActionResult result;
+      result.err_msg = boost::str(boost::format("Invalid yaml file") % process_config_.yaml_config);
+      result.succeeded = false;
+      RCLCPP_ERROR(node_->get_logger(),"%s",result.err_msg.c_str());
+      return result;
+    }
+
+    YAML::Node crs_config = config[CRS_YAML_ELEMENT];
+    if(!crs_config)
+    {
+      common::ActionResult result;
+      result.err_msg = boost::str(boost::format("Did not find the '%s' element in the yaml configuration") % CRS_YAML_ELEMENT);
+      result.succeeded = false;
+      RCLCPP_ERROR(node_->get_logger(),"%s",result.err_msg.c_str());
+      return result;
+    }
+
+    return configureManagers(crs_config);
+  };
+
   GetConfiguration::Request::SharedPtr req = std::make_shared<GetConfiguration::Request>();
-  std::shared_future<GetConfiguration::Response::SharedPtr> res = get_config_client_->async_send_request(req);
+  std::shared_future<GetConfiguration::Response::SharedPtr> res = get_config_client_->async_send_request(req,
+    [call_config](const rclcpp::Client<GetConfiguration>::SharedFuture future){
+    call_config(future.get()->config);
+  });
+
   std::future_status status = res.wait_for(std::chrono::duration<double>(WAIT_SERVICE_COMPLETION_PERIOD));
   if(status != std::future_status::ready)
   {
     RCLCPP_ERROR(node_->get_logger(),"Call to get config service timed out");
-    return false;
+    //TODO restore to "return false;" once locking issue is resolved
   }
 
-  process_config_ = res.get()->config;
-  RCLCPP_INFO(node_->get_logger(), "%s Got Configuration", node_->get_name());
-
-  // parsing
-  static const std::string CRS_YAML_ELEMENT = "crs";
-  YAML::Node config = YAML::Load(process_config_.yaml_config);
-  YAML::Node crs_config = config[CRS_YAML_ELEMENT];
-  if(!crs_config)
-  {
-    common::ActionResult result;
-    result.err_msg = boost::str(boost::format("Did not find the '%s' element in the yaml configuration") % CRS_YAML_ELEMENT);
-    result.succeeded = false;
-    RCLCPP_ERROR(node_->get_logger(),"%s",result.err_msg.c_str());
-    return result;
-  }
-
-  return configureManagers(crs_config);
+  // TODO: resolve issue with client timing out when it shouldn't and restore
+  // the last line to "return configureManagers(crs_config)
+  return true;
 }
 
 bool CRSExecutive::configureManagers(YAML::Node& node)

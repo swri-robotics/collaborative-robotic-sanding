@@ -8,7 +8,7 @@ crs:
       tool_speed: 0.1
       offset_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # [px, py, pz, rx, ry, rz] relative to default tool
       retreat_dist: 0.03
-      approac_dist: 0.03
+      approach_dist: 0.03
       tool_frame: "sander_center_link"
     media_change:
       change_time: 300.0 # seconds
