@@ -18,6 +18,7 @@
 #define CRS_GUI_WIDGETS_CRS_APPLICATION_WIDGET_H
 
 #include <QWidget>
+#include <QTimer>
 
 #include <rclcpp/rclcpp.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
@@ -67,8 +68,8 @@ protected:
   std::string database_directory_;
 
   /** @brief Service that provides process Config when called */
-  rclcpp::callback_group::CallbackGroup::SharedPtr get_config_callback_group_;
   rclcpp::Service<crs_msgs::srv::GetConfiguration>::SharedPtr get_configuration_srv_;
+
   /** @brief Callback for get_configuration_srv_*/
   void getConfigurationCb(crs_msgs::srv::GetConfiguration::Request::SharedPtr req,
                           crs_msgs::srv::GetConfiguration::Response::SharedPtr res);

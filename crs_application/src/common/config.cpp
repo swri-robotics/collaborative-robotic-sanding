@@ -48,9 +48,9 @@ namespace config_fields
   {
     static const std::string TOP_LEVEL = "motion_planning";
     static const std::string HOME_POS_ROOT= "home_position";
-    static const std::string PROCESS_PATH_ROOT= "home_position";
-    static const std::string MEDIA_CHANGE_ROOT= "home_position";
-    static const std::string PREVIEW_ROOT= "home_position";
+    static const std::string PROCESS_PATH_ROOT= "process_path";
+    static const std::string MEDIA_CHANGE_ROOT= "media_change";
+    static const std::string PREVIEW_ROOT= "preview";
 
     static const std::vector<std::string> HOME_POS_ITEMS = {"joint_names", "joint_position"};
     static const std::vector<std::string> PROCESS_PATH_ITEMS = {"tool_speed", "offset_pose",
@@ -90,7 +90,7 @@ static bool hasFields(YAML::Node& n, const std::string& parent_name, const std::
   {
     if(!n[f])
     {
-      RCLCPP_ERROR(CONFIG_LOGGER,"Field '%s' was not found in '%s' element ", f.c_str(), parent_name);
+      RCLCPP_ERROR(CONFIG_LOGGER,"Field '%s' was not found in '%s' element ", f.c_str(), parent_name.c_str());
       return false;
     }
   }

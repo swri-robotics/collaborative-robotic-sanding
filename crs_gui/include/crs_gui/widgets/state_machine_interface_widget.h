@@ -67,8 +67,10 @@ protected:
   /** @brief Current state subscriber callback*/
   void currentStateCB(const std_msgs::msg::String::ConstSharedPtr current_state);
   /** @brief ROS client to get available sm actions*/
+  rclcpp::callback_group::CallbackGroup::SharedPtr get_available_actions_callback_group_;
   rclcpp::Client<crs_msgs::srv::GetAvailableActions>::SharedPtr get_available_actions_client_;
   /** @brief ROS client to execute sm action*/
+  rclcpp::callback_group::CallbackGroup::SharedPtr execute_action_callback_group_;
   rclcpp::Client<crs_msgs::srv::ExecuteAction>::SharedPtr execute_action_client_;
 };
 

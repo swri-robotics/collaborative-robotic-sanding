@@ -39,8 +39,8 @@
 static const double WAIT_FOR_SERVICE_PERIOD = 10.0;
 static const double WAIT_MESSAGE_TIMEOUT = 2.0;
 static const std::size_t POSES_ARRAY_SIZE = 7;
-static const std::string POINT_CLOUD_TOPIC = "/crs/custom_camera/custom_points";
-static const std::string FREESPACE_MOTION_PLAN_SERVICE = "/plan_freespace_motion";
+static const std::string POINT_CLOUD_TOPIC = "custom_camera/custom_points";
+static const std::string FREESPACE_MOTION_PLAN_SERVICE = "plan_freespace_motion";
 static const std::string MANAGER_NAME = "ScanAcquisitionManager";
 
 namespace crs_application
@@ -77,6 +77,7 @@ common::ActionResult ScanAcquisitionManager::init()
   // waiting for services
   common::ActionResult res;
   std::vector<rclcpp::ClientBase*> srv_clients = { call_freespace_motion_client_.get() };
+  RCLCPP_INFO(node_->get_logger(),"%s waiting for services", MANAGER_NAME.c_str());
   if (!std::all_of(srv_clients.begin(), srv_clients.end(), [this, &res](rclcpp::ClientBase* c) {
         if (!c->wait_for_service(std::chrono::duration<double>(WAIT_FOR_SERVICE_PERIOD)))
         {
@@ -87,7 +88,7 @@ common::ActionResult ScanAcquisitionManager::init()
         return true;
       }))
   {
-    RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg);
+    RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
   }
 
   return true;
