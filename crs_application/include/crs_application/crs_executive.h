@@ -107,6 +107,8 @@ protected:
   std::shared_ptr<scxml_core::StateMachine> sm_;
   std::string current_state_;
   std::shared_ptr<rclcpp::Node> node_;
+  std::shared_ptr<rclcpp::Node> pnode_;
+  std::shared_ptr<rclcpp::Node> managers_node_;
   rclcpp::TimerBase::SharedPtr pub_timer_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr state_pub_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr execute_state_subs_;
