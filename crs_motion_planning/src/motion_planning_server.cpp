@@ -188,6 +188,8 @@ public:
     ompl_config.n_output_states = this->get_parameter(param_names::NUM_FREEPSACE_STEPS).as_int();
     ompl_config.simplify = true;
     ompl_config.longest_valid_segment_fraction = 0.005;
+    ompl_config.range = 0.25;
+    ompl_config.num_threads = 8;
 
     crs_motion_planning::trajoptFreespaceConfig trajopt_freespace_config;
     tesseract_motion_planners::CollisionCostConfig coll_cost_config_fs;

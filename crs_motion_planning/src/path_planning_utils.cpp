@@ -522,12 +522,15 @@ bool crsMotionPlanner::generateOMPLSeed(const tesseract_motion_planners::JointWa
                                         const tesseract_motion_planners::JointWaypoint::Ptr& end_pose,
                                         tesseract_common::JointTrajectory& seed_trajectory)
 {
-  tesseract_motion_planners::OMPLMotionPlanner<ompl::geometric::RRTConnect> ompl_planner;
+  tesseract_motion_planners::OMPLMotionPlanner ompl_planner;
+  auto rrt_connect_configuration = std::make_shared<tesseract_motion_planners::RRTConnectConfigurator>();
+  rrt_connect_configuration->range = config_->ompl_config.range;
 
+  std::vector<tesseract_motion_planners::OMPLPlannerConfigurator::ConstPtr> ompl_configurators;
+  ompl_configurators.insert(ompl_configurators.end(), config_->ompl_config.num_threads, rrt_connect_configuration);
   // Convert ompl_config to an actual ompl config file
-  auto ompl_planner_config =
-      std::make_shared<tesseract_motion_planners::OMPLPlannerFreespaceConfig<ompl::geometric::RRTConnect>>(
-          config_->tesseract_local, config_->manipulator);
+  auto ompl_planner_config = std::make_shared<tesseract_motion_planners::OMPLPlannerFreespaceConfig>(
+      config_->tesseract_local, config_->manipulator, ompl_configurators);
   tesseract_kinematics::ForwardKinematics::ConstPtr kin =
       config_->tesseract_local->getFwdKinematicsManagerConst()->getFwdKinematicSolver(config_->manipulator);
   ompl_planner_config->start_waypoint = start_pose;
@@ -537,8 +540,6 @@ bool crsMotionPlanner::generateOMPLSeed(const tesseract_motion_planners::JointWa
   ompl_planner_config->simplify = config_->ompl_config.simplify;
   ompl_planner_config->collision_continuous = config_->ompl_config.collision_continuous;
   ompl_planner_config->collision_check = config_->ompl_config.collision_check;
-  ompl_planner_config->settings.range = config_->ompl_config.range;
-  ompl_planner_config->num_threads = config_->ompl_config.num_threads;
   ompl_planner_config->max_solutions = config_->ompl_config.max_solutions;
   ompl_planner_config->n_output_states = config_->ompl_config.n_output_states;
   ompl_planner_config->longest_valid_segment_fraction = config_->ompl_config.longest_valid_segment_fraction;
