@@ -18,11 +18,15 @@
 
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <control_msgs/action/follow_joint_trajectory.hpp>
+#include <crs_msgs/action/cartesian_compliance_trajectory.hpp>
+#include <cartesian_trajectory_msgs/action/cartesian_compliance_trajectory.hpp>
 
 #include <Eigen/Eigen>
 #include <vector>
 
 #include <iterative_spline_parameterization/iterative_spline_parameterization.h>
+
+#include <tesseract/tesseract.h>
 
 namespace crs_motion_planning
 {
@@ -160,6 +164,10 @@ bool execTrajectory(rclcpp_action::Client<control_msgs::action::FollowJointTraje
                     const trajectory_msgs::msg::JointTrajectory& traj,
                     rclcpp::Node::SharedPtr node = nullptr);
 
+bool execSurfaceTrajectory(rclcpp_action::Client<crs_msgs::action::CartesianComplianceTrajectory>::SharedPtr ac,
+                           const rclcpp::Logger& logger,
+                           const trajectory_msgs::msg::JointTrajectory& traj);
+
 bool timeParameterizeFreespace(const trajectory_msgs::msg::JointTrajectory& given_traj,
                                const double& max_joint_vel,
                                const double& max_joint_acc,
@@ -169,6 +177,53 @@ bool timeParameterizeFreespace(const std::vector<trajectory_msgs::msg::JointTraj
                                const double& max_joint_vel,
                                const double& max_joint_acc,
                                std::vector<trajectory_msgs::msg::JointTrajectory>& returned_traj);
+
+struct cartesianTrajectoryConfig
+{
+  using Ptr = std::shared_ptr<cartesianTrajectoryConfig>;
+
+  tesseract::Tesseract::Ptr tesseract_local;
+  std::string manipulator = "manipulator";
+
+  std::string base_frame = "base_link";
+  std::string tool_frame = "tool0";
+  std::string tcp_frame = "sander_center_link";
+
+  double target_force = 20;
+  double target_speed = 0.05;
+
+  geometry_msgs::msg::Vector3 path_pose_tolerance;
+  geometry_msgs::msg::Vector3 path_ori_tolerance;
+
+  geometry_msgs::msg::Vector3 goal_pose_tolerance;
+  geometry_msgs::msg::Vector3 goal_ori_tolerance;
+
+  geometry_msgs::msg::Vector3 force_tolerance;
+};
+
+void findCartPoseArrayFromTraj(const trajectory_msgs::msg::JointTrajectory& joint_trajectory,
+                               const cartesianTrajectoryConfig traj_config,
+                               geometry_msgs::msg::PoseArray& cartesian_poses);
+
+void genCartesianTrajectory(const trajectory_msgs::msg::JointTrajectory& joint_trajectory,
+                            const cartesianTrajectoryConfig traj_config,
+                            cartesian_trajectory_msgs::msg::CartesianTrajectory& cartesian_trajectory);
+//                            cartesian_trajectory_msgs::action::CartesianComplianceTrajectory::Goal& cartesian_trajectory);
+
+void genCartesianTrajectoryGoal(const cartesian_trajectory_msgs::msg::CartesianTrajectory& cartesian_trajectory,
+                                const cartesianTrajectoryConfig traj_config,
+                                cartesian_trajectory_msgs::action::CartesianComplianceTrajectory::Goal& cartesian_trajectory_goal);
+
+bool execSurfaceTrajectory(rclcpp_action::Client<cartesian_trajectory_msgs::action::CartesianComplianceTrajectory>::SharedPtr ac,
+                           const rclcpp::Logger& logger,
+                           const trajectory_msgs::msg::JointTrajectory& traj,
+                           const cartesianTrajectoryConfig& traj_config);
+
+bool execSurfaceTrajectory(rclcpp_action::Client<cartesian_trajectory_msgs::action::CartesianComplianceTrajectory>::SharedPtr ac,
+                           const rclcpp::Logger& logger,
+                           const cartesian_trajectory_msgs::msg::CartesianTrajectory& traj,
+                           const cartesianTrajectoryConfig& traj_config);
+
 
 }  // namespace crs_motion_planning
 

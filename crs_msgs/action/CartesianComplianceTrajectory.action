@@ -1,0 +1,15 @@
+# Goal
+trajectory_msgs/JointTrajectory trajectory
+float64 force
+float64 tolerance
+float64 speed
+
+---
+# Result
+bool success
+string err_msg
+
+---
+# Feedback
+geometry_msgs/PoseStamped waypoint
+string status

@@ -171,7 +171,7 @@ public:
     crs_motion_planning::descartesConfig descartes_config;
     descartes_config.axial_step = 0.075;
     descartes_config.collision_safety_margin = 0.015;
-    descartes_config.tool_offset.translation().z() = 0.025;
+//    descartes_config.tool_offset.translation().z() = 0.025;
 
     crs_motion_planning::trajoptSurfaceConfig trajopt_surface_config;
     trajopt_surface_config.smooth_velocities = false;
@@ -189,12 +189,16 @@ public:
     trajopt_surface_config.surface_coeffs = surface_coeffs;
     trajopt_surface_config.waypoints_critical = false;
     trajopt_surface_config.longest_valid_segment_fraction = 0.1;
-    trajopt_surface_config.special_collision_constraint.push_back({ "eoat_link", LOADED_PART_LINK_NAME, -0.02, 15.0 });
-    trajopt_surface_config.special_collision_constraint.push_back(
-        { "sander_center_link", LOADED_PART_LINK_NAME, -0.02, 15.0 });
+    trajopt_surface_config.special_collision_constraint.push_back({ "eoat_link", LOADED_PART_LINK_NAME,
+        -0.02, 15.0 }); trajopt_surface_config.special_collision_constraint.push_back(
+            { "sander_intermediate_link", LOADED_PART_LINK_NAME, -0.02, 15.0 });
+    trajopt_surface_config.special_collision_constraint.push_back({ "eoat_link", "table", -0.05, 15.0 });
+    trajopt_surface_config.special_collision_constraint.push_back({ "sander_center_link", "table", -0.05, 15.0 });
+    //    trajopt_surface_config.special_collision_constraint.push_back(
+    //        { "wrist_3_link", "table", -0.05, 15.0 });
 
     crs_motion_planning::omplConfig ompl_config;
-    ompl_config.collision_safety_margin = 0.01;
+    ompl_config.collision_safety_margin = 0.0075;
     ompl_config.planning_time = 120;
     ompl_config.n_output_states = this->get_parameter(param_names::NUM_FREEPSACE_STEPS).as_int();
     ompl_config.simplify = true;
@@ -220,6 +224,9 @@ public:
     trajopt_freespace_config.special_collision_cost.push_back({ "eoat_link", LOADED_PART_LINK_NAME, 0.03, 20.0 });
     trajopt_freespace_config.special_collision_cost.push_back({ "eoat_link", "robot_frame", 0.05, 15.0 });
     trajopt_freespace_config.special_collision_cost.push_back({ "shoulder_link", "robot_frame", 0.03, 15.0 });
+    trajopt_freespace_config.special_collision_cost.push_back({ "eoat_link", "table", 0.03, 20.0 });
+    trajopt_freespace_config.special_collision_cost.push_back({ "eoat_link", "robot_stand", 0.03, 10.0 });
+    trajopt_freespace_config.special_collision_cost.push_back({ "eoat_link", "forearm_link", 0.03, 10.0 });
 
     motion_planner_config_ = std::make_shared<crs_motion_planning::pathPlanningConfig>();
     motion_planner_config_->tesseract_local = tesseract_local_;
@@ -241,7 +248,7 @@ public:
     motion_planner_config_->trajopt_verbose_output = this->get_parameter(param_names::TRAJOPT_VERBOSE).as_bool();
     motion_planner_config_->simplify_start_end_freespace = true;
     motion_planner_config_->use_trajopt_freespace = false;
-    motion_planner_config_->combine_strips = false;
+    motion_planner_config_->combine_strips = true;
     motion_planner_config_->global_descartes = true;
   }
 
@@ -257,30 +264,32 @@ private:
   void planProcess(std::shared_ptr<crs_msgs::srv::PlanProcessMotions::Request> request,
                    std::shared_ptr<crs_msgs::srv::PlanProcessMotions::Response> response)
   {
+    crs_motion_planning::pathPlanningConfig motion_planner_config = *motion_planner_config_;
+
     // Setup planner config with requested process planner service request data
-    motion_planner_config_->tcp_frame = request->tool_link;
-    motion_planner_config_->approach_distance = request->approach_dist;
-    motion_planner_config_->retreat_distance = request->retreat_dist;
-    motion_planner_config_->tool_speed = request->tool_speed;
+    motion_planner_config.tcp_frame = request->tool_link;
+    motion_planner_config.approach_distance = request->approach_dist;
+    motion_planner_config.retreat_distance = request->retreat_dist;
+    motion_planner_config.tool_speed = request->tool_speed;
     if (request->start_position.position.size() > 0)
     {
-      motion_planner_config_->use_start = true;
-      motion_planner_config_->start_pose = std::make_shared<tesseract_motion_planners::JointWaypoint>(
+      motion_planner_config.use_start = true;
+      motion_planner_config.start_pose = std::make_shared<tesseract_motion_planners::JointWaypoint>(
           request->start_position.position, request->start_position.name);
     }
     if (request->end_position.position.size() > 0)
     {
-      motion_planner_config_->use_end = true;
-      motion_planner_config_->end_pose = std::make_shared<tesseract_motion_planners::JointWaypoint>(
+      motion_planner_config.use_end = true;
+      motion_planner_config.end_pose = std::make_shared<tesseract_motion_planners::JointWaypoint>(
           request->end_position.position, request->end_position.name);
     }
-    tesseract_rosutils::fromMsg(motion_planner_config_->tool_offset, request->tool_offset);
-    motion_planner_config_->descartes_config.tool_offset = motion_planner_config_->tool_offset;
+    tesseract_rosutils::fromMsg(motion_planner_config.tool_offset, request->tool_offset);
+    motion_planner_config.descartes_config.tool_offset =
+        motion_planner_config.tool_offset * Eigen::Translation3d(0.0, 0.0, 0.03);
 
     std::vector<crs_msgs::msg::ProcessMotionPlan> returned_plans;
     bool success;
     std::vector<trajectory_msgs::msg::JointTrajectory> trajopt_trajectories;
-    auto path_plan_results = std::make_shared<crs_motion_planning::pathPlanningResults>();
 
     // Clear old visualizations
     visualization_msgs::msg::Marker marker_eraser;
@@ -293,35 +302,38 @@ private:
 
     for (size_t i = 0; i < request->process_paths.size(); ++i)
     {
+      std::cout << "Planning " << i + 1 << " process of " << request->process_paths.size() << std::endl;
       // Load in current rasters
-      motion_planner_config_->rasters = request->process_paths[i].rasters;
+      motion_planner_config.rasters.clear();
+      motion_planner_config.rasters = request->process_paths[i].rasters;
 
       // Create marker array for original raster visualization
       visualization_msgs::msg::MarkerArray mark_array_msg;
       crs_motion_planning::rasterStripsToMarkerArray(
-          motion_planner_config_->rasters, "world", mark_array_msg, { 1.0, 0.0, 0.0, 1.0 }, -0.01);
+          motion_planner_config.rasters, motion_planner_config.world_frame, mark_array_msg, { 1.0, 0.0, 0.0, 1.0 }, -0.01);
       original_path_publisher_->publish(mark_array_msg);
 
       // Create crsMotionPlanner class
-      crs_motion_planning::crsMotionPlanner crs_motion_planner(motion_planner_config_, this->get_logger());
+      crs_motion_planning::crsMotionPlanner crs_motion_planner(motion_planner_config, this->get_logger());
 
       // Run process planner
+      auto path_plan_results = std::make_shared<crs_motion_planning::pathPlanningResults>();
       success = crs_motion_planner.generateProcessPlan(path_plan_results);
 
       // Create marker array for processed raster visualization
       visualization_msgs::msg::MarkerArray temp_mark_array_msg, pub_mark_array_msg;
       crs_motion_planning::rasterStripsToMarkerArray(path_plan_results->solved_rasters,
-                                                     motion_planner_config_->world_frame,
+                                                     motion_planner_config.world_frame,
                                                      temp_mark_array_msg,
                                                      { 1.0, 0.0, 1.0, 0.0 },
                                                      -0.025);
       crs_motion_planning::rasterStripsToMarkerArray(path_plan_results->failed_rasters,
-                                                     motion_planner_config_->world_frame,
+                                                     motion_planner_config.world_frame,
                                                      temp_mark_array_msg,
                                                      { 1.0, 1.0, 0.0, 0.0 },
                                                      -0.025);
       crs_motion_planning::rasterStripsToMarkerArray(path_plan_results->skipped_rasters,
-                                                     motion_planner_config_->world_frame,
+                                                     motion_planner_config.world_frame,
                                                      temp_mark_array_msg,
                                                      { 1.0, 1.0, 1.0, 0.0 },
                                                      -0.025);
@@ -332,7 +344,7 @@ private:
       // Create marker array for unreachable vertices
       visualization_msgs::msg::Marker failed_vertex_markers;
       crs_motion_planning::failedEdgesToMarkerArray(path_plan_results->unreachable_waypoints,
-                                                    motion_planner_config_->world_frame,
+                                                    motion_planner_config.world_frame,
                                                     failed_vertex_markers,
                                                     { 1.0, 0.0, 1.0, 1.0 },
                                                     0.01);
@@ -351,6 +363,24 @@ private:
       }
       resulting_process.free_motions = path_plan_results->final_freespace_trajectories;
       resulting_process.process_motions = path_plan_results->final_raster_trajectories;
+
+      crs_motion_planning::cartesianTrajectoryConfig cart_traj_config;
+      cart_traj_config.tcp_frame = motion_planner_config.tcp_frame;
+      cart_traj_config.base_frame = motion_planner_config.robot_base_frame;
+      cart_traj_config.manipulator = motion_planner_config.manipulator;
+      cart_traj_config.tool_frame = motion_planner_config.tool0_frame;
+      cart_traj_config.tesseract_local = motion_planner_config.tesseract_local;
+      cart_traj_config.target_force = request->target_force;
+      cart_traj_config.target_speed = motion_planner_config.tool_speed;
+      motion_planner_config.tool_speed = request->tool_speed;
+      for (size_t j = 0; j < resulting_process.process_motions.size(); ++j)
+      {
+        cartesian_trajectory_msgs::msg::CartesianTrajectory curr_cart_traj;
+        crs_motion_planning::genCartesianTrajectory(
+            resulting_process.process_motions[j], cart_traj_config, curr_cart_traj);
+        resulting_process.force_controlled_process_motions.push_back(curr_cart_traj);
+      }
+
       returned_plans.push_back(resulting_process);
     }
     // Populate response
@@ -372,23 +402,24 @@ private:
                      std::shared_ptr<crs_msgs::srv::CallFreespaceMotion::Response> response)
   {
     using namespace crs_motion_planning;
+    crs_motion_planning::pathPlanningConfig motion_planner_config = *motion_planner_config_;
 
     std::cout << "GOT REQUEST" << std::endl;
-    motion_planner_config_->tcp_frame = request->target_link;
+    motion_planner_config.tcp_frame = request->target_link;
     std::cout << "SET TARGET LINK" << std::endl;
     if (request->num_steps != 0)
     {
-      motion_planner_config_->ompl_config.n_output_states = request->num_steps;
+      motion_planner_config.ompl_config.n_output_states = request->num_steps;
     }
     else
     {
-      motion_planner_config_->ompl_config.n_output_states =
+      motion_planner_config.ompl_config.n_output_states =
           this->get_parameter(param_names::NUM_FREEPSACE_STEPS).as_int();
     }
     std::cout << "SET N STEPS" << std::endl;
 
     // Create crsMotionPlanner class
-    crs_motion_planning::crsMotionPlanner crs_motion_planner(motion_planner_config_, this->get_logger());
+    crs_motion_planning::crsMotionPlanner crs_motion_planner(motion_planner_config, this->get_logger());
     std::cout << "INITIALIZED CLASS" << std::endl;
 
     // Define initial waypoint
@@ -436,6 +467,7 @@ private:
       tesseract_motion_planners::JointWaypoint::Ptr goal_waypoint =
           std::make_shared<tesseract_motion_planners::JointWaypoint>(request->goal_position.position,
                                                                      request->goal_position.name);
+      std::cout << "goal_pose_name " << request->goal_position.name.size() << std::endl;
       RCLCPP_INFO(this->get_logger(), "Planning FreeSpace motion to joint goal");
 
       success =

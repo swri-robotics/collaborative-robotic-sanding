@@ -21,7 +21,9 @@ def generate_launch_description():
         os.environ["AMENT_PREFIX_PATH"] += os.pathsep + path  
     
     
-    xacro = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs.urdf.xacro')
+#    xacro = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs.urdf.xacro')
+#    xacro = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'swri_demo.urdf.xacro')
+    xacro = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'swri_demo3.urdf.xacro')
     urdf = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs.urdf')
     urdf_preview = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs_preview.urdf')
     srdf = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'ur10e_robot.srdf')
@@ -52,7 +54,7 @@ def generate_launch_description():
     
     gazebo_cmd = 'gzserver' if GAZEBO_HEADLESS else 'gazebo'
     gzserver = launch.actions.ExecuteProcess(
-        cmd=['xterm', '-e', gazebo_cmd, '--verbose', '-s', 'libgazebo_ros_factory.so', '--world', gzworld],
+        cmd=['xterm', '-e', 'gazebo', '--verbose', '-s', 'libgazebo_ros_factory.so', '--world', gzworld],
         output='screen',   
         condition = launch.conditions.IfCondition(launch.substitutions.LaunchConfiguration('sim_robot'))
     )
@@ -83,8 +85,10 @@ def generate_launch_description():
         'tool0_frame': "tool0",
         'manipulator_group': "manipulator",
         'num_steps': 20,
-        'max_joint_velocity': 0.22,
-        'max_joint_acceleration': 0.7,
+        'max_joint_velocity': 0.12,
+        'max_joint_acceleration': 0.4,
+#        'max_joint_velocity': 1.5,
+#        'max_joint_acceleration': 3.0,
         'min_raster_length': 4,
         'use_gazebo_simulation_time': False,
         'set_trajopt_verbose': False}])
@@ -98,10 +102,16 @@ def generate_launch_description():
         ])
     '''
 
-    test_process_planner = launch_ros.actions.Node(
+    process_planner_test_server = launch_ros.actions.Node(
         node_executable='crs_motion_planning_process_planner_test',
         package='crs_motion_planning',
-        node_name='process_planner_test',
+        node_name='process_test_server',
+        output='screen')
+
+    motion_execution_server = launch_ros.actions.Node(
+        node_executable='crs_motion_execution_motion_execution_server',
+        package='crs_motion_execution',
+        node_name='motion_execution_server',
         output='screen')
         
     return launch.LaunchDescription([
@@ -123,10 +133,13 @@ def generate_launch_description():
              'robot_description_semantic': srdf}]),
         
         # gazebo
-        gzserver,
-        spawner1,
+#        gzserver,
+#        spawner1,
 
         # planning
         motion_planning_server,
-        #test_process_planner,
+        process_planner_test_server,
+
+        # execution
+        motion_execution_server,
 ])

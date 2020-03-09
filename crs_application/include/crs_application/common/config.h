@@ -74,6 +74,9 @@ struct ProcessExecutionConfig
   std::vector<double> joint_tolerance =
       std::vector<double>(6, (3.1416 / 180.0) * 2.0); /** @brief how close the robot needs to be to the last position in
                                                          radians */
+//  double target_force = 20;
+//  double tool_speed = 0.05;
+//  std::string tool_frame = "sander_center_link";
 };
 
 struct ScanAcquisitionConfig
