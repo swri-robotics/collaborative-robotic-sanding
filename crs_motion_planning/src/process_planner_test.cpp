@@ -194,7 +194,10 @@ private:
           }
         }
 
-        RCLCPP_INFO(this->get_logger(), "EXECUTING SURFACE TRAJECTORY\t%i OF %i", process_motions.size(), process_motions.size());
+        RCLCPP_INFO(this->get_logger(),
+                    "EXECUTING SURFACE TRAJECTORY\t%i OF %i",
+                    process_motions.size(),
+                    process_motions.size());
         execTrajectory(trajectory_exec_client_, this->get_logger(), process_motions.back());
         if (end_traj.points.size() > 0)
         {
@@ -218,7 +221,7 @@ private:
                       std::shared_ptr<std_srvs::srv::Trigger::Response> response)
   {
     geometry_msgs::msg::Pose part_pose;
-    part_pose.position.x = -0.439;
+    part_pose.position.x = -0.53;
     part_pose.position.y = -0.14;
     part_pose.position.z = 1.1;
 
