@@ -107,7 +107,10 @@ static const std::string EXEC_HOME = "Exec_Home";
 
 namespace crs_application
 {
-CRSExecutive::CRSExecutive(std::shared_ptr<rclcpp::Node> node) : node_(node)
+CRSExecutive::CRSExecutive(std::shared_ptr<rclcpp::Node> node) :
+    node_(node),
+    pnode_(std::make_shared<rclcpp::Node>(std::string(node_->get_name()) + "_exec")),
+    managers_node_(std::make_shared<rclcpp::Node>(std::string(node_->get_name()) + "_tasks"))
 {
   if (!setup())
   {
@@ -175,21 +178,19 @@ common::ActionResult CRSExecutive::configure()
   };
 
   GetConfiguration::Request::SharedPtr req = std::make_shared<GetConfiguration::Request>();
-  std::shared_future<GetConfiguration::Response::SharedPtr> res = get_config_client_->async_send_request(req,
-    [call_config](const rclcpp::Client<GetConfiguration>::SharedFuture future){
-    call_config(future.get()->config);
-  });
-
-  std::future_status status = res.wait_for(std::chrono::duration<double>(WAIT_SERVICE_COMPLETION_PERIOD));
-  if(status != std::future_status::ready)
+  std::shared_future<GetConfiguration::Response::SharedPtr> res = get_config_client_->async_send_request(req);
+  rclcpp::executor::FutureReturnCode ret_code = rclcpp::spin_until_future_complete(pnode_,res,
+    rclcpp::Duration::from_seconds(WAIT_SERVICE_COMPLETION_PERIOD).to_chrono<std::chrono::nanoseconds>());
+  if(ret_code != rclcpp::executor::FutureReturnCode::SUCCESS)
   {
-    RCLCPP_ERROR(node_->get_logger(),"Call to get config service timed out");
-    //TODO restore to "return false;" once locking issue is resolved
+    common::ActionResult result;
+    result.err_msg = "Call to get config service timed out";
+    result.succeeded = false;
+    RCLCPP_ERROR_STREAM(node_->get_logger(),result.err_msg);
+    return result;
   }
 
-  // TODO: resolve issue with client timing out when it shouldn't and restore
-  // the last line to "return configureManagers(crs_config)
-  return true;
+  return call_config(res.get()->config);
 }
 
 bool CRSExecutive::configureManagers(YAML::Node& node)
@@ -278,11 +279,8 @@ bool CRSExecutive::setup()
   }
 
   // create connections
-  get_config_callback_group_ = node_->create_callback_group(
-      rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
-  get_config_client_ = node_->create_client<crs_msgs::srv::GetConfiguration>(GET_CONFIGURATION_SERVICE,
-                                                                             rmw_qos_profile_services_default,
-                                                                             get_config_callback_group_);
+  get_config_client_ = pnode_->create_client<crs_msgs::srv::GetConfiguration>(GET_CONFIGURATION_SERVICE,
+                                                                               rmw_qos_profile_services_default);
 
   std::vector<rclcpp::ClientBase*> optional_clients = { get_config_client_.get() };
   for (auto& c : optional_clients)
@@ -294,11 +292,11 @@ bool CRSExecutive::setup()
   }
 
   // create managers
-  scan_acqt_mngr_ = std::make_shared<task_managers::ScanAcquisitionManager>(node_);
-  motion_planning_mngr_ = std::make_shared<task_managers::MotionPlanningManager>(node_);
-  part_regt_mngr_ = std::make_shared<task_managers::PartRegistrationManager>(node_);
-  process_exec_mngr_ = std::make_shared<task_managers::ProcessExecutionManager>(node_);
-  part_rework_mngr_ = std::make_shared<task_managers::PartReworkManager>(node_);
+  scan_acqt_mngr_ = std::make_shared<task_managers::ScanAcquisitionManager>(managers_node_);
+  motion_planning_mngr_ = std::make_shared<task_managers::MotionPlanningManager>(managers_node_);
+  part_regt_mngr_ = std::make_shared<task_managers::PartRegistrationManager>(managers_node_);
+  process_exec_mngr_ = std::make_shared<task_managers::ProcessExecutionManager>(managers_node_);
+  part_rework_mngr_ = std::make_shared<task_managers::PartReworkManager>(managers_node_);
 
   // create state machine
   std::string state_machine_file = std::get<1>(parameters[0]).get<std::string>();

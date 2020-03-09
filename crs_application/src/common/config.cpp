@@ -131,7 +131,7 @@ namespace config
       if(process_path_node && hasFields(process_path_node, PROCESS_PATH_ROOT, PROCESS_PATH_ITEMS))
       {
         cfg.tool_speed = process_path_node[PROCESS_PATH_ITEMS[0]].as<double>();
-        std::vector<double> xyzrpy = process_path_node[HOME_POS_ITEMS[1]].as<std::vector<double>>();
+        std::vector<double> xyzrpy = process_path_node[PROCESS_PATH_ITEMS[1]].as<std::vector<double>>();
         cfg.retreat_dist = process_path_node[PROCESS_PATH_ITEMS[2]].as<double>();
         cfg.approac_dist = process_path_node[PROCESS_PATH_ITEMS[3]].as<double>();
         cfg.tool_frame = process_path_node[PROCESS_PATH_ITEMS[4]].as<std::string>();
@@ -177,6 +177,18 @@ namespace config
       RCLCPP_ERROR(CONFIG_LOGGER,"%s",err_msg.c_str());
       return boost::none;
     }
+    catch(BadConversion& e)
+    {
+      err_msg = boost::str(boost::format("Failed to parse yaml: %s") % e.what());
+      RCLCPP_ERROR(CONFIG_LOGGER,"%s",err_msg.c_str());
+      return boost::none;
+    }
+    catch(KeyNotFound& e)
+    {
+      err_msg = boost::str(boost::format("Key not found: %s") % e.what());
+      RCLCPP_ERROR(CONFIG_LOGGER,"%s",err_msg.c_str());
+      return boost::none;
+    }
 
     return cfg;
   }
@@ -204,6 +216,18 @@ namespace config
     catch(InvalidNode& e)
     {
       err_msg = boost::str(boost::format("Failed to parse yaml: %s") % e.what());
+      RCLCPP_ERROR(CONFIG_LOGGER,"%s",err_msg.c_str());
+      return boost::none;
+    }
+    catch(BadConversion& e)
+    {
+      err_msg = boost::str(boost::format("Failed to parse yaml: %s") % e.what());
+      RCLCPP_ERROR(CONFIG_LOGGER,"%s",err_msg.c_str());
+      return boost::none;
+    }
+    catch(KeyNotFound& e)
+    {
+      err_msg = boost::str(boost::format("Key not found: %s") % e.what());
       RCLCPP_ERROR(CONFIG_LOGGER,"%s",err_msg.c_str());
       return boost::none;
     }
@@ -258,7 +282,19 @@ namespace config
     }
     catch(InvalidNode& e)
     {
+      err_msg = boost::str(boost::format("Invalid node: %s") % e.what());
+      RCLCPP_ERROR(CONFIG_LOGGER,"%s",err_msg.c_str());
+      return boost::none;
+    }
+    catch(BadConversion& e)
+    {
       err_msg = boost::str(boost::format("Failed to parse yaml: %s") % e.what());
+      RCLCPP_ERROR(CONFIG_LOGGER,"%s",err_msg.c_str());
+      return boost::none;
+    }
+    catch(KeyNotFound& e)
+    {
+      err_msg = boost::str(boost::format("Key not found: %s") % e.what());
       RCLCPP_ERROR(CONFIG_LOGGER,"%s",err_msg.c_str());
       return boost::none;
     }
@@ -294,6 +330,18 @@ namespace config
     catch(InvalidNode& e)
     {
       err_msg = boost::str(boost::format("Failed to parse yaml: %s") % e.what());
+      RCLCPP_ERROR(CONFIG_LOGGER,"%s",err_msg.c_str());
+      return boost::none;
+    }
+    catch(BadConversion& e)
+    {
+      err_msg = boost::str(boost::format("Failed to parse yaml: %s") % e.what());
+      RCLCPP_ERROR(CONFIG_LOGGER,"%s",err_msg.c_str());
+      return boost::none;
+    }
+    catch(KeyNotFound& e)
+    {
+      err_msg = boost::str(boost::format("Key not found: %s") % e.what());
       RCLCPP_ERROR(CONFIG_LOGGER,"%s",err_msg.c_str());
       return boost::none;
     }
