@@ -22,6 +22,7 @@
   <depend>std_msgs</depend>
   <depend>crs_msgs</depend>
   <depend>control_msgs</depend>
+  <depend>iterative_spline_parameterization</depend>
 
   <depend>tesseract_msgs</depend>
   <depend>tesseract</depend>

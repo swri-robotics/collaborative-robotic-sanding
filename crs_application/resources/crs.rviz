@@ -6,11 +6,10 @@ Panels:
       Expanded:
         - /Global Options1
         - /Status1
+        - /RobotMotionPreview1
         - /RobotMotionPreview1/Description Topic1
         - /TF1/Frames1
         - /PointCloud21
-        - /PointCloud22
-        - /PointCloud23
       Splitter Ratio: 0.44999998807907104
     Tree Height: 789
   - Class: rviz_common/Selection
@@ -50,8 +49,8 @@ Visualization Manager:
     - Alpha: 1
       Class: rviz_default_plugins/RobotModel
       Collision Enabled: false
-      Description File: ""
-      Description Source: Topic
+      Description File: /home/ayoungs/workspaces/crs/install/crs_support/share/crs_support/urdf/crs.urdf
+      Description Source: File
       Description Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -65,82 +64,81 @@ Visualization Manager:
         Expand Link Details: false
         Expand Tree: false
         Link Tree Style: Links in Alphabetic Order
-        preview/base:
+        base:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        preview/base_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        preview/camera_link_optical:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        preview/ee_link:
+        base_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        preview/eoat_link:
+        camera_link_optical:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        ee_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        preview/forearm_link:
+        eoat_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        preview/gazebo_camera_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        preview/part:
+        forearm_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        preview/robot_stand:
+        gazebo_camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        part:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        preview/sander_center_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-        preview/shoulder_link:
+        robot_stand:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        preview/tool0:
+        sander_center_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-        preview/upper_arm_link:
-          Alpha: 1
-          Show Axes: false
-          Show Trail: false
-          Value: true
-        preview/wrist_1_link:
+        shoulder_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
-        preview/wrist_2_link:
+        tool0:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
-        preview/wrist_3_link:
+        upper_arm_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
           Value: true
         world:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+        wrist_1_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        wrist_2_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
+          Value: true
+        wrist_3_link:
           Alpha: 1
           Show Axes: false
           Show Trail: false
@@ -171,38 +169,6 @@ Visualization Manager:
           Value: false
         part:
           Value: false
-        preview/base:
-          Value: true
-        preview/base_link:
-          Value: true
-        preview/camera_link_optical:
-          Value: true
-        preview/ee_link:
-          Value: true
-        preview/eoat_link:
-          Value: true
-        preview/forearm_link:
-          Value: true
-        preview/gazebo_camera_link:
-          Value: true
-        preview/part:
-          Value: true
-        preview/robot_stand:
-          Value: true
-        preview/sander_center_link:
-          Value: true
-        preview/shoulder_link:
-          Value: true
-        preview/tool0:
-          Value: true
-        preview/upper_arm_link:
-          Value: true
-        preview/wrist_1_link:
-          Value: true
-        preview/wrist_2_link:
-          Value: true
-        preview/wrist_3_link:
-          Value: true
         robot_stand:
           Value: false
         sander_center_link:
@@ -244,26 +210,6 @@ Visualization Manager:
             {}
           part:
             {}
-          preview/robot_stand:
-            preview/base:
-              preview/base_link:
-                preview/shoulder_link:
-                  preview/upper_arm_link:
-                    preview/forearm_link:
-                      preview/wrist_1_link:
-                        preview/wrist_2_link:
-                          preview/wrist_3_link:
-                            preview/ee_link:
-                              {}
-                            preview/tool0:
-                              preview/eoat_link:
-                                preview/camera_link_optical:
-                                  preview/gazebo_camera_link:
-                                    {}
-                                preview/sander_center_link:
-                                  {}
-            preview/part:
-              {}
           robot_stand:
             {}
           sander_center_link:
@@ -286,7 +232,7 @@ Visualization Manager:
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        "": true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -298,7 +244,7 @@ Visualization Manager:
       Enabled: true
       Name: MarkerArray
       Namespaces:
-        "": true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -310,7 +256,7 @@ Visualization Manager:
       Enabled: true
       Name: Marker
       Namespaces:
-        "": true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -409,18 +355,18 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.46539875864982605
+      Pitch: 0.45539847016334534
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 0.6003984808921814
+      Yaw: 4.873581409454346
     Saved: ~
 Window Geometry:
   Displays:
     collapsed: false
-  Height: 1145
+  Height: 1015
   Hide Left Dock: false
   Hide Right Dock: false
-  QMainWindow State: 000000ff00000000fd0000000400000000000001560000041ffc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003d0000041f000000c900fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f0000041ffc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000003d0000041f000000a400fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004420000003efc0100000002fb0000000800540069006d00650100000000000004420000000000000000fb0000000800540069006d00650100000000000004500000000000000000000004cc0000041f00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
+  QMainWindow State: 000000ff00000000fd0000000400000000000001560000039ffc0200000008fb0000001200530065006c0065006300740069006f006e00000001e10000009b0000005c00fffffffb0000001e0054006f006f006c002000500072006f007000650072007400690065007302000001ed000001df00000185000000a3fb000000120056006900650077007300200054006f006f02000001df000002110000018500000122fb000000200054006f006f006c002000500072006f0070006500720074006900650073003203000002880000011d000002210000017afb000000100044006900730070006c006100790073010000003c0000039f000000c800fffffffb0000002000730065006c0065006300740069006f006e00200062007500660066006500720200000138000000aa0000023a00000294fb00000014005700690064006500530074006500720065006f02000000e6000000d2000003ee0000030bfb0000000c004b0069006e0065006300740200000186000001060000030c00000261000000010000010f0000039ffc0200000003fb0000001e0054006f006f006c002000500072006f00700065007200740069006500730100000041000000780000000000000000fb0000000a00560069006500770073010000003c0000039f000000a200fffffffb0000001200530065006c0065006300740069006f006e010000025a000000b200000000000000000000000200000490000000a9fc0100000001fb0000000a00560069006500770073030000004e00000080000002e10000019700000003000004420000003efc0100000002fb0000000800540069006d00650100000000000004420000000000000000fb0000000800540069006d00650100000000000004500000000000000000000004cc0000039f00000004000000040000000800000008fc0000000100000002000000010000000a0054006f006f006c00730100000000ffffffff0000000000000000
   Selection:
     collapsed: false
   Tool Properties:
@@ -429,4 +375,4 @@ Window Geometry:
     collapsed: false
   Width: 1853
   X: 67
-  Y: 27
+  Y: 0
