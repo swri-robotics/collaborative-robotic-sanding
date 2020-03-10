@@ -50,9 +50,13 @@ ScanAcquisitionManager::ScanAcquisitionManager(std::shared_ptr<rclcpp::Node> nod
   : node_(node)
   , scan_poses_(std::vector<geometry_msgs::msg::Transform>())
   , tool_frame_("")
+  , world_frame_("world")
   , max_time_since_last_point_cloud_(0.1)
   , point_clouds_(std::vector<sensor_msgs::msg::PointCloud2>())
   , scan_index_(0)
+  , clock_(std::make_shared<rclcpp::Clock>(RCL_ROS_TIME))
+  , tf_buffer_(clock_)
+  , tf_listener_(tf_buffer_)
 {
 }
 
@@ -186,7 +190,30 @@ common::ActionResult ScanAcquisitionManager::capture()
   // TODO asses if the logic below is still needed
   if (node_->now() - curr_point_cloud_.header.stamp >= rclcpp::Duration(max_time_since_last_point_cloud_))
   {
-    point_clouds_.push_back(curr_point_cloud_);
+    geometry_msgs::msg::TransformStamped transform;
+    try
+    {
+      transform = tf_buffer_.lookupTransform(world_frame_, curr_point_cloud_.header.frame_id, curr_point_cloud_.header.stamp);
+    }
+    catch (tf2::TransformException ex)
+    {
+      RCLCPP_ERROR(node_->get_logger(), "%s", ex.what());
+      //response->success = false;
+      //response->error = "Failed to transform point cloud from '" + curr_point_cloud_.header.frame_id + "' to '" + world_frame_ + "' frame";
+      return false;
+    }
+
+    pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
+    pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
+
+    pcl::fromROSMsg(curr_point_cloud_, *point_cloud);
+    pcl::transformPointCloud(*point_cloud, *transformed_cloud, 
+                              tf2::transformToEigen(transform).matrix());
+
+    sensor_msgs::msg::PointCloud2 point_cloud_msg;
+    pcl::toROSMsg(*transformed_cloud, point_cloud_msg);
+
+    point_clouds_.push_back(point_cloud_msg);
     return true;
   }
   else

@@ -45,6 +45,16 @@
 #include <geometry_msgs/msg/transform.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 
+//#include <pcl/point_types.h>
+#include <pcl/common/transforms.h>
+#include <pcl/conversions.h>
+#include <pcl_conversions/pcl_conversions.h>
+#include <tf2/convert.h>
+#include <tf2_eigen/tf2_eigen.h>
+//#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
+
 namespace crs_application
 {
 namespace task_managers
@@ -94,6 +104,7 @@ protected:
   // parameters
   std::vector<geometry_msgs::msg::Transform> scan_poses_;
   std::string tool_frame_;
+  std::string world_frame_;
   double pre_acquisition_pause_;
   double max_time_since_last_point_cloud_;
 
@@ -106,6 +117,10 @@ protected:
   sensor_msgs::msg::PointCloud2 curr_point_cloud_;
   std::vector<sensor_msgs::msg::PointCloud2> point_clouds_;
   uint scan_index_;
+
+  rclcpp::Clock::SharedPtr clock_;
+  tf2_ros::Buffer tf_buffer_;
+  tf2_ros::TransformListener tf_listener_;
 
   void handlePointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr msg);
 };
