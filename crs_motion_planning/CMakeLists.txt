@@ -39,6 +39,7 @@ find_package(action_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(trajectory_msgs REQUIRED)
+find_package(control_msgs REQUIRED)
 
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
@@ -46,6 +47,8 @@ find_package(tf2_eigen REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 
 find_package(yaml-cpp REQUIRED)
+
+find_package(iterative_spline_parameterization REQUIRED)
 
 add_library(${PROJECT_NAME}_path_processing_utils SHARED src/path_processing_utils.cpp)
 target_include_directories(${PROJECT_NAME}_path_processing_utils PUBLIC
@@ -57,6 +60,7 @@ target_include_directories(${PROJECT_NAME}_path_processing_utils PUBLIC
   ${tf2_eigen_INCLUDE_DIRS}
   ${tf2_ros_INCLUDE_DIRS}
   ${tf2_geometry_msgs_INCLUDE_DIRS}
+  ${control_msgs_INCLUDE_DIRS}
   )
 target_link_libraries(${PROJECT_NAME}_path_processing_utils
   ${YAML_CPP_LIBRARIES}
@@ -66,8 +70,10 @@ target_link_libraries(${PROJECT_NAME}_path_processing_utils
   ${tf2_eigen_LIBRARIES}
   ${tf2_ros_LIBRARIES}
   ${tf2_geometry_msgs_LIBRARIES}
+  ${control_msgs_LIBRARIES}
   tesseract::tesseract_common
   Eigen3::Eigen
+  iterative_spline_parameterization::iterative_spline_parameterization
   )
 
 add_library(${PROJECT_NAME}_path_planning_utils SHARED src/path_planning_utils.cpp)
@@ -81,6 +87,7 @@ target_include_directories(${PROJECT_NAME}_path_planning_utils PUBLIC
   ${tf2_eigen_INCLUDE_DIRS}
   ${tf2_ros_INCLUDE_DIRS}
   ${tf2_geometry_msgs_INCLUDE_DIRS}
+  ${control_msgs_INCLUDE_DIRS}
   )
 target_link_libraries(${PROJECT_NAME}_path_planning_utils
   ${PROJECT_NAME}_path_processing_utils
@@ -91,6 +98,7 @@ target_link_libraries(${PROJECT_NAME}_path_planning_utils
   ${tf2_eigen_LIBRARIES}
   ${tf2_ros_LIBRARIES}
   ${tf2_geometry_msgs_LIBRARIES}
+  ${control_msgs_LIBRARIES}
   ur_ikfast_kinematics::ur10e_ikfast
   tesseract::tesseract
   tesseract::tesseract_motion_planners_trajopt
@@ -121,6 +129,7 @@ target_include_directories(${PROJECT_NAME}_motion_planning_server PUBLIC
   ${tf2_INCLUDE_DIRS}
   ${tf2_eigen_INCLUDE_DIRS}
   ${tf2_ros_INCLUDE_DIRS}
+  ${control_msgs_INCLUDE_DIRS}
   )
 target_link_libraries(${PROJECT_NAME}_motion_planning_server
   ${PROJECT_NAME}_path_planning_utils
@@ -135,6 +144,7 @@ target_link_libraries(${PROJECT_NAME}_motion_planning_server
   ${tf2_LIBRARIES}
   ${tf2_eigen_LIBRARIES}
   ${tf2_ros_LIBRARIES}
+  ${control_msgs_LIBRARIES}
   ${visualization_msgs_LIBRARIES}
   )
 
@@ -155,6 +165,7 @@ target_include_directories(${PROJECT_NAME}_process_planner_test PUBLIC
   ${tf2_INCLUDE_DIRS}
   ${tf2_eigen_INCLUDE_DIRS}
   ${tf2_ros_INCLUDE_DIRS}
+  ${control_msgs_INCLUDE_DIRS}
   )
 target_link_libraries(${PROJECT_NAME}_process_planner_test
   ${PROJECT_NAME}_path_planning_utils
@@ -169,6 +180,7 @@ target_link_libraries(${PROJECT_NAME}_process_planner_test
   ${tf2_LIBRARIES}
   ${tf2_eigen_LIBRARIES}
   ${tf2_ros_LIBRARIES}
+  ${control_msgs_LIBRARIES}
   ${visualization_msgs_LIBRARIES}
   )
 
@@ -218,6 +230,7 @@ ament_export_dependencies(
     rclcpp
     rclcpp_action
     crs_msgs
+    control_msgs
     tesseract_motion_planners
     tesseract_rosutils
     ur_ikfast_kinematics

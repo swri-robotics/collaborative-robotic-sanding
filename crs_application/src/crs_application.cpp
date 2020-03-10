@@ -46,6 +46,7 @@
 #include "crs_application/crs_executive.h"
 
 static const double STATE_PUB_RATE = 0.5;
+static const double ROS_SPIN_TIMEOUT = 0.1;
 static const std::string NODE_NAME = "crs_application";
 static const std::string CURRENT_ST_TOPIC = "current_state";
 static const std::string EXECUTE_ACTION_SERVICE = "execute_action";
@@ -66,7 +67,9 @@ int main(int argc, char** argv)
 
   std::cout << "CRS Starting" << std::endl;
   rclcpp::init(argc, argv);
+  rclcpp::executors::MultiThreadedExecutor executor;
   std::shared_ptr<rclcpp::Node> node = std::make_shared<rclcpp::Node>(NODE_NAME);
+  executor.add_node(node);
   rcutils_logging_set_logger_level(node->get_logger().get_name(), RCUTILS_LOG_SEVERITY_INFO);
 
   // crs executive
@@ -154,12 +157,10 @@ int main(int argc, char** argv)
   RCLCPP_INFO(node->get_logger(), "CRS Application started");
 
   // main loop
-  rclcpp::Rate throttle(100);
   while (rclcpp::ok())
   {
     app.processEvents(QEventLoop::AllEvents);
-    throttle.sleep();
-    rclcpp::spin_some(node);
+    executor.spin_some(rclcpp::Duration::from_seconds(ROS_SPIN_TIMEOUT).to_chrono<std::chrono::nanoseconds>());
   }
   app.exit();
 
