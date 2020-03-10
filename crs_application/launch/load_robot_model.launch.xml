@@ -6,14 +6,5 @@
 
   <node pkg="robot_state_publisher" exec="robot_state_publisher" name="$(var ns)/robot_state_publisher" namespace="$(var ns)"
     args="$(var robot_description_file)"/>
-
-<!--  <node pkg="crs_utils_py" exec="joint_state_publisher" name="$(var ns)/joint_state_publisher" namespace="$(var ns)"
-    output="screen">
-    <param name="joint_names"
-      value="live/elbow_joint, live/shoulder_lift_joint, live/shoulder_pan_joint, live/wrist_1_joint, live/wrist_2_joint, live/wrist_3_joint"
-      value-sep=", "/>
-    <param name="joint_init_vals" value="'0.0', '0.0', '0.0', '0.0', '0.0', '0.0'" value-sep=", " />
-    <param name="src_topics" value="input_joints" value-sep=", "/>
-  </node>-->
 	
 </launch>
