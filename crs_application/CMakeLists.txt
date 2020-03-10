@@ -40,6 +40,7 @@ add_library(${PROJECT_NAME} SHARED
 	src/task_managers/motion_planning_manager.cpp
 	src/task_managers/process_execution_manager.cpp)
 target_link_libraries(${PROJECT_NAME} 
+  ${PCL_LIBRARIES}
   scxml_core::scxml_core
   Eigen3::Eigen
 )

@@ -150,7 +150,7 @@ private:
         pcl::transformPointCloud(*point_cloud, *transformed_cloud, 
                                  tf2::transformToEigen(transform).matrix());
 
-        *combined_point_cloud += *transformed_cloud;
+        *combined_point_cloud += *point_cloud;
       }
 
       if (enable_debug_visualizations_)

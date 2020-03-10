@@ -208,11 +208,13 @@ common::ActionResult ScanAcquisitionManager::capture()
 
     pcl::fromROSMsg(curr_point_cloud_, *point_cloud);
     pcl::transformPointCloud(*point_cloud, *transformed_cloud, 
-                              tf2::transformToEigen(transform).matrix());
+                             tf2::transformToEigen(transform).matrix());
 
     sensor_msgs::msg::PointCloud2 point_cloud_msg;
     pcl::toROSMsg(*transformed_cloud, point_cloud_msg);
 
+    point_cloud_msg.header.frame_id = world_frame_;
+    point_cloud_msg.header.stamp = curr_point_cloud_.header.stamp;
     point_clouds_.push_back(point_cloud_msg);
     return true;
   }
