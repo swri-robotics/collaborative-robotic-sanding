@@ -25,6 +25,7 @@ find_package(tf2_eigen REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(scxml_core REQUIRED)
+find_package(PCL REQUIRED COMPONENTS common)
 find_package(Qt5 REQUIRED COMPONENTS Widgets)
 find_package(Eigen3 REQUIRED NO_MODULE)
 
