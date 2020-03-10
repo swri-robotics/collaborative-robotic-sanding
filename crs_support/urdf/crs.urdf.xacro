@@ -251,7 +251,7 @@
     <link name="${prefix}eoat_link">
         <visual>
             <geometry>
-                <mesh filename="package://crs_support/meshes/end_effector/visual/ee_v2.stl" />
+                <mesh filename="package://crs_support/meshes/end_effector/visual/full_ee_v4.stl" />
             </geometry>
             <material name="Orange">
                 <color rgba="1.0 0.4 0.0 1.0" />
@@ -259,7 +259,7 @@
         </visual>
         <collision>
             <geometry>
-                <mesh filename="package://crs_support/meshes/end_effector/collision/ee_v2_collision_full.stl" />
+                <mesh filename="package://crs_support/meshes/end_effector/collision/full_ee_v4_collision.stl" />
             </geometry>
         </collision>
 
@@ -370,7 +370,7 @@
     </joint>
     <link name="${prefix}sander_center_link" />
     <joint name="${prefix}sander_joint" type = "fixed">
-        <origin xyz="0.0 -0.1167 0.12664" rpy="0.7854 0.0 0.0"/>
+        <origin xyz="0.0 -0.15497 0.17503" rpy="0.7854 0.0 0.0"/>
         <parent link="${prefix}eoat_link"/>
         <child link="${prefix}sander_center_link" />
     </joint>
