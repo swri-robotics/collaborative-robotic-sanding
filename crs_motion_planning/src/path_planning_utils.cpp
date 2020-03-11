@@ -38,7 +38,7 @@ bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray
   world_to_sander = curr_transforms.find(config_->tcp_frame)->second;
   world_to_tool0 = curr_transforms.find(config_->tool0_frame)->second;
   tool0_to_sander = world_to_tool0.inverse() * world_to_sander;
-  tool0_to_sander = tool0_to_sander * config_->tool_offset;
+  tool0_to_sander = tool0_to_sander * config_->descartes_config.tool_offset;
   descartes_light::KinematicsInterfaceD::Ptr kin_interface =
       std::make_shared<ur_ikfast_kinematics::UR10eKinematicsD>(world_to_base_link, tool0_to_sander, nullptr, nullptr);
 
@@ -420,6 +420,8 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
     traj_pc->smooth_accelerations = config_->trajopt_surface_config.smooth_accelerations;
     traj_pc->smooth_jerks = config_->trajopt_surface_config.smooth_accelerations;
     traj_pc->target_waypoints = curr_raster;
+    traj_pc->special_collision_constraint = config_->trajopt_surface_config.special_collision_constraint;
+    traj_pc->special_collision_cost = config_->trajopt_surface_config.special_collision_cost;
 
     Eigen::MatrixXd joint_eigen_from_jt;
     joint_eigen_from_jt = tesseract_rosutils::toEigen(results->descartes_trajectory_results[i],
@@ -599,19 +601,18 @@ bool crsMotionPlanner::trajoptFreespaceFromOMPL(const tesseract_motion_planners:
   RCLCPP_INFO(logger_, "SETTING UP TRAJOPT CONFIG");
   auto traj_pc = std::make_shared<tesseract_motion_planners::TrajOptPlannerFreespaceConfig>(
       config_->tesseract_local, config_->manipulator, config_->tcp_frame, config_->tool_offset);
-  if (config_->use_trajopt_freespace)
-  {
-    traj_pc->optimizer = sco::ModelType::BPMPD;
-    traj_pc->smooth_velocities = config_->trajopt_freespace_config.smooth_velocities;
-    traj_pc->smooth_accelerations = config_->trajopt_freespace_config.smooth_accelerations;
-    traj_pc->smooth_jerks = config_->trajopt_freespace_config.smooth_jerks;
-    traj_pc->collision_cost_config = config_->trajopt_freespace_config.coll_cst_cfg;
-    traj_pc->collision_constraint_config = config_->trajopt_freespace_config.coll_cnt_cfg;
-    traj_pc->init_type = config_->trajopt_freespace_config.init_type;
-    traj_pc->contact_test_type = config_->trajopt_freespace_config.contact_test_type;
-    traj_pc->longest_valid_segment_fraction = config_->trajopt_freespace_config.longest_valid_segment_fraction;
-    traj_pc->longest_valid_segment_length = config_->trajopt_freespace_config.longest_valid_segment_length;
-  }
+  traj_pc->optimizer = sco::ModelType::BPMPD;
+  traj_pc->smooth_velocities = config_->trajopt_freespace_config.smooth_velocities;
+  traj_pc->smooth_accelerations = config_->trajopt_freespace_config.smooth_accelerations;
+  traj_pc->smooth_jerks = config_->trajopt_freespace_config.smooth_jerks;
+  traj_pc->collision_cost_config = config_->trajopt_freespace_config.coll_cst_cfg;
+  traj_pc->collision_constraint_config = config_->trajopt_freespace_config.coll_cnt_cfg;
+  traj_pc->init_type = config_->trajopt_freespace_config.init_type;
+  traj_pc->contact_test_type = config_->trajopt_freespace_config.contact_test_type;
+  traj_pc->longest_valid_segment_fraction = config_->trajopt_freespace_config.longest_valid_segment_fraction;
+  traj_pc->longest_valid_segment_length = config_->trajopt_freespace_config.longest_valid_segment_length;
+  traj_pc->special_collision_constraint = config_->trajopt_freespace_config.special_collision_constraint;
+  traj_pc->special_collision_cost = config_->trajopt_freespace_config.special_collision_cost;
   RCLCPP_INFO(logger_, "OPTIMIZING WITH TRAJOPT");
   std::vector<tesseract_motion_planners::Waypoint::Ptr> trgt_wypts;
   trgt_wypts.push_back(start_pose);
@@ -940,7 +941,7 @@ bool crsMotionPlanner::findClosestJointOrientation(const tesseract_motion_planne
   world_to_sander = curr_transforms.find(config_->tcp_frame)->second;
   world_to_tool0 = curr_transforms.find(config_->tool0_frame)->second;
   tool0_to_sander = world_to_tool0.inverse() * world_to_sander;
-  tool0_to_sander = tool0_to_sander * config_->tool_offset;
+  tool0_to_sander = tool0_to_sander * config_->descartes_config.tool_offset;
   descartes_light::KinematicsInterfaceD::Ptr kin_interface =
       std::make_shared<ur_ikfast_kinematics::UR10eKinematicsD>(world_to_base_link, tool0_to_sander, nullptr, nullptr);
 

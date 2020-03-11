@@ -129,14 +129,14 @@ private:
     auto proc_req = std::make_shared<crs_msgs::srv::PlanProcessMotions::Request>();
     proc_req->tool_link = "sander_center_link";
     proc_req->tool_speed = 0.3;
-    proc_req->approach_dist = 0.025;
-    proc_req->retreat_dist = 0.025;
+    proc_req->approach_dist = 0.045;
+    proc_req->retreat_dist = 0.045;
     proc_req->start_position = curr_joint_state_;
     proc_req->end_position = curr_joint_state_;
     Eigen::Isometry3d tool_offset_req = Eigen::Isometry3d::Identity();
     geometry_msgs::msg::Pose geom_tool_offset;
     tesseract_rosutils::toMsg(geom_tool_offset, tool_offset_req);
-    geom_tool_offset.position.z = 0.025;
+    geom_tool_offset.position.z = 0.0;
     proc_req->tool_offset = geom_tool_offset;
     std::vector<crs_msgs::msg::ToolProcessPath> path_requests;
     crs_msgs::msg::ToolProcessPath path_wf;
