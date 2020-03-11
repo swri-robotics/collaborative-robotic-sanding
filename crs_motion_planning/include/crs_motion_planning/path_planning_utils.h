@@ -44,6 +44,8 @@ struct descartesConfig
   double collision_safety_margin = 0.01;
 
   bool allow_collisions = false;
+
+  Eigen::Isometry3d tool_offset = Eigen::Isometry3d::Identity();
 };
 
 struct trajoptSurfaceConfig
@@ -63,6 +65,9 @@ struct trajoptSurfaceConfig
   Eigen::VectorXd surface_coeffs;  // Defaults to 6 10s
 
   bool waypoints_critical = true;
+
+  std::vector<std::tuple<std::string, std::string, double, double>> special_collision_cost;
+  std::vector<std::tuple<std::string, std::string, double, double>> special_collision_constraint;
 };
 
 struct omplConfig
@@ -102,6 +107,9 @@ struct trajoptFreespaceConfig
   double longest_valid_segment_length = 0.5;
 
   tesseract_collision::ContactTestType contact_test_type = tesseract_collision::ContactTestType::CLOSEST;
+
+  std::vector<std::tuple<std::string, std::string, double, double>> special_collision_cost;
+  std::vector<std::tuple<std::string, std::string, double, double>> special_collision_constraint;
 };
 
 struct pathPlanningConfig
