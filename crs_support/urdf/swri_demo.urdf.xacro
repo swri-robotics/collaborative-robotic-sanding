@@ -1,0 +1,575 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<robot name="crs" xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:macro name="crs_workcell" params="prefix:=^|''">
+    <link name="${prefix}base_link">
+        <visual>
+            <origin rpy="0 0 3.14159265359" xyz="0 0 0" />
+            <geometry>
+                <mesh filename="package://crs_support/meshes/ur10e/visual/base.dae" />
+            </geometry>
+            <material name="LightGrey">
+                <color rgba="0.7 0.7 0.7 1.0" />
+            </material>
+        </visual>
+        <collision>
+            <origin rpy="0 0 3.14159265359" xyz="0 0 0" />
+            <geometry>
+                <mesh filename="package://crs_support/meshes/ur10e/collision/base.stl" />
+            </geometry>
+        </collision>
+
+        <inertial>
+            <mass value="4.0" />
+            <origin rpy="0 0 0" xyz="0.0 0.0 0.0" />
+            <inertia ixx="0.0061063308908" ixy="0.0" ixz="0.0" iyy="0.0061063308908" iyz="0.0" izz="0.01125" />
+        </inertial>
+
+    </link>
+    <joint name="${prefix}shoulder_pan_joint" type="revolute">
+        <parent link="${prefix}base_link" />
+        <child link="${prefix}shoulder_link" />
+        <origin rpy="0 0 3.14159249728" xyz="0 0 0.180920744391" />
+        <axis xyz="0 0 1" />
+        <limit effort="330.0" lower="-6.28318530718" upper="6.28318530718" velocity="3.14" />
+        <dynamics damping="0.0" friction="0.0" />
+    </joint>
+    <link name="${prefix}shoulder_link">
+        <visual>
+            <origin rpy="0 0 3.14159265359" xyz="0 0 0" />
+            <geometry>
+                <mesh filename="package://crs_support/meshes/ur10e/visual/shoulder.dae" />
+            </geometry>
+            <material name="LightGrey">
+                <color rgba="0.7 0.7 0.7 1.0" />
+            </material>
+        </visual>
+        <collision>
+            <origin rpy="0 0 3.14159265359" xyz="0 0 0" />
+            <geometry>
+                <mesh filename="package://crs_support/meshes/ur10e/collision/shoulder.stl" />
+            </geometry>
+        </collision>
+
+        <inertial>
+            <mass value="7.778" />
+            <origin rpy="0 0 0" xyz="0.0 0.0 0.0" />
+            <inertia ixx="0.0314743125769" ixy="0.0" ixz="0.0" iyy="0.0314743125769" iyz="0.0" izz="0.021875625" />
+        </inertial>
+
+    </link>
+    <joint name="${prefix}shoulder_lift_joint" type="revolute">
+        <parent link="${prefix}shoulder_link" />
+        <child link="${prefix}upper_arm_link" />
+        <origin rpy="1.57065145242 0 -2.70337965131e-06" xyz="0.00013292041689 0 0" />
+        <axis xyz="0 0 1" />
+        <limit effort="330.0" lower="-6.28318530718" upper="6.28318530718" velocity="3.14" />
+        <dynamics damping="0.0" friction="0.0" />
+    </joint>
+    <link name="${prefix}upper_arm_link">
+        <visual>
+            <origin rpy="1.57079632679 0 -1.57079632679" xyz="0 0 0.1762" />
+            <geometry>
+                <mesh filename="package://crs_support/meshes/ur10e/visual/upperarm.dae" />
+            </geometry>
+            <material name="LightGrey">
+                <color rgba="0.7 0.7 0.7 1.0" />
+            </material>
+        </visual>
+        <collision>
+            <origin rpy="1.57079632679 0 -1.57079632679" xyz="0 0 0.1762" />
+            <geometry>
+                <mesh filename="package://crs_support/meshes/ur10e/collision/upper_arm_multibody.dae" />
+            </geometry>
+        </collision>
+
+        <inertial>
+            <mass value="12.93" />
+            <origin rpy="0 1.57079632679 0" xyz="-0.3059856723 0.0 0.175" />
+            <inertia ixx="0.421716012238" ixy="0.0" ixz="0.0" iyy="0.421716012238" iyz="0.0" izz="0.036365625" />
+        </inertial>
+
+    </link>
+    <joint name="${prefix}elbow_joint" type="revolute">
+        <parent link="${prefix}upper_arm_link" />
+        <child link="${prefix}forearm_link" />
+        <origin rpy="3.14047492209 3.14117521433 3.14159104748" xyz="-0.611971344601 0 0" />
+        <axis xyz="0 0 1" />
+        <limit effort="150.0" lower="-6.28318530718" upper="6.28318530718" velocity="3.14" />
+        <dynamics damping="0.0" friction="0.0" />
+    </joint>
+    <link name="${prefix}forearm_link">
+        <visual>
+            <origin rpy="1.57079632679 0 -1.57079632679" xyz="0 0 0.0393" />
+            <geometry>
+                <mesh filename="package://crs_support/meshes/ur10e/visual/forearm.dae" />
+            </geometry>
+            <material name="LightGrey">
+                <color rgba="0.7 0.7 0.7 1.0" />
+            </material>
+        </visual>
+        <collision>
+            <origin rpy="1.57079632679 0 -1.57079632679" xyz="0 0 0.0393" />
+            <geometry>
+                <mesh filename="package://crs_support/meshes/ur10e/collision/forearm_multibody.dae" />
+            </geometry>
+        </collision>
+
+        <inertial>
+            <mass value="3.87" />
+            <origin rpy="0 1.57079632679 0" xyz="-0.3059856723 0.0 0.0393" />
+            <inertia ixx="0.110614284666" ixy="0.0" ixz="0.0" iyy="0.110614284666" iyz="0.0" izz="0.010884375" />
+        </inertial>
+
+    </link>
+    <joint name="${prefix}wrist_1_joint" type="revolute">
+        <parent link="${prefix}forearm_link" />
+        <child link="${prefix}wrist_1_link" />
+        <origin rpy="3.13872123266 -3.14053617519 3.14158723656" xyz="-0.571064941288 0.000500820247035 0.174414995927" />
+        <axis xyz="0 0 1" />
+        <limit effort="54.0" lower="-6.28318530718" upper="6.28318530718" velocity="6.28" />
+        <dynamics damping="0.0" friction="0.0" />
+    </joint>
+    <link name="${prefix}wrist_1_link">
+        <visual>
+            <origin rpy="1.57079632679 0 0" xyz="0 0 -0.135" />
+            <geometry>
+                <mesh filename="package://crs_support/meshes/ur10e/visual/wrist1.dae" />
+            </geometry>
+            <material name="LightGrey">
+                <color rgba="0.7 0.7 0.7 1.0" />
+            </material>
+        </visual>
+        <collision>
+            <origin rpy="1.57079632679 0 0" xyz="0 0 -0.135" />
+            <geometry>
+                <mesh filename="package://crs_support/meshes/ur10e/collision/wrist1.stl" />
+            </geometry>
+        </collision>
+
+        <inertial>
+            <mass value="1.96" />
+            <origin rpy="0 0 0" xyz="0.0 0.0 0.0" />
+            <inertia ixx="0.00510211926321" ixy="0.0" ixz="0.0" iyy="0.00510211926321" iyz="0.0" izz="0.0055125" />
+        </inertial>
+
+    </link>
+    <joint name="${prefix}wrist_2_joint" type="revolute">
+        <parent link="${prefix}wrist_1_link" />
+        <child link="${prefix}wrist_2_link" />
+        <origin rpy="1.57117550062 0 -9.13444434245e-07" xyz="5.96404309737e-05 -0.119843553735 -4.54415414531e-05" />
+        <axis xyz="0 0 1" />
+        <limit effort="54.0" lower="-6.28318530718" upper="6.28318530718" velocity="6.28" />
+        <dynamics damping="0.0" friction="0.0" />
+    </joint>
+    <link name="${prefix}wrist_2_link">
+        <visual>
+            <origin rpy="0 0 0" xyz="0 0 -0.12" />
+            <geometry>
+                <mesh filename="package://crs_support/meshes/ur10e/visual/wrist2.dae" />
+            </geometry>
+            <material name="LightGrey">
+                <color rgba="0.7 0.7 0.7 1.0" />
+            </material>
+        </visual>
+        <collision>
+            <origin rpy="0 0 0" xyz="0 0 -0.12" />
+            <geometry>
+                <mesh filename="package://crs_support/meshes/ur10e/collision/wrist2.stl" />
+            </geometry>
+        </collision>
+
+        <inertial>
+            <mass value="1.96" />
+            <origin rpy="0 0 0" xyz="0.0 0.0 0.0" />
+            <inertia ixx="0.00493642595291" ixy="0.0" ixz="0.0" iyy="0.00493642595291" iyz="0.0" izz="0.0055125" />
+        </inertial>
+
+    </link>
+    <joint name="${prefix}wrist_3_joint" type="revolute">
+        <parent link="${prefix}wrist_2_link" />
+        <child link="${prefix}wrist_3_link" />
+        <origin rpy="1.57170379674 3.14159265359 3.14159254819" xyz="1.57784168351e-05 0.115533666641 0.000104843358957" />
+        <axis xyz="0 0 1" />
+        <limit effort="54.0" lower="-6.28318530718" upper="6.28318530718" velocity="6.28" />
+        <dynamics damping="0.0" friction="0.0" />
+    </joint>
+    <link name="${prefix}wrist_3_link">
+        <visual>
+            <origin rpy="1.57079632679 0 0" xyz="0 0 -0.1168" />
+            <geometry>
+                <mesh filename="package://crs_support/meshes/ur10e/visual/wrist3.dae" />
+            </geometry>
+            <material name="LightGrey">
+                <color rgba="0.7 0.7 0.7 1.0" />
+            </material>
+        </visual>
+        <collision>
+            <origin rpy="1.57079632679 0 0" xyz="0 0 -0.1168" />
+            <geometry>
+                <mesh filename="package://crs_support/meshes/ur10e/collision/wrist3.stl" />
+            </geometry>
+        </collision>
+
+        <inertial>
+            <mass value="0.202" />
+            <origin rpy="0 0 0" xyz="0.0 0.0 -0.025" />
+            <inertia ixx="0.000144345775595" ixy="0.0" ixz="0.0" iyy="0.000144345775595" iyz="0.0" izz="0.000204525" />
+        </inertial>
+
+    </link>
+    <joint name="${prefix}ee_fixed_joint" type="fixed">
+        <parent link="${prefix}wrist_3_link" />
+        <child link="${prefix}ee_link" />
+        <origin rpy="0.0 -1.57079632679 1.57079632679" xyz="0.0 0.0 0.0" />
+    </joint>
+    <link name="${prefix}ee_link">
+        <collision>
+            <geometry>
+                <box size="0.01 0.01 0.01" />
+            </geometry>
+            <origin rpy="0 0 0" xyz="-0.01 0 0" />
+        </collision>
+
+        <inertial>
+            <mass value="0.1" />
+            <inertia ixx="0.03" iyy="0.03" izz="0.03" ixy="0.0" ixz="0.0" iyz="0.0" />
+        </inertial>
+
+    </link>
+    <link name="${prefix}base" />
+    <joint name="${prefix}base_link-base_fixed_joint" type="fixed">
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <parent link="${prefix}base" />
+        <child link="${prefix}base_link" />
+    </joint>
+    <link name="${prefix}tool0" />
+    <joint name="${prefix}wrist_3_link-tool0_fixed_joint" type="fixed">
+        <origin rpy="0 0 0" xyz="0 0 0" />
+        <parent link="${prefix}wrist_3_link" />
+        <child link="${prefix}tool0" />
+    </joint>
+    <link name="${prefix}eoat_link">
+        <visual>
+            <geometry>
+                <mesh filename="package://crs_support/meshes/end_effector/visual/full_ee_v4.stl" />
+            </geometry>
+            <material name="Orange">
+                <color rgba="1.0 0.4 0.0 1.0" />
+            </material>
+        </visual>
+        <collision>
+            <geometry>
+                <mesh filename="package://crs_support/meshes/end_effector/collision/full_ee_v4_collision.stl" />
+            </geometry>
+        </collision>
+
+        <inertial>
+            <mass value="0.01" />
+            <origin rpy="0 0 0" xyz="0.0 0.0 0.0" />
+            <inertia ixx="0.000526462289415" ixy="0.0" ixz="0.0" iyy="0.000526462289415" iyz="0.0" izz="0.000568125" />
+        </inertial>
+    </link>
+    <joint name="${prefix}tool0_to_eoat_link" type="fixed">
+        <parent link="${prefix}tool0" />
+        <child link="${prefix}eoat_link" />
+        <origin rpy="0.0 0.0 0" xyz="0.00 0.00 0.00" />
+    </joint>
+    <link name="${prefix}robot_stand">
+        <visual>
+            <geometry>
+                <box size="0.4318 0.4318 1.1"/>
+            </geometry>
+            <material name="LightGrey">
+                <color rgba="0.7 0.7 0.7 1.0" />
+            </material>
+            <origin rpy="0 0 0" xyz="0 0 0.55" />
+        </visual>
+        <visual>
+            <geometry>
+                <box size="0.889 0.889 0.7112"/>
+            </geometry>
+            <material name="LightGrey">
+                <color rgba="0.7 0.7 0.7 1.0" />
+            </material>
+            <origin rpy="0 0 0" xyz="0 0 0.3556" />
+        </visual>
+        <visual>
+            <geometry>
+                <box size="1.55 1.55 0.254"/>
+            </geometry>
+            <material name="LightGrey">
+                <color rgba="0.7 0.7 0.7 1.0" />
+            </material>
+            <origin rpy="0 0 0" xyz="0 0 0.127" />
+        </visual>
+        <collision>
+            <geometry>
+                <box size="0.4318 0.4318 1.1"/>
+            </geometry>
+            <material name="LightGrey">
+                <color rgba="0.7 0.7 0.7 1.0" />
+            </material>
+            <origin rpy="0 0 0" xyz="0 0 0.55" />
+        </collision>
+        <collision>
+            <geometry>
+                <box size="0.889 0.889 0.7112"/>
+            </geometry>
+            <material name="LightGrey">
+                <color rgba="0.7 0.7 0.7 1.0" />
+            </material>
+            <origin rpy="0 0 0" xyz="0 0 0.3556" />
+        </collision>
+        <collision>
+            <geometry>
+                <box size="1.55 1.55 0.254"/>
+            </geometry>
+            <material name="LightGrey">
+                <color rgba="0.7 0.7 0.7 1.0" />
+            </material>
+            <origin rpy="0 0 0" xyz="0 0 0.127" />
+        </collision>
+        <inertial>
+            <mass value="0.1" />
+            <inertia ixx="0.03" iyy="0.03" izz="0.03" ixy="0.0" ixz="0.0" iyz="0.0" />
+        </inertial>
+
+    </link>
+    <joint name="${prefix}robot_base_joint" type="fixed">
+        <parent link="robot_stand" />
+        <child link="base" />
+        <origin rpy="0 0 0" xyz="0 0 1.0922" />
+        <limit effort="1.0" lower="-0.1" upper="1.9" velocity=".01" />
+    </joint>
+    <link name="world" />
+    <joint name="${prefix}robot_stand_joint" type="fixed">
+        <parent link="world" />
+        <child link="${prefix}robot_stand" />
+        <origin rpy="0 0 0" xyz="0 0 0" />
+    </joint>
+    <link name="${prefix}gazebo_camera_link" />
+    <joint name="${prefix}gazebo_camera_joint" type="fixed">
+        <origin xyz="0.0 0.0 0.0" rpy="1.57 -1.57 0.0"/>
+        <parent link="${prefix}camera_link_optical"/>
+        <child link="${prefix}gazebo_camera_link"/>
+    </joint>
+    <link name="${prefix}camera_link_optical" />
+    <joint name="${prefix}camera_optical_joint" type="fixed">
+        <origin xyz="-0.00345 0.070793 0.077409" rpy="-0.7854 0 0"/>
+        <parent link="${prefix}eoat_link"/>
+        <!-- <parent link="${prefix}gazebo_camera_link"/> -->
+        <child link="${prefix}camera_link_optical"/>
+    </joint>
+    <link name="${prefix}sander_center_link" />
+    <joint name="${prefix}sander_joint" type = "fixed">
+        <origin xyz="0.0 -0.15497 0.17503" rpy="0.7854 0.0 0.0"/>
+        <parent link="${prefix}eoat_link"/>
+        <child link="${prefix}sander_center_link" />
+    </joint>
+<!--    <link name="${prefix}part" >
+        <visual>
+            <origin rpy="0 0 0" xyz="0 0 0" />
+            <geometry>
+                <mesh filename="package://crs_support/meshes/Parts/visual/part1_ch.stl" />
+            </geometry>
+            <material name="Green">
+                <color rgba="0.0 0.7 0.0 1.0" />
+            </material>
+        </visual>
+        <collision>
+            <geometry>
+                <mesh filename="package://crs_support/meshes/Parts/collision/part1_ch.stl" />
+            </geometry>
+        </collision>
+    </link>
+    <joint name="${prefix}robot_stand_to_part_joint" type= "fixed">
+        <origin xyz="-0.439 -1.1 -0.14" rpy= "-3.1416 0.0 -1.571"/>
+        <parent link="${prefix}robot_stand"/>
+        <child link="${prefix}part"/>
+    </joint>-->
+
+    <transmission name="trans_shoulder_pan_joint">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="${prefix}shoulder_pan_joint">
+            <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="shoulder_pan_joint_motor">
+            <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+            <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+    </transmission>
+    <transmission name="trans_shoulder_lift_joint">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="${prefix}shoulder_lift_joint">
+            <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="shoulder_lift_joint_motor">
+            <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+            <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+    </transmission>
+    <transmission name="trans_elbow_joint">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="${prefix}elbow_joint">
+            <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="elbow_joint_motor">
+            <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+            <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+    </transmission>
+    <transmission name="trans_wrist_1_joint">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="${prefix}wrist_1_joint">
+            <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="wrist_1_joint_motor">
+            <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+            <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+    </transmission>
+    <transmission name="trans_wrist_2_joint">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="${prefix}wrist_2_joint">
+            <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="wrist_2_joint_motor">
+            <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+            <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+    </transmission>
+    <transmission name="trans_wrist_3_joint">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="${prefix}wrist_3_joint">
+            <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="wrist_3_joint_motor">
+            <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+            <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+    </transmission>
+    <transmission name="trans_robot_base_joint">
+        <type>transmission_interface/SimpleTransmission</type>
+        <joint name="${prefix}robot_base_joint">
+            <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+        </joint>
+        <actuator name="robot_base_joint_motor">
+            <hardwareInterface>hardware_interface/EffortJointInterface</hardwareInterface>
+            <mechanicalReduction>1</mechanicalReduction>
+        </actuator>
+    </transmission>
+    <gazebo reference="${prefix}robot_stand">
+        <selfCollide>true</selfCollide>
+    </gazebo>
+    <gazebo reference="${prefix}base_link">
+        <selfCollide>true</selfCollide>
+    </gazebo>
+    <gazebo reference="${prefix}shoulder_link">
+        <selfCollide>true</selfCollide>
+    </gazebo>
+    <gazebo reference="${prefix}upper_arm_link">
+        <selfCollide>true</selfCollide>
+    </gazebo>
+    <gazebo reference="${prefix}wrist_1_joint">
+        <selfCollide>true</selfCollide>
+    </gazebo>
+    <gazebo reference="${prefix}forearm_link">
+        <selfCollide>true</selfCollide>
+    </gazebo>
+    <gazebo reference="${prefix}wrist_2_joint">
+        <selfCollide>true</selfCollide>
+    </gazebo>
+    <gazebo reference="${prefix}wrist_3_joint">
+        <selfCollide>true</selfCollide>
+    </gazebo>
+    <gazebo reference="${prefix}ee_link">
+        <selfCollide>true</selfCollide>
+    </gazebo>
+    <gazebo reference="${prefix}eoat_link">
+        <selfCollide>true</selfCollide>
+    </gazebo>
+    <gazebo reference="${prefix}tool0">
+        <selfCollide>true</selfCollide>
+    </gazebo>
+    <gazebo reference="${prefix}gazebo_camera_link">
+        <sensor type="depth" name="sensor_name">
+          <!-- Set always_on only sensor, not on plugin -->
+          <always_on>1</always_on>
+          <!-- Set update_rate only sensor, not on plugin -->
+          <update_rate>5</update_rate>
+          <camera name="camera_name">
+            <image>
+              <width>320</width>
+              <height>200</height>
+            </image>
+            <distortion>
+              <k1>-0.0</k1>
+              <k2>0.0</k2>
+              <k3>0.0</k3>
+              <p1>-0.0</p1>
+              <p2>-0.0</p2>
+              <center>0.5 0.5</center>
+            </distortion>
+          </camera>
+          <plugin name="plugin_name" filename="libgazebo_ros_camera.so">
+            <!-- Change namespace, camera name and topics so:
+                 * Raw images are published to: /custom_ns/custom_camera/custom_image
+                 * Depth images are published to: /custom_ns/custom_camera/custom_image_depth
+                 * Raw image camera info is published to: /custom_ns/custom_camera/custom_info_raw
+                 * Depth image camera info is published to: /custom_ns/custom_camera/custom_info_depth
+                 * Point cloud is published to: /custom_ns/custom_camera/custom_points
+            -->
+            <ros>
+              <namespace>custom_ns</namespace>
+              <argument>custom_camera/image_raw:=custom_camera/custom_image</argument>
+              <argument>custom_camera/image_depth:=custom_camera/custom_image_depth</argument>
+              <argument>custom_camera/camera_info:=custom_camera/custom_info_raw</argument>
+              <argument>custom_camera/camera_info_depth:=custom_camera/custom_info_depth</argument>
+              <argument>custom_camera/points:=custom_camera/custom_points</argument>
+            </ros>
+            <!-- Set camera name. If empty, defaults to sensor name (i.e. "sensor_name") -->
+            <camera_name>custom_camera</camera_name>
+            <frame_name>camera_link_optical</frame_name>
+            <!-- Set TF frame name. If empty, defaults to link name (i.e. "link_name") -->
+            <hack_baseline>0.07</hack_baseline>
+            <!-- No need to repeat distortion parameters or to set autoDistortion -->
+             <min_depth>0.1</min_depth>
+          </plugin>
+        </sensor>
+    </gazebo>
+    <gazebo>
+        <plugin name='gazebo_ros_joint_state_publisher' filename='libgazebo_ros_joint_state_publisher.so'>
+          <ros>
+              <namespace>/test</namespace>
+              <argument>joint_states:=joint_states</argument>
+          </ros>
+          <update_rate>50</update_rate>
+          <joint_name>${prefix}shoulder_pan_joint</joint_name>
+          <joint_name>${prefix}shoulder_lift_joint</joint_name>
+          <joint_name>${prefix}elbow_joint</joint_name>
+          <joint_name>${prefix}wrist_1_joint</joint_name>
+          <joint_name>${prefix}wrist_2_joint</joint_name>
+          <joint_name>${prefix}wrist_3_joint</joint_name>
+        </plugin>
+        <!-- Replaced by the crs_gazebo_plugins_joint_pose_trajectory plugin which hosts an action server instead
+        <plugin name='gazebo_ros_joint_pose_trajectory' filename='libgazebo_ros_joint_pose_trajectory.so'>
+            <ros>
+              <namespace>/demo</namespace>
+              <argument>set_joint_trajectory:=set_trajectory_test</argument>
+            </ros>
+            <update_rate>20</update_rate>
+        </plugin> -->
+        <plugin name='crs_gazebo_plugins_joint_pose_trajectory' filename='libcrs_gazebo_plugins_joint_pose_trajectory.so'>
+            <ros>
+              <namespace>sim</namespace>
+              <argument>follow_joint_trajectory:=${prefix}follow_joint_trajectory</argument>
+            </ros>
+            <update_rate>20</update_rate>
+        </plugin>
+    </gazebo>
+  </xacro:macro>
+
+  <!-- Instantiating  crs workcell urdf -->
+  <xacro:arg name="prefix" default=""/>
+  <xacro:crs_workcell prefix="$(arg prefix)"/>
+</robot>
