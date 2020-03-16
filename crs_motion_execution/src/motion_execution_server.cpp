@@ -68,6 +68,9 @@ void findCartPoseArrayFromTraj(const trajectory_msgs::msg::JointTrajectory& join
         }
         Eigen::Isometry3d eig_pose;
         kin->calcFwdKin(eig_pose, joint_positions);
+        Eigen::Isometry3d world_to_base_link;
+        world_to_base_link = curr_transforms.find("base_link")->second;
+        eig_pose = world_to_base_link * eig_pose;
         geometry_msgs::msg::Pose curr_cart_pose = tf2::toMsg(eig_pose);
         cartesian_poses.poses.push_back(curr_cart_pose);
     }
@@ -217,9 +220,11 @@ private:
     wrench_msg.wrench.force.z = force_vector.translation().z();
 
     compliance_wrench_publisher_->publish(wrench_msg); // Publish requested force
+    int count = 1;
 
     for (auto pose : cart_pose_array.poses)
     {
+      std::cout << "Targetting point number: " << count << std::endl;
       geometry_msgs::msg::PoseStamped curr_cart_goal;
       curr_cart_goal.header.frame_id = world_frame_;
       curr_cart_goal.pose = pose;
@@ -245,7 +250,9 @@ private:
       geometry_msgs::msg::Pose world_to_sander_pose;
       world_to_sander_eig = tf2::transformToEigen(world_to_sander_tf.transform);
       tf2::fromMsg(curr_cart_goal.pose, curr_cart_goal_eig);
-      double diff = (curr_cart_goal_eig = world_to_sander_eig).translation().norm();
+      std::cout << "GOAL:\n" << curr_cart_goal_eig.matrix() << "\nCURR:\n" << world_to_sander_eig.matrix() << std::endl;
+      double diff = (curr_cart_goal_eig.translation() - world_to_sander_eig.translation()).norm();
+      std::cout << "DIFF: " << diff << std::endl;
       while (diff > tolerance)
       {
         compliance_position_publisher_->publish(curr_cart_goal);
@@ -266,6 +273,7 @@ private:
         world_to_sander_eig = tf2::transformToEigen(world_to_sander_tf.transform);
         diff = (curr_cart_goal_eig = world_to_sander_eig).translation().norm();
       }
+      count++;
     }
     wrench_msg.wrench.force.x = -force_vector.translation().x();
     wrench_msg.wrench.force.y = -force_vector.translation().y();
