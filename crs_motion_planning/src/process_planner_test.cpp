@@ -27,6 +27,41 @@
 
 static const double WAIT_SERVER_TIMEOUT = 10.0;  // seconds
 static const std::string FOLLOW_JOINT_TRAJECTORY_ACTION = "follow_joint_trajectory";
+static const std::string MOTION_EXECUTION_ACTION_TOPIC = "execute_surface_motion";
+
+
+void generateFakeToolPath(const double length_x,
+                          const double length_y,
+                          const double spacing_x,
+                          const double spacing_y,
+                          std::vector<geometry_msgs::msg::PoseArray>& toolpath)
+{
+  double curr_x = -length_x/2;
+  int side_mult = 1;
+  while (curr_x < length_x/2)
+  {
+    geometry_msgs::msg::PoseArray curr_tp;
+    curr_tp.header.frame_id = "part";
+    double curr_y = -length_y/2;
+    while (curr_y < length_y/2)
+    {
+      geometry_msgs::msg::Pose curr_pose;
+      curr_pose.position.x = curr_x;
+      curr_pose.position.y = curr_y * side_mult;
+      curr_pose.position.z = 0;
+      curr_pose.orientation.w = 0;
+      curr_pose.orientation.x = 1;
+      curr_pose.orientation.y = 0;
+      curr_pose.orientation.z = 0;
+      curr_tp.poses.push_back(curr_pose);
+      curr_y += spacing_y;
+    }
+    side_mult *= -1;
+    toolpath.push_back(curr_tp);
+    curr_x += spacing_x;
+  }
+  std::cout << "Vec length: " << toolpath.size() << std::endl;
+}
 
 class ProcessPlannerTestServer : public rclcpp::Node
 {
@@ -52,6 +87,16 @@ public:
                                                                                   FOLLOW_JOINT_TRAJECTORY_ACTION,
                                                                                   trajectory_exec_client_cbgroup_);
 
+    surface_traj_exec_client_cbgroup_ =
+        this->create_callback_group(rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
+    surface_traj_exec_client_ =
+        rclcpp_action::create_client<crs_msgs::action::CartesianComplianceTrajectory>(this->get_node_base_interface(),
+                                                                                      this->get_node_graph_interface(),
+                                                                                      this->get_node_logging_interface(),
+                                                                                      this->get_node_waitables_interface(),
+                                                                                      MOTION_EXECUTION_ACTION_TOPIC,
+                                                                                      trajectory_exec_client_cbgroup_);
+
     joint_state_listener_ = this->create_subscription<sensor_msgs::msg::JointState>(
         "joint_states", 1, std::bind(&ProcessPlannerTestServer::jointCallback, this, std::placeholders::_1));
 
@@ -76,7 +121,17 @@ public:
       RCLCPP_ERROR(this->get_logger(), "%s", err_msg.c_str());
       throw std::runtime_error(err_msg);
     }
-    RCLCPP_INFO(this->get_logger(), "%s action client found", FOLLOW_JOINT_TRAJECTORY_ACTION.c_str());
+    RCLCPP_INFO(this->get_logger(), "%s action client found2", FOLLOW_JOINT_TRAJECTORY_ACTION.c_str());
+
+    // waiting for server
+    if (!surface_traj_exec_client_->wait_for_action_server(std::chrono::duration<double>(WAIT_SERVER_TIMEOUT)))
+    {
+      std::string err_msg =
+          boost::str(boost::format("Failed to find surface action server %s") % MOTION_EXECUTION_ACTION_TOPIC);
+      RCLCPP_ERROR(this->get_logger(), "%s", err_msg.c_str());
+      throw std::runtime_error(err_msg);
+    }
+    RCLCPP_INFO(this->get_logger(), "%s surface action client found", MOTION_EXECUTION_ACTION_TOPIC.c_str());
   }
 
 private:
@@ -89,7 +144,8 @@ private:
     // Load rasters and get them in usable form
     std::string waypoint_origin_frame = "part";
     std::vector<geometry_msgs::msg::PoseArray> raster_strips;
-    crs_motion_planning::parsePathFromFile(toolpath_filepath_, waypoint_origin_frame, raster_strips);
+    generateFakeToolPath(0.35, 0.35, 0.05, 0.05, raster_strips);
+//    crs_motion_planning::parsePathFromFile(toolpath_filepath_, waypoint_origin_frame, raster_strips);
     geometry_msgs::msg::PoseArray strip_of_interset;
     for (auto strip : raster_strips)
     {
@@ -182,7 +238,11 @@ private:
         for (size_t i = 0; i < freespace_motions.size(); ++i)
         {
           RCLCPP_INFO(this->get_logger(), "EXECUTING SURFACE TRAJECTORY\t%i OF %i", i + 1, process_motions.size());
-          if (!execTrajectory(trajectory_exec_client_, this->get_logger(), process_motions[i]))
+//          if (!execTrajectory(trajectory_exec_client_, this->get_logger(), process_motions[i]))
+//          {
+//            return;
+//          }
+          if (!execSurfaceTrajectory(surface_traj_exec_client_, this->get_logger(), process_motions[i]))
           {
             return;
           }
@@ -198,7 +258,12 @@ private:
                     "EXECUTING SURFACE TRAJECTORY\t%i OF %i",
                     process_motions.size(),
                     process_motions.size());
-        execTrajectory(trajectory_exec_client_, this->get_logger(), process_motions.back());
+//        execTrajectory(trajectory_exec_client_, this->get_logger(), process_motions.back());
+        if (!execSurfaceTrajectory(surface_traj_exec_client_, this->get_logger(), process_motions.back()))
+        {
+          std::cout << "HERE IT IS" << std::endl;
+          return;
+        }
         if (end_traj.points.size() > 0)
         {
           RCLCPP_INFO(this->get_logger(), "EXECUTING FINAL FREESPACE");
@@ -242,6 +307,9 @@ private:
   rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SharedPtr trajectory_exec_client_;
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_listener_;
   rclcpp::callback_group::CallbackGroup::SharedPtr trajectory_exec_client_cbgroup_;
+
+  rclcpp_action::Client<crs_msgs::action::CartesianComplianceTrajectory>::SharedPtr surface_traj_exec_client_;
+  rclcpp::callback_group::CallbackGroup::SharedPtr surface_traj_exec_client_cbgroup_;
 
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr test_part_loader_client_;
   rclcpp::Client<crs_msgs::srv::LoadPart>::SharedPtr part_loader_client_;

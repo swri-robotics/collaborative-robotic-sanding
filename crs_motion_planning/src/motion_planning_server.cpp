@@ -188,7 +188,10 @@ public:
     trajopt_surface_config.surface_coeffs = surface_coeffs;
     trajopt_surface_config.waypoints_critical = true;
     trajopt_surface_config.longest_valid_segment_fraction = 0.001;
-    trajopt_surface_config.special_collision_constraint.push_back({"eoat_link", "part", -0.003, 15.0});
+//    trajopt_surface_config.special_collision_constraint.push_back({"eoat_link", "part", -0.003, 15.0});
+//    trajopt_surface_config.special_collision_constraint.push_back({"eoat_link", "part", -0.03, 15.0});
+    trajopt_surface_config.special_collision_constraint.push_back({"table", "eoat_link", -0.03, 15.0});
+//    trajopt_surface_config.special_collision_constraint.push_back({"eoat_link", "table", -0.03, 15.0});
 
     crs_motion_planning::omplConfig ompl_config;
     ompl_config.collision_safety_margin = 0.0175;
