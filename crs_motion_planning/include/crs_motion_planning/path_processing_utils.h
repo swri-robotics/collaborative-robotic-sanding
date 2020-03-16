@@ -18,6 +18,7 @@
 
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <control_msgs/action/follow_joint_trajectory.hpp>
+#include <crs_msgs/action/cartesian_compliance_trajectory.hpp>
 
 #include <tesseract_common/types.h>
 
@@ -117,6 +118,10 @@ bool timeParameterizeTrajectories(const trajectory_msgs::msg::JointTrajectory& g
 bool execTrajectory(rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SharedPtr ac,
                     const rclcpp::Logger& logger,
                     const trajectory_msgs::msg::JointTrajectory& traj);
+
+bool execSurfaceTrajectory(rclcpp_action::Client<crs_msgs::action::CartesianComplianceTrajectory>::SharedPtr ac,
+                           const rclcpp::Logger& logger,
+                           const trajectory_msgs::msg::JointTrajectory& traj);
 
 bool timeParameterizeFreespace(const trajectory_msgs::msg::JointTrajectory& given_traj,
                                const double& max_joint_vel,

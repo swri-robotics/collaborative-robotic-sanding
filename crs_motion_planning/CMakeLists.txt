@@ -54,6 +54,8 @@ add_library(${PROJECT_NAME}_path_processing_utils SHARED src/path_processing_uti
 target_include_directories(${PROJECT_NAME}_path_processing_utils PUBLIC
   "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
   "$<INSTALL_INTERFACE:include>"
+  ${rclcpp_INCLUDE_DIRS}
+  ${rclcpp_action_INCLUDE_DIRS}
   ${geometry_msgs_INCLUDE_DIRS}
   ${trajectory_msgs_INCLUDE_DIRS}
   ${tf2_INCLUDE_DIRS}
@@ -61,9 +63,12 @@ target_include_directories(${PROJECT_NAME}_path_processing_utils PUBLIC
   ${tf2_ros_INCLUDE_DIRS}
   ${tf2_geometry_msgs_INCLUDE_DIRS}
   ${control_msgs_INCLUDE_DIRS}
+  ${crs_msgs_INCLUDE_DIRS}
   )
 target_link_libraries(${PROJECT_NAME}_path_processing_utils
   ${YAML_CPP_LIBRARIES}
+  ${rclcpp_LIBRARIES}
+  ${rclcpp_action_LIBRARIES}
   ${geometry_msgs_LIBRARIES}
   ${trajectory_msgs_LIBRARIES}
   ${tf2_LIBRARIES}
@@ -71,6 +76,7 @@ target_link_libraries(${PROJECT_NAME}_path_processing_utils
   ${tf2_ros_LIBRARIES}
   ${tf2_geometry_msgs_LIBRARIES}
   ${control_msgs_LIBRARIES}
+  ${crs_msgs_LIBRARIES}
   tesseract::tesseract_common
   Eigen3::Eigen
   iterative_spline_parameterization::iterative_spline_parameterization

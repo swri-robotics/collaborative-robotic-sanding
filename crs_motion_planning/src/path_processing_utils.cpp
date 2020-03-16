@@ -427,6 +427,82 @@ bool crs_motion_planning::execTrajectory(
   return true;
 }
 
+bool crs_motion_planning::execSurfaceTrajectory(
+    rclcpp_action::Client<crs_msgs::action::CartesianComplianceTrajectory>::SharedPtr ac,
+    const rclcpp::Logger& logger,
+    const trajectory_msgs::msg::JointTrajectory& traj)
+{
+  using namespace crs_msgs::action;
+  using namespace rclcpp_action;
+  using GoalHandleT = Client<CartesianComplianceTrajectory>::GoalHandle;
+
+  rclcpp::Duration traj_dur(traj.points.back().time_from_start);
+  bool res = false;
+  std::string err_msg;
+
+  auto print_traj_time = [&](const trajectory_msgs::msg::JointTrajectory& traj) {
+    RCLCPP_ERROR(logger, "Trajectory with %lu points time data", traj.points.size());
+    for (std::size_t i = 0; i < traj.points.size(); i++)
+    {
+      const auto& p = traj.points[i];
+      RCLCPP_ERROR(logger, "\tPoint %lu : %f secs", rclcpp::Duration(p.time_from_start).seconds());
+    }
+  };
+
+  CartesianComplianceTrajectory::Goal goal;
+  goal.trajectory = traj;
+  goal.force = 30;
+  goal.tolerance = 0.2;
+  goal.speed = 0.03;
+  auto goal_options = rclcpp_action::Client<CartesianComplianceTrajectory>::SendGoalOptions();
+  // TODO populate tolerances
+
+  // send goal
+  std::shared_future<GoalHandleT::SharedPtr> trajectory_exec_fut = ac->async_send_goal(goal);
+  traj_dur = traj_dur + rclcpp::Duration(std::chrono::duration<double>(60));
+
+  // wait for goal acceptance
+  std::future_status status = trajectory_exec_fut.wait_for(std::chrono::duration<double>(WAIT_RESULT_TIMEOUT));
+  if (status != std::future_status::ready)
+  {
+    err_msg = "Action request was not accepted in time";
+    RCLCPP_ERROR(logger, "%s", err_msg.c_str());
+    ac->async_cancel_all_goals();
+    return res;
+  }
+
+  auto gh = trajectory_exec_fut.get();
+  if (!gh)
+  {
+    RCLCPP_ERROR(logger, "Goal was rejected by server");
+    return res;
+  }
+
+  // getting result
+  RCLCPP_INFO(logger, "Waiting %f seconds for goal", traj_dur.seconds());
+  auto result_fut = ac->async_get_result(gh);
+  status = result_fut.wait_for(traj_dur.to_chrono<std::chrono::seconds>());
+  if (status != std::future_status::ready)
+  {
+    print_traj_time(traj);
+    err_msg = "trajectory execution timed out";
+    RCLCPP_ERROR(logger, "%s", err_msg.c_str());
+    return res;
+  }
+
+  rclcpp_action::ClientGoalHandle<CartesianComplianceTrajectory>::WrappedResult wrapped_result = result_fut.get();
+  if (wrapped_result.code != rclcpp_action::ResultCode::SUCCEEDED)
+  {
+    err_msg = wrapped_result.result->err_msg;
+    RCLCPP_ERROR(logger, "Trajectory execution failed with error message: %s", err_msg.c_str());
+    return res;
+  }
+
+  // reset future
+  RCLCPP_INFO(logger, "Trajectory completed");
+  return true;
+}
+
 bool crs_motion_planning::timeParameterizeFreespace(const trajectory_msgs::msg::JointTrajectory& given_traj,
                                                     const double& max_joint_vel,
                                                     const double& max_joint_acc,
