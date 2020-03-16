@@ -21,8 +21,9 @@ def generate_launch_description():
         os.environ["AMENT_PREFIX_PATH"] += os.pathsep + path  
     
     
-    xacro = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs.urdf.xacro')
-    #xacro = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'swri_demo.urdf.xacro')
+#    xacro = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs.urdf.xacro')
+#    xacro = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'swri_demo.urdf.xacro')
+    xacro = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'swri_demo2.urdf.xacro')
     urdf = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs.urdf')
     urdf_preview = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs_preview.urdf')
     srdf = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'ur10e_robot.srdf')
@@ -53,7 +54,8 @@ def generate_launch_description():
     
     gazebo_cmd = 'gzserver' if GAZEBO_HEADLESS else 'gazebo'
     gzserver = launch.actions.ExecuteProcess(
-        cmd=['xterm', '-e', gazebo_cmd, '--verbose', '-s', 'libgazebo_ros_factory.so', '--world', gzworld],
+#        cmd=['xterm', '-e', 'gazebo', '--verbose', '-s', 'libgazebo_ros_factory.so', '--world', gzworld],
+        cmd=['gazebo', '--verbose', '-s', 'libgazebo_ros_factory.so', '--world', gzworld],
         output='screen',   
         condition = launch.conditions.IfCondition(launch.substitutions.LaunchConfiguration('sim_robot'))
     )
@@ -106,41 +108,6 @@ def generate_launch_description():
         package='crs_motion_planning',
         node_name='process_test_server',
         output='screen')
-
-    test_process_planner = launch_ros.actions.Node(
-        node_executable='crs_motion_planning_process_planner_test',
-        package='crs_motion_planning',
-        node_name='process_planner_test',
-        output='screen',
-        parameters=[{'urdf_path': urdf,
-        'srdf_path': srdf,
-        'process_planner_service': "plan_process_motion",
-        'freespace_motion_service': "plan_freespace_motion",
-        'trajectory_topic': "set_trajectory_test",
-        'base_link_frame': "base_link",
-        'world_frame': "world",
-        'tool0_frame': "tool0",
-        'manipulator_group': "manipulator",
-        'num_steps': 20,
-        'max_joint_velocity': 0.22,
-        'max_joint_acceleration': 0.7,
-        'min_raster_length': 4,
-        'use_gazebo_simulation_time': False,
-        'set_trajopt_verbose': False}])
-
-    ur_comms_node = launch_ros.actions.Node(
-        node_executable='crs_robot_comms_ur_comms',
-        package='crs_robot_comms',
-        node_name='ur_comms_node',
-        output='screen',
-        condition = launch.conditions.UnlessCondition(launch.substitutions.LaunchConfiguration('sim_robot')))
-
-    ur_comms_node_sim = launch_ros.actions.Node(
-        node_executable='crs_robot_comms_ur_comms_sim',
-        package='crs_robot_comms',
-        node_name='ur_comms_sim_node',
-        output='screen',
-        condition = launch.conditions.IfCondition(launch.substitutions.LaunchConfiguration('sim_robot')))
         
     return launch.LaunchDescription([
         # arguments
@@ -166,7 +133,5 @@ def generate_launch_description():
 
         # planning
         motion_planning_server,
-
-        ur_comms_node,
-        ur_comms_node_sim,
+        process_planner_test_server,
 ])

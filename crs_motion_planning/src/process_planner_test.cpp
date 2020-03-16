@@ -39,18 +39,7 @@ static const std::string DESIRED_WRENCH_TOPIC = "cartesian_compliance_controller
 static const double WAIT_SERVER_TIMEOUT = 10.0;  // seconds
 static const std::string FOLLOW_JOINT_TRAJECTORY_ACTION = "follow_joint_trajectory";
 static const std::string MOTION_EXECUTION_ACTION_TOPIC = "execute_surface_motion";
-static const std::string CONTROLLER_CHANGER_SERVICE = "test_serv";
 
-namespace param_names
-{
-static const std::string URDF_PATH = "urdf_path";
-static const std::string SRDF_PATH = "srdf_path";
-static const std::string ROOT_LINK_FRAME = "base_link_frame";
-static const std::string WORLD_FRAME = "world_frame";
-static const std::string TOOL0_FRAME = "tool0_frame";
-static const std::string TCP_FRAME = "tcp_frame";
-static const std::string MANIPULATOR_GROUP = "manipulator_group";
-}  // namespace param_names
 
 void generateFakeToolPath(const double length_x,
                           const double length_y,
@@ -58,19 +47,19 @@ void generateFakeToolPath(const double length_x,
                           const double spacing_y,
                           std::vector<geometry_msgs::msg::PoseArray>& toolpath)
 {
-  double curr_x = -length_x / 2;
+  double curr_x = -length_x/2;
   int side_mult = 1;
-  while (curr_x < length_x / 2)
+  while (curr_x < length_x/2)
   {
     geometry_msgs::msg::PoseArray curr_tp;
     curr_tp.header.frame_id = "part";
-    double curr_y = -length_y / 2;
-    while (curr_y < length_y / 2)
+    double curr_y = -length_y/2;
+    while (curr_y < length_y/2)
     {
       geometry_msgs::msg::Pose curr_pose;
-      curr_pose.position.y = curr_x;
-      curr_pose.position.x = curr_y * side_mult;
-      curr_pose.position.z = -0.002;
+      curr_pose.position.x = curr_x;
+      curr_pose.position.y = curr_y * side_mult;
+      curr_pose.position.z = 0;
       curr_pose.orientation.w = 0;
       curr_pose.orientation.x = 1;
       curr_pose.orientation.y = 0;
@@ -134,24 +123,16 @@ public:
                                                                                   trajectory_exec_client_cbgroup_);
 
     surface_traj_exec_client_cbgroup_ =
-        node_->create_callback_group(rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
-    //    surface_traj_exec_client_ =
-    //        rclcpp_action::create_client<crs_msgs::action::CartesianComplianceTrajectory>(this->get_node_base_interface(),
-    //                                                                                      this->get_node_graph_interface(),
-    //                                                                                      this->get_node_logging_interface(),
-    //                                                                                      this->get_node_waitables_interface(),
-    //                                                                                      MOTION_EXECUTION_ACTION_TOPIC,
-    //                                                                                      trajectory_exec_client_cbgroup_);
+        this->create_callback_group(rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
     surface_traj_exec_client_ =
-        rclcpp_action::create_client<cartesian_trajectory_msgs::action::CartesianComplianceTrajectory>(
-            node_->get_node_base_interface(),
-            node_->get_node_graph_interface(),
-            node_->get_node_logging_interface(),
-            node_->get_node_waitables_interface(),
-            MOTION_EXECUTION_ACTION_TOPIC,
-            trajectory_exec_client_cbgroup_);
+        rclcpp_action::create_client<crs_msgs::action::CartesianComplianceTrajectory>(this->get_node_base_interface(),
+                                                                                      this->get_node_graph_interface(),
+                                                                                      this->get_node_logging_interface(),
+                                                                                      this->get_node_waitables_interface(),
+                                                                                      MOTION_EXECUTION_ACTION_TOPIC,
+                                                                                      trajectory_exec_client_cbgroup_);
 
-    joint_state_listener_ = node_->create_subscription<sensor_msgs::msg::JointState>(
+    joint_state_listener_ = this->create_subscription<sensor_msgs::msg::JointState>(
         "joint_states", 1, std::bind(&ProcessPlannerTestServer::jointCallback, this, std::placeholders::_1));
 
     env_state_sub_ = node_->create_subscription<tesseract_msgs::msg::TesseractState>(
@@ -211,13 +192,17 @@ public:
       ss << ifs.rdbuf();
       file_string_contents.push_back(ss.str());
     }
+    RCLCPP_INFO(this->get_logger(), "%s action client found2", FOLLOW_JOINT_TRAJECTORY_ACTION.c_str());
 
-    const std::string urdf_content = file_string_contents[0];
-    const std::string srdf_content = file_string_contents[1];
-
-    tesseract_local_ = std::make_shared<tesseract::Tesseract>();
-    tesseract_scene_graph::ResourceLocator::Ptr locator = std::make_shared<tesseract_rosutils::ROSResourceLocator>();
-    tesseract_local_->init(urdf_content, srdf_content, locator);
+    // waiting for server
+    if (!surface_traj_exec_client_->wait_for_action_server(std::chrono::duration<double>(WAIT_SERVER_TIMEOUT)))
+    {
+      std::string err_msg =
+          boost::str(boost::format("Failed to find surface action server %s") % MOTION_EXECUTION_ACTION_TOPIC);
+      RCLCPP_ERROR(this->get_logger(), "%s", err_msg.c_str());
+      throw std::runtime_error(err_msg);
+    }
+    RCLCPP_INFO(this->get_logger(), "%s surface action client found", MOTION_EXECUTION_ACTION_TOPIC.c_str());
   }
 
   void get_priv_node(rclcpp::Node::SharedPtr& priv_node) { priv_node = pnode_; }
@@ -265,8 +250,8 @@ private:
     // Load rasters and get them in usable form
     std::string waypoint_origin_frame = "part";
     std::vector<geometry_msgs::msg::PoseArray> raster_strips;
-    generateFakeToolPath(0.06, 0.5, 0.05, 0.025, raster_strips);
-    //    crs_motion_planning::parsePathFromFile(toolpath_filepath_, waypoint_origin_frame, raster_strips);
+    generateFakeToolPath(0.35, 0.35, 0.05, 0.05, raster_strips);
+//    crs_motion_planning::parsePathFromFile(toolpath_filepath_, waypoint_origin_frame, raster_strips);
     geometry_msgs::msg::PoseArray strip_of_interset;
     for (auto strip : raster_strips)
     {
@@ -401,21 +386,12 @@ private:
 
         for (size_t i = 0; i < freespace_motions.size(); ++i)
         {
-          RCLCPP_INFO(node_->get_logger(), "EXECUTING SURFACE TRAJECTORY\t%i OF %i", i + 1, process_motions.size());
-          //          if (!execTrajectory(trajectory_exec_client_, this->get_logger(), process_motions[i]))
-          //          {
-          //            return;
-          //          }
-          trig_req->data = true;
-          //          trig_req->data = false;
-          successful_controller_change = change_controller(trig_req);
-          //          if (!successful_controller_change || !execSurfaceTrajectory(surface_traj_exec_client_,
-          //          node_->get_logger(), process_motions[i], traj_config))
-          if (!successful_controller_change ||
-              !execSurfaceTrajectory(
-                  surface_traj_exec_client_, node_->get_logger(), cart_process_motions[i], traj_config))
-          //          if (!successful_controller_change || !execTrajectory(trajectory_exec_client_, node_->get_logger(),
-          //          process_motions[i]))
+          RCLCPP_INFO(this->get_logger(), "EXECUTING SURFACE TRAJECTORY\t%i OF %i", i + 1, process_motions.size());
+//          if (!execTrajectory(trajectory_exec_client_, this->get_logger(), process_motions[i]))
+//          {
+//            return;
+//          }
+          if (!execSurfaceTrajectory(surface_traj_exec_client_, this->get_logger(), process_motions[i]))
           {
             return;
           }
@@ -434,17 +410,10 @@ private:
                     "EXECUTING SURFACE TRAJECTORY\t%i OF %i",
                     process_motions.size(),
                     process_motions.size());
-        trig_req->data = true;
-        //        trig_req->data = false;
-        successful_controller_change = change_controller(trig_req);
-        //        if (!successful_controller_change || !execSurfaceTrajectory(surface_traj_exec_client_,
-        //        node_->get_logger(), process_motions.back(), traj_config))
-        if (!successful_controller_change ||
-            !execSurfaceTrajectory(
-                surface_traj_exec_client_, node_->get_logger(), cart_process_motions.back(), traj_config))
-        //        if (!successful_controller_change || !execTrajectory(trajectory_exec_client_, node_->get_logger(),
-        //        process_motions.back()))
+//        execTrajectory(trajectory_exec_client_, this->get_logger(), process_motions.back());
+        if (!execSurfaceTrajectory(surface_traj_exec_client_, this->get_logger(), process_motions.back()))
         {
+          std::cout << "HERE IT IS" << std::endl;
           return;
         }
         if (end_traj.points.size() > 0)
@@ -493,8 +462,7 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_listener_;
   rclcpp::callback_group::CallbackGroup::SharedPtr trajectory_exec_client_cbgroup_;
 
-  rclcpp_action::Client<cartesian_trajectory_msgs::action::CartesianComplianceTrajectory>::SharedPtr
-      surface_traj_exec_client_;
+  rclcpp_action::Client<crs_msgs::action::CartesianComplianceTrajectory>::SharedPtr surface_traj_exec_client_;
   rclcpp::callback_group::CallbackGroup::SharedPtr surface_traj_exec_client_cbgroup_;
 
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr test_part_loader_client_;
