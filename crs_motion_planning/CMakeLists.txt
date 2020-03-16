@@ -65,6 +65,7 @@ target_include_directories(${PROJECT_NAME}_path_processing_utils PUBLIC
   ${tf2_geometry_msgs_INCLUDE_DIRS}
   ${control_msgs_INCLUDE_DIRS}
   ${crs_msgs_INCLUDE_DIRS}
+  ${cartesian_trajectory_msgs_INCLUDE_DIRS}
   )
 target_link_libraries(${PROJECT_NAME}_path_processing_utils
   ${YAML_CPP_LIBRARIES}

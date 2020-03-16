@@ -32,9 +32,9 @@ static const std::string DEFAULT_SRDF_PATH = "urdf/ur10e_robot.srdf";
 static const std::string ENVIRONMENT_UPDATE_TOPIC_NAME = "monitored_tesseract";
 static const std::string ENVIRONMENT_ID = "crs";
 
-static const std::string POSITION_COMPLIANCE_TOPIC = "position_controllers/CartesianComplianceController";
+static const std::string POSITION_COMPLIANCE_TOPIC = "cartesian_compliance_controller/target_frame";
 static const std::string VELOCITY_COMPLIANCE_TOPIC = "velocity_interface/CartesianComplianceController";
-static const std::string DESIRED_WRENCH_TOPIC = "my_cartesian_compliance_controller/target_wrench";
+static const std::string DESIRED_WRENCH_TOPIC = "cartesian_compliance_controller/target_wrench";
 static const std::string MOTION_EXECUTION_ACTION_TOPIC = "execute_surface_motion";
 
 namespace param_names
@@ -68,13 +68,12 @@ void findCartPoseArrayFromTraj(const trajectory_msgs::msg::JointTrajectory& join
         }
         Eigen::Isometry3d eig_pose;
         kin->calcFwdKin(eig_pose, joint_positions);
-        Eigen::Isometry3d world_to_base_link;
-        world_to_base_link = curr_transforms.find("base_link")->second;
-        eig_pose = world_to_base_link * eig_pose;
+        Eigen::Isometry3d world_to_base_link = Eigen::Isometry3d::Identity();
+        eig_pose = world_to_base_link * eig_pose * Eigen::Quaterniond(-0.5, 0.5, -0.5, 0.5); // Fwd kin switches to x forward instead of z
         geometry_msgs::msg::Pose curr_cart_pose = tf2::toMsg(eig_pose);
         cartesian_poses.poses.push_back(curr_cart_pose);
     }
-    cartesian_poses.header.frame_id = "world";
+    cartesian_poses.header.frame_id = "base_link";
 }
 
 class MotionExecutionServer : public rclcpp::Node
@@ -224,17 +223,17 @@ private:
 
     for (auto pose : cart_pose_array.poses)
     {
-      std::cout << "Targetting point number: " << count << std::endl;
+      RCLCPP_INFO(this->get_logger(), "Targetting point number: %i", count);
       geometry_msgs::msg::PoseStamped curr_cart_goal;
-      curr_cart_goal.header.frame_id = world_frame_;
+      curr_cart_goal.header.frame_id = robot_base_frame_;
       curr_cart_goal.pose = pose;
       feedback->waypoint = curr_cart_goal;
       feedback->status = "Executing";
       goal_handle->publish_feedback(feedback);
-      geometry_msgs::msg::TransformStamped world_to_sander_tf;
+      geometry_msgs::msg::TransformStamped base_to_tool0_tf;
       try
       {
-        world_to_sander_tf = tf_buffer_.lookupTransform(world_frame_, tcp_frame_, tf2::TimePointZero, tf2::Duration(std::chrono::seconds(2)));
+        base_to_tool0_tf = tf_buffer_.lookupTransform(robot_base_frame_, tool0_frame_, tf2::TimePointZero, tf2::Duration(std::chrono::seconds(5)));
       }
       catch (tf2::LookupException &e)
       {
@@ -246,19 +245,22 @@ private:
         goal_handle->abort(result);
         return;
       }
-      Eigen::Isometry3d world_to_sander_eig, curr_cart_goal_eig;
-      geometry_msgs::msg::Pose world_to_sander_pose;
-      world_to_sander_eig = tf2::transformToEigen(world_to_sander_tf.transform);
-      tf2::fromMsg(curr_cart_goal.pose, curr_cart_goal_eig);
-      std::cout << "GOAL:\n" << curr_cart_goal_eig.matrix() << "\nCURR:\n" << world_to_sander_eig.matrix() << std::endl;
-      double diff = (curr_cart_goal_eig.translation() - world_to_sander_eig.translation()).norm();
-      std::cout << "DIFF: " << diff << std::endl;
+      Eigen::Isometry3d world_to_sander_eig, curr_cart_goal_eig, original_cart_goal_eig;
+      world_to_sander_eig = tf2::transformToEigen(base_to_tool0_tf.transform);
+      tf2::fromMsg(curr_cart_goal.pose, original_cart_goal_eig);
+      curr_cart_goal_eig = original_cart_goal_eig;
+      double diff = (original_cart_goal_eig.translation() - world_to_sander_eig.translation()).norm();
+      Eigen::Vector3d trans_diff = original_cart_goal_eig.translation() - world_to_sander_eig.translation();
+      trans_diff *= 14;
+      curr_cart_goal_eig.translation() = world_to_sander_eig.translation() + trans_diff;
+      curr_cart_goal_eig.translation().z() = original_cart_goal_eig.translation().z();
       while (diff > tolerance)
       {
+        curr_cart_goal.pose = tf2::toMsg(curr_cart_goal_eig);
         compliance_position_publisher_->publish(curr_cart_goal);
         try
         {
-          world_to_sander_tf = tf_buffer_.lookupTransform(world_frame_, tcp_frame_, tf2::TimePointZero, tf2::Duration(std::chrono::seconds(2)));
+          base_to_tool0_tf = tf_buffer_.lookupTransform(robot_base_frame_, tool0_frame_, tf2::TimePointZero, tf2::Duration(std::chrono::seconds(5)));
         }
         catch (tf2::LookupException &e)
         {
@@ -270,8 +272,13 @@ private:
           goal_handle->abort(result);
           return;
         }
-        world_to_sander_eig = tf2::transformToEigen(world_to_sander_tf.transform);
-        diff = (curr_cart_goal_eig = world_to_sander_eig).translation().norm();
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        world_to_sander_eig = tf2::transformToEigen(base_to_tool0_tf.transform);
+        diff = (original_cart_goal_eig.translation() - world_to_sander_eig.translation()).norm();
+        trans_diff = original_cart_goal_eig.translation() - world_to_sander_eig.translation();
+        trans_diff *= 14;
+        curr_cart_goal_eig.translation() = world_to_sander_eig.translation() + trans_diff;
+        curr_cart_goal_eig.translation().z() = original_cart_goal_eig.translation().z();
       }
       count++;
     }
