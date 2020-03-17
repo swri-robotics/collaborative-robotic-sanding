@@ -113,15 +113,15 @@ public:
 
     part_filepath_ = ament_index_cpp::get_package_share_directory("crs_support") + "/meshes/Parts/visual/"
                                                                                    "part1_ch.stl";
-    // waiting for server
-    if (!trajectory_exec_client_->wait_for_action_server(std::chrono::duration<double>(WAIT_SERVER_TIMEOUT)))
-    {
-      std::string err_msg =
-          boost::str(boost::format("Failed to find action server %s") % FOLLOW_JOINT_TRAJECTORY_ACTION);
-      RCLCPP_ERROR(this->get_logger(), "%s", err_msg.c_str());
-      throw std::runtime_error(err_msg);
-    }
-    RCLCPP_INFO(this->get_logger(), "%s action client found2", FOLLOW_JOINT_TRAJECTORY_ACTION.c_str());
+//    // waiting for server
+//    if (!trajectory_exec_client_->wait_for_action_server(std::chrono::duration<double>(WAIT_SERVER_TIMEOUT)))
+//    {
+//      std::string err_msg =
+//          boost::str(boost::format("Failed to find action server %s") % FOLLOW_JOINT_TRAJECTORY_ACTION);
+//      RCLCPP_ERROR(this->get_logger(), "%s", err_msg.c_str());
+//      throw std::runtime_error(err_msg);
+//    }
+//    RCLCPP_INFO(this->get_logger(), "%s action client found2", FOLLOW_JOINT_TRAJECTORY_ACTION.c_str());
 
     // waiting for server
     if (!surface_traj_exec_client_->wait_for_action_server(std::chrono::duration<double>(WAIT_SERVER_TIMEOUT)))
@@ -144,7 +144,7 @@ private:
     // Load rasters and get them in usable form
     std::string waypoint_origin_frame = "part";
     std::vector<geometry_msgs::msg::PoseArray> raster_strips;
-    generateFakeToolPath(0.35, 0.35, 0.05, 0.05, raster_strips);
+    generateFakeToolPath(0.06, 0.2, 0.05, 0.01, raster_strips);
 //    crs_motion_planning::parsePathFromFile(toolpath_filepath_, waypoint_origin_frame, raster_strips);
     geometry_msgs::msg::PoseArray strip_of_interset;
     for (auto strip : raster_strips)
@@ -261,16 +261,15 @@ private:
 //        execTrajectory(trajectory_exec_client_, this->get_logger(), process_motions.back());
         if (!execSurfaceTrajectory(surface_traj_exec_client_, this->get_logger(), process_motions.back()))
         {
-          std::cout << "HERE IT IS" << std::endl;
           return;
         }
         if (end_traj.points.size() > 0)
         {
           RCLCPP_INFO(this->get_logger(), "EXECUTING FINAL FREESPACE");
-          if (!execTrajectory(trajectory_exec_client_, this->get_logger(), end_traj))
-          {
-            return;
-          }
+//          if (!execTrajectory(trajectory_exec_client_, this->get_logger(), end_traj))
+//          {
+//            return;
+//          }
         }
       }
 

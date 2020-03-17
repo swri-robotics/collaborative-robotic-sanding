@@ -32,9 +32,9 @@ static const std::string DEFAULT_SRDF_PATH = "urdf/ur10e_robot.srdf";
 static const std::string ENVIRONMENT_UPDATE_TOPIC_NAME = "monitored_tesseract";
 static const std::string ENVIRONMENT_ID = "crs";
 
-static const std::string POSITION_COMPLIANCE_TOPIC = "position_controllers/CartesianComplianceController";
+static const std::string POSITION_COMPLIANCE_TOPIC = "cartesian_compliance_controller/target_frame";
 static const std::string VELOCITY_COMPLIANCE_TOPIC = "velocity_interface/CartesianComplianceController";
-static const std::string DESIRED_WRENCH_TOPIC = "my_cartesian_compliance_controller/target_wrench";
+static const std::string DESIRED_WRENCH_TOPIC = "cartesian_compliance_controller/target_wrench";
 static const std::string MOTION_EXECUTION_ACTION_TOPIC = "execute_surface_motion";
 
 namespace param_names
@@ -64,7 +64,13 @@ void findCartPoseArrayFromTraj(const trajectory_msgs::msg::JointTrajectory& join
         Eigen::VectorXd joint_positions(joint_pose.positions.size());
         for (size_t i = 0; i < joint_pose.positions.size(); i++)
         {
-            joint_positions[static_cast<int>(i)] = joint_pose.positions[i];
+            joint_positions[static_cast<int>(i)] = joint_pose.positions[i]; // MAKE SURE JOINT STATES ARE LINED UP [elbow_joint, shoulder_lift_joint, shoulder_pan_joint, wrist_1_joint, wrist_2_joint,
+ //           wrist_3_joint]
+            // TRYING TO TARGET TOOL0 INSTEAD OF SANDER
+            // BASE LINK TO SANDER LOOKUP IS FAILING
+            // MAYBE TF OLD DATA issue (although wasn't happening with lookup from world to sander
+            //
+
         }
         Eigen::Isometry3d eig_pose;
         kin->calcFwdKin(eig_pose, joint_positions);
@@ -74,6 +80,7 @@ void findCartPoseArrayFromTraj(const trajectory_msgs::msg::JointTrajectory& join
         geometry_msgs::msg::Pose curr_cart_pose = tf2::toMsg(eig_pose);
         cartesian_poses.poses.push_back(curr_cart_pose);
     }
+//    cartesian_poses.header.frame_id = "base_link";
     cartesian_poses.header.frame_id = "world";
 }
 
@@ -220,13 +227,13 @@ private:
     wrench_msg.wrench.force.z = force_vector.translation().z();
 
     compliance_wrench_publisher_->publish(wrench_msg); // Publish requested force
-    int count = 1;
+    int count = 1, succ_count = 0;
 
     for (auto pose : cart_pose_array.poses)
     {
       std::cout << "Targetting point number: " << count << std::endl;
       geometry_msgs::msg::PoseStamped curr_cart_goal;
-      curr_cart_goal.header.frame_id = world_frame_;
+      curr_cart_goal.header.frame_id = robot_base_frame_;
       curr_cart_goal.pose = pose;
       feedback->waypoint = curr_cart_goal;
       feedback->status = "Executing";
@@ -234,7 +241,7 @@ private:
       geometry_msgs::msg::TransformStamped world_to_sander_tf;
       try
       {
-        world_to_sander_tf = tf_buffer_.lookupTransform(world_frame_, tcp_frame_, tf2::TimePointZero, tf2::Duration(std::chrono::seconds(2)));
+        world_to_sander_tf = tf_buffer_.lookupTransform(world_frame_, tcp_frame_, tf2::TimePointZero, tf2::Duration(std::chrono::seconds(5)));
       }
       catch (tf2::LookupException &e)
       {
@@ -246,10 +253,14 @@ private:
         goal_handle->abort(result);
         return;
       }
+//      std::cout << "SUCCESS: " << ++succ_count << std::endl;
       Eigen::Isometry3d world_to_sander_eig, curr_cart_goal_eig;
       geometry_msgs::msg::Pose world_to_sander_pose;
       world_to_sander_eig = tf2::transformToEigen(world_to_sander_tf.transform);
       tf2::fromMsg(curr_cart_goal.pose, curr_cart_goal_eig);
+      std::cout << "POSE:\n\tX: " << curr_cart_goal.pose.position.x << "\n\tY: " << curr_cart_goal.pose.position.y << "\n\tZ: " << curr_cart_goal.pose.position.z << std::endl;
+      std::cout << "ORIENTATION:\n\tw: " << curr_cart_goal.pose.orientation.w << "\n\tx: " << curr_cart_goal.pose.orientation.x;
+      std::cout << "\n\ty: " << curr_cart_goal.pose.orientation.y << "\n\tz: " << curr_cart_goal.pose.orientation.z << std::endl;
       std::cout << "GOAL:\n" << curr_cart_goal_eig.matrix() << "\nCURR:\n" << world_to_sander_eig.matrix() << std::endl;
       double diff = (curr_cart_goal_eig.translation() - world_to_sander_eig.translation()).norm();
       std::cout << "DIFF: " << diff << std::endl;
@@ -258,7 +269,7 @@ private:
         compliance_position_publisher_->publish(curr_cart_goal);
         try
         {
-          world_to_sander_tf = tf_buffer_.lookupTransform(world_frame_, tcp_frame_, tf2::TimePointZero, tf2::Duration(std::chrono::seconds(2)));
+          world_to_sander_tf = tf_buffer_.lookupTransform(world_frame_, tcp_frame_, tf2::TimePointZero, tf2::Duration(std::chrono::seconds(5)));
         }
         catch (tf2::LookupException &e)
         {
@@ -270,6 +281,8 @@ private:
           goal_handle->abort(result);
           return;
         }
+//        std::cout << "SUCCESS: " << ++succ_count << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
         world_to_sander_eig = tf2::transformToEigen(world_to_sander_tf.transform);
         diff = (curr_cart_goal_eig = world_to_sander_eig).translation().norm();
       }

@@ -452,7 +452,7 @@ bool crs_motion_planning::execSurfaceTrajectory(
   CartesianComplianceTrajectory::Goal goal;
   goal.trajectory = traj;
   goal.force = 30;
-  goal.tolerance = 0.2;
+  goal.tolerance = 0.0254;
   goal.speed = 0.03;
   auto goal_options = rclcpp_action::Client<CartesianComplianceTrajectory>::SendGoalOptions();
   // TODO populate tolerances

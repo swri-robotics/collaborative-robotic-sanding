@@ -2,7 +2,7 @@
 <launch>
 	<let name="state_machine_file" value="$(find-pkg-share crs_application)/resources/crs_process.scxml"/>
 	
-	<let name="group_ns" value="crs"/>
+  <let name="group_ns" value=""/>
 	<group>		
 		<push-ros-namespace namespace="$(var group_ns)"/>
 		
