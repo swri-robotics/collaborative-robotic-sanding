@@ -54,8 +54,7 @@ def generate_launch_description():
     
     gazebo_cmd = 'gzserver' if GAZEBO_HEADLESS else 'gazebo'
     gzserver = launch.actions.ExecuteProcess(
-#        cmd=['xterm', '-e', 'gazebo', '--verbose', '-s', 'libgazebo_ros_factory.so', '--world', gzworld],
-        cmd=['gazebo', '--verbose', '-s', 'libgazebo_ros_factory.so', '--world', gzworld],
+        cmd=['xterm', '-e', 'gazebo', '--verbose', '-s', 'libgazebo_ros_factory.so', '--world', gzworld],
         output='screen',   
         condition = launch.conditions.IfCondition(launch.substitutions.LaunchConfiguration('sim_robot'))
     )

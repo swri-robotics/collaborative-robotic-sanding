@@ -1,9 +1,7 @@
 <?xml version="1.0"?>
 <launch>
 	<arg name="ns_arg" default="crs"/>
-  <arg name="sim" default="true"/>
-  <arg name="swri" default="false"/>
-  <arg name="camera" default="true"/>
+        <arg name="sim" default="true"/>
   <let name="state_machine_file" value="$(find-pkg-share crs_application)/resources/crs_process.scxml"/>
         <let name="group_ns" value="$(var ns_arg)"/>
         <let name="sim_robot" value="$(var sim)"/>

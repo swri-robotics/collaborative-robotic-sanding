@@ -2,7 +2,7 @@
 <robot name="crs" xmlns:xacro="http://ros.org/wiki/xacro">
   <xacro:macro name="crs_workcell" params="prefix:=^|''">
   <xacro:arg name="table_size" default="1.5"/>
-  <xacro:property name="BASE_PLATE_THICKNESS" value="0.00635" scope="parent"/>
+  <xacro:property name="BASE_PLATE_THICKNESS" value="0.6096" scope="parent"/> CHANGED TO ACCOUNT FOR KUKA
   <xacro:property name="BASE_PLATE_LENGTH" value="0.762" scope="parent"/>
   <xacro:property name="BASE_PLATE_WIDTH" value="0.3048" scope="parent"/>
 
@@ -32,7 +32,7 @@
 
     <link name="base_plate">
       <visual>
-        <origin xyz="${0.5 * BASE_PLATE_WIDTH} ${0.5 * BASE_PLATE_LENGTH} ${BASE_PLATE_THICKNESS}"/>
+        <origin xyz="${0.5 * BASE_PLATE_WIDTH} ${0.5 * BASE_PLATE_LENGTH} ${BASE_PLATE_THICKNESS * 0.5}"/>
         <geometry>
           <box size="${BASE_PLATE_WIDTH} ${BASE_PLATE_LENGTH} ${BASE_PLATE_THICKNESS}"/>
         </geometry>
@@ -40,15 +40,15 @@
           <color rgba="0.6 0.6 0.6 1.0"/>
         </material>
       </visual>
-      <collision>
-        <origin xyz="${0.5 * BASE_PLATE_WIDTH} ${0.5 * BASE_PLATE_LENGTH} ${BASE_PLATE_THICKNESS}"/>
+<!--      <collision>
+        <origin xyz="${0.5 * BASE_PLATE_WIDTH} ${0.5 * BASE_PLATE_LENGTH} ${BASE_PLATE_THICKNESS * 0.5}"/>
         <geometry>
           <box size="${BASE_PLATE_WIDTH} ${BASE_PLATE_LENGTH} ${BASE_PLATE_THICKNESS}"/>
         </geometry>
         <material name="StainlessSteel">
           <color rgba="0.6 0.6 0.6 1.0"/>
         </material>
-      </collision>
+      </collision>-->
     </link>
 
     <joint name="table_to_base_plate" type="fixed">
@@ -79,6 +79,50 @@
       <parent link="table"/>
       <child link="layup_mold"/>
       <origin xyz="-0.30359 -0.13389 0.05497" rpy="-0.0091 -0.013 0.0197"/>
+    </joint>
+
+    <link name="table_obstacles">
+      <visual> Small square base plate
+        <origin xyz="0.2286 -0.127 0.005" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.254 0.254 0.01"/>
+        </geometry>
+      </visual>
+      <visual> Clamp
+        <origin xyz="0.6985 -0.4445 0.1397" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.1651 0.1143 0.2794"/>
+        </geometry>
+      </visual>
+      <visual> Assembly stuff
+        <origin xyz="0.38735 -0.4445 0.0254" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.7747 0.1143 0.0508"/>
+        </geometry>
+      </visual>
+      <collision> Small square base plate
+        <origin xyz="0.2286 -0.127 0.005" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.254 0.254 0.01"/>
+        </geometry>
+      </collision>
+      <collision> Clamp
+        <origin xyz="0.6985 -0.4445 0.1397" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.1651 0.1143 0.2794"/>
+        </geometry>
+      </collision>
+      <collision> Assembly stuff
+        <origin xyz="0.38735 -0.4445 0.0254" rpy="0 0 0"/>
+        <geometry>
+          <box size="0.7747 0.1143 0.0508"/>
+        </geometry>
+      </collision>
+    </link>
+    <joint name="table_to_table_obstacles" type="fixed">
+      <parent link="table"/>
+      <child link="table_obstacles"/>
+      <origin xyz="-0.30359 -0.13389 0" rpy="0 0 0"/>
     </joint>
 
 
@@ -519,7 +563,7 @@
     </link>
     <joint name="${prefix}robot_stand_to_part_joint" type= "fixed">
 <!--        <origin xyz="-0.5 0.5 1.3" rpy= "1.571 -1.571 0"/>-->
-        <origin xyz="0.15 -0.5 0.0" rpy= "0.0 0.0 0"/>
+        <origin xyz="0.25 -0.28 0.0" rpy= "0.0 0.0 1.571"/>
         <parent link="table"/>
         <child link="${prefix}part"/>
     </joint>
