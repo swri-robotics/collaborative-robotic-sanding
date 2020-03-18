@@ -432,7 +432,9 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
     tesseract_motion_planners::TrajOptMotionPlanner traj_surface_planner;
     traj_surface_planner.setConfiguration(traj_pc);
     RCLCPP_INFO(logger_, "Solving raster: %i of %i", i + 1, final_split_rasters.size());
-    traj_surface_planner.solve(planner_resp, tesseract_motion_planners::PostPlanCheckType::DISCRETE_CONTINUOUS_COLLISION, config_->trajopt_verbose_output);
+    traj_surface_planner.solve(planner_resp,
+                               tesseract_motion_planners::PostPlanCheckType::DISCRETE_CONTINUOUS_COLLISION,
+                               config_->trajopt_verbose_output);
 
     if (planner_resp.status.value() < 0)
     {
@@ -620,7 +622,9 @@ bool crsMotionPlanner::trajoptFreespaceFromOMPL(const tesseract_motion_planners:
   tesseract_motion_planners::TrajOptMotionPlanner traj_motion_planner;
   tesseract_motion_planners::PlannerResponse plan_resp;
   traj_motion_planner.setConfiguration(traj_pc);
-  traj_motion_planner.solve(plan_resp, tesseract_motion_planners::PostPlanCheckType::DISCRETE_CONTINUOUS_COLLISION, config_->trajopt_verbose_output);
+  traj_motion_planner.solve(plan_resp,
+                            tesseract_motion_planners::PostPlanCheckType::DISCRETE_CONTINUOUS_COLLISION,
+                            config_->trajopt_verbose_output);
   if (plan_resp.status.value() != 0)
   {
     RCLCPP_ERROR(logger_, "FAILED TO OPTIMIZE WITH TRAJOPT");
