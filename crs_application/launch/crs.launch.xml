@@ -1,8 +1,9 @@
 <?xml version="1.0"?>
 <launch>
+	<arg name="ns_arg" default="crs"/>
 	<let name="state_machine_file" value="$(find-pkg-share crs_application)/resources/crs_process.scxml"/>
 	
-	<let name="group_ns" value="crs"/>
+	<let name="group_ns" value="$(var ns_arg)"/>
 	<group>		
 		<push-ros-namespace namespace="$(var group_ns)"/>
 		
@@ -18,13 +19,20 @@
 		<node pkg="crs_application" exec="crs_application_node" name="crs_main" output="screen">
 			<param name="state_machine_file" value="$(var state_machine_file)"/>
 		</node>		
-		
+				
+		<!-- ros2 component standalone crs_perception crs_perception::LocalizeToPart  -->
+		<let name="node_ns" value="/$(var group_ns)"/>
+	    <executable cmd="ros2 component standalone crs_perception crs_perception::LocalizeToPart --node-namespace $(var node_ns)" 
+	    	name="$(var group_ns)/localization_node" output="screen" shell="true"/>
+	    	
 		<!-- rviz -->
 		<let name="rviz_config" value="$(find-pkg-share crs_application)/resources/crs.rviz"/>
-		<node pkg="rviz2" exec="rviz2" launch-prefix="xterm -e" args="-d $(var rviz_config) --ros-args --log-level INFO"
+		<node pkg="rviz2" exec="rviz2"  launch-prefix="xterm -e" args="-d $(var rviz_config) --ros-args --log-level INFO"
 		 	output="screen">
 		 	<param name="default_config_file" value="$(find-pkg-share crs_application)/config/crs.yaml"/>
 		 	<param name="database_dir" value="$(find-pkg-share crs_data)/data/offline_generated_paths"/>
 		 </node>
+		
+
 	</group>
 </launch>

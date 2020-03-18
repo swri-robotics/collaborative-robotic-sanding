@@ -41,6 +41,7 @@
 #include <crs_motion_planning/path_processing_utils.h>
 
 static const double WAIT_SERVICE_DURATION = 2.0;            // secs
+static const double WAIT_SERVICE_COMPLETION_TIMEOUT = 2.0;  // secs
 static const std::string PREVIEW_TOPIC = "part_registration_preview";
 static const std::string LOAD_PART_SERVICE = "load_part";
 static const std::string LOCALIZE_TO_PART_SERVICE = "localize_to_part";
@@ -67,8 +68,13 @@ common::ActionResult PartRegistrationManager::init()
 
   // wait on service
   std::vector<rclcpp::ClientBase*> clients = {load_part_client_.get(), localize_to_part_client_.get()};
-  if (std::all_of(clients.begin(), clients.end(), [](rclcpp::ClientBase* c) {
-        return c->wait_for_service(std::chrono::duration<float>(WAIT_SERVICE_DURATION));
+  if (!std::all_of(clients.begin(), clients.end(), [this](rclcpp::ClientBase* c) {
+        if(!c->wait_for_service(std::chrono::duration<float>(WAIT_SERVICE_DURATION)))
+        {
+          RCLCPP_WARN(node_->get_logger(),"Failed to find service %s", c->get_service_name());
+          return false;
+        }
+        return true;
       }))
   {
     RCLCPP_WARN(node_->get_logger(), "%s: One or more services were not found", MANAGER_NAME.c_str());
@@ -87,7 +93,9 @@ common::ActionResult PartRegistrationManager::configure(const config::PartRegist
   load_part_request->path_to_part = config.part_file;
 
   auto result_future = load_part_client_->async_send_request(load_part_request);
-  if (rclcpp::spin_until_future_complete(node_, result_future) != rclcpp::executor::FutureReturnCode::SUCCESS)
+  std::chrono::nanoseconds dur_timeout = rclcpp::Duration::from_seconds(
+      WAIT_SERVICE_COMPLETION_TIMEOUT).to_chrono<std::chrono::nanoseconds>();
+  if (rclcpp::spin_until_future_complete(node_, result_future, dur_timeout) != rclcpp::executor::FutureReturnCode::SUCCESS)
   {
     RCLCPP_ERROR(node_->get_logger(), "Load Part service call failed");
     return false;

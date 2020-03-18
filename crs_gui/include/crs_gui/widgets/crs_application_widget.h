@@ -65,6 +65,7 @@ protected:
   std::unique_ptr<Ui::CRSApplication> ui_;
 
   rclcpp::Node::SharedPtr node_;
+  rclcpp::Node::SharedPtr support_widgets_node_;
   std::string database_directory_;
 
   /** @brief Service that provides process Config when called */
@@ -88,7 +89,7 @@ protected:
   std::string config_file_path_;
   std::string toolpath_file_;
   std::string cad_part_file_;
-  std::shared_ptr<YAML::Node> config_node_;
+  std::shared_ptr<YAML::Node> config_yaml_node_;
 
   visualization_msgs::msg::MarkerArray delete_all_marker_;
 

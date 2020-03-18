@@ -70,8 +70,7 @@ namespace config
   struct ProcessExecutionConfig
   {
     double traj_time_tolerance = 5.0; /** @brief time tolerance on trajectory duration */
-    double joint_tolerance =
-        (3.1416 / 180.0) * 2.0; /** @brief how close the robot needs to be to the last position in radians */
+    std::vector<double> joint_tolerance = std::vector<double>(6, (3.1416 / 180.0) * 2.0); /** @brief how close the robot needs to be to the last position in radians */
   };
 
   struct ScanAcquisitionConfig

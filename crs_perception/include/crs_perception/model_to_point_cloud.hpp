@@ -1,5 +1,5 @@
-#include <vtkSTLReader.h>
 #include <vtkSmartPointer.h>
+#include <vtkPolyData.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 
@@ -8,12 +8,12 @@ namespace crs_perception
 class ModelToPointCloud
 {
 public:
-  ModelToPointCloud(std::string file_path, int num_samples, float leaf_size)
-    : file_path_(file_path), num_samples_(num_samples), leaf_size_(leaf_size)
+  ModelToPointCloud(int num_samples, float leaf_size):
+    num_samples_(num_samples), leaf_size_(leaf_size)
   {
   }
 
-  bool convertToPCL(pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud);
+  bool convertToPCL(const std::string& file_path, pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud, std::string& err_msg);
 
 private:
   std::string file_path_;

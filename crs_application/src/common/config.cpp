@@ -173,19 +173,19 @@ namespace config
     }
     catch(InvalidNode& e)
     {
-      err_msg = boost::str(boost::format("Failed to parse yaml: %s") % e.what());
+      err_msg = boost::str(boost::format("Invalid node while parsing %s yaml: %s") % typeid(MotionPlanningConfig).name() % e.what());
       RCLCPP_ERROR(CONFIG_LOGGER,"%s",err_msg.c_str());
       return boost::none;
     }
     catch(BadConversion& e)
     {
-      err_msg = boost::str(boost::format("Failed to parse yaml: %s") % e.what());
+      err_msg = boost::str(boost::format("Failed to parse %s yaml: %s") % typeid(MotionPlanningConfig).name() % e.what());
       RCLCPP_ERROR(CONFIG_LOGGER,"%s",err_msg.c_str());
       return boost::none;
     }
     catch(KeyNotFound& e)
     {
-      err_msg = boost::str(boost::format("Key not found: %s") % e.what());
+      err_msg = boost::str(boost::format("Key not found while parsing %s yaml: %s") % typeid(MotionPlanningConfig).name() % e.what());
       RCLCPP_ERROR(CONFIG_LOGGER,"%s",err_msg.c_str());
       return boost::none;
     }
@@ -206,7 +206,7 @@ namespace config
       if(root_node && hasFields(root_node, TOP_LEVEL, {TIME_TOLERANCE, JOINT_TOLERANCE}))
       {
         cfg.traj_time_tolerance = root_node[TIME_TOLERANCE].as<double>();
-        cfg.joint_tolerance = root_node[JOINT_TOLERANCE].as<double>();
+        cfg.joint_tolerance = root_node[JOINT_TOLERANCE].as<std::vector<double>>();
       }
       else
       {
@@ -215,19 +215,19 @@ namespace config
     }
     catch(InvalidNode& e)
     {
-      err_msg = boost::str(boost::format("Failed to parse yaml: %s") % e.what());
+      err_msg = boost::str(boost::format("Invalid node while parsing %s yaml: %s") % typeid(ProcessExecutionConfig).name() % e.what());
       RCLCPP_ERROR(CONFIG_LOGGER,"%s",err_msg.c_str());
       return boost::none;
     }
     catch(BadConversion& e)
     {
-      err_msg = boost::str(boost::format("Failed to parse yaml: %s") % e.what());
+      err_msg = boost::str(boost::format("Failed to parse %s yaml: %s") % typeid(ProcessExecutionConfig).name() % e.what());
       RCLCPP_ERROR(CONFIG_LOGGER,"%s",err_msg.c_str());
       return boost::none;
     }
     catch(KeyNotFound& e)
     {
-      err_msg = boost::str(boost::format("Key not found: %s") % e.what());
+      err_msg = boost::str(boost::format("Key not found while parsing %s yaml: %s") % typeid(ProcessExecutionConfig).name() % e.what());
       RCLCPP_ERROR(CONFIG_LOGGER,"%s",err_msg.c_str());
       return boost::none;
     }
@@ -282,19 +282,19 @@ namespace config
     }
     catch(InvalidNode& e)
     {
-      err_msg = boost::str(boost::format("Invalid node: %s") % e.what());
+      err_msg = boost::str(boost::format("Invalid node while parsing %s yaml: %s") % typeid(ScanAcquisitionConfig).name() % e.what());
       RCLCPP_ERROR(CONFIG_LOGGER,"%s",err_msg.c_str());
       return boost::none;
     }
     catch(BadConversion& e)
     {
-      err_msg = boost::str(boost::format("Failed to parse yaml: %s") % e.what());
+      err_msg = boost::str(boost::format("Failed to parse %s yaml: %s") % typeid(ScanAcquisitionConfig).name() % e.what());
       RCLCPP_ERROR(CONFIG_LOGGER,"%s",err_msg.c_str());
       return boost::none;
     }
     catch(KeyNotFound& e)
     {
-      err_msg = boost::str(boost::format("Key not found: %s") % e.what());
+      err_msg = boost::str(boost::format("Key not found while parsing %s yaml: %s") % typeid(ScanAcquisitionConfig).name() % e.what());
       RCLCPP_ERROR(CONFIG_LOGGER,"%s",err_msg.c_str());
       return boost::none;
     }
@@ -313,6 +313,7 @@ namespace config
       if(!root_node)
       {
         err_msg = boost::str(boost::format("The '%s' field was not found") % TOP_LEVEL);
+        RCLCPP_ERROR(CONFIG_LOGGER, err_msg.c_str());
         return boost::none;
       }
 
@@ -320,7 +321,7 @@ namespace config
       {
         cfg.target_frame_id = root_node[TARGET_FRAME_ID].as<std::string>();
         cfg.part_file = root_node[PART_FILE].as<std::string>();
-        cfg.toolpath_file = root_node[TOOLPATH_FILE].as<bool>();
+        cfg.toolpath_file = root_node[TOOLPATH_FILE].as<std::string>();
       }
       else
       {
@@ -329,19 +330,19 @@ namespace config
     }
     catch(InvalidNode& e)
     {
-      err_msg = boost::str(boost::format("Failed to parse yaml: %s") % e.what());
+      err_msg = boost::str(boost::format("Invalid node while parsing %s yaml: %s") % typeid(PartRegistrationConfig).name() % e.what());
       RCLCPP_ERROR(CONFIG_LOGGER,"%s",err_msg.c_str());
       return boost::none;
     }
     catch(BadConversion& e)
     {
-      err_msg = boost::str(boost::format("Failed to parse yaml: %s") % e.what());
+      err_msg = boost::str(boost::format("Failed to parse %s yaml: %s") % typeid(PartRegistrationConfig).name() % e.what());
       RCLCPP_ERROR(CONFIG_LOGGER,"%s",err_msg.c_str());
       return boost::none;
     }
     catch(KeyNotFound& e)
     {
-      err_msg = boost::str(boost::format("Key not found: %s") % e.what());
+      err_msg = boost::str(boost::format("Key not found while parsing %s yaml: %s") % typeid(PartRegistrationConfig).name() % e.what());
       RCLCPP_ERROR(CONFIG_LOGGER,"%s",err_msg.c_str());
       return boost::none;
     }
