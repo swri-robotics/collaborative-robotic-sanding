@@ -184,7 +184,7 @@ private:
 
     auto proc_req = std::make_shared<crs_msgs::srv::PlanProcessMotions::Request>();
     proc_req->tool_link = "sander_center_link";
-    proc_req->tool_speed = 0.3;
+    proc_req->tool_speed = 0.01;
     proc_req->approach_dist = 0.045;
     proc_req->retreat_dist = 0.045;
     proc_req->start_position = curr_joint_state_;
