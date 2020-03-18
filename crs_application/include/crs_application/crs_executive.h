@@ -127,6 +127,7 @@ protected:
   rclcpp::TimerBase::SharedPtr state_pub_timer_;
 
   // data
+  bool task_mngrs_configured_ = false;
   crs_msgs::msg::ProcessConfiguration process_config_;
 };
 

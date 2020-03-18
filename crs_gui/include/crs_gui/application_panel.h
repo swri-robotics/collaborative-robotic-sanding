@@ -39,6 +39,7 @@ public:
 
 private:
   rclcpp::Node::SharedPtr node_;
+  rclcpp::executors::MultiThreadedExecutor executor_;
 
   std::shared_ptr<CRSApplicationWidget> application_widget_;
 };

@@ -17,6 +17,9 @@
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <rclcpp/rclcpp.hpp>
 
+#include <boost/filesystem.hpp>
+#include <boost/format.hpp>
+
 //delet me
 #include <pcl/io/pcd_io.h>
 
@@ -95,13 +98,26 @@ private:
                       const std::shared_ptr<crs_msgs::srv::LoadPart::Request> request,
                       const std::shared_ptr<crs_msgs::srv::LoadPart::Response> response)
   {
+    namespace fs = boost::filesystem;
     (void)request_header;
+
+    part_loaded_ = false;
+    response->success = false;
+    if(!fs::exists(fs::path(request->path_to_part)))
+    {
+      response->error = boost::str(boost::format("Part file %s does not exists") % request->path_to_part);
+      RCLCPP_ERROR_STREAM(this->get_logger(),response->error);
+      return;
+    }
+
     RCLCPP_INFO(this->get_logger(), "Loading part from %s", request->path_to_part.c_str());
 
-    // todo(ayoungs): handle error for bad file
-    // todo(ayoungs): make sure part gets loaded correctly after multiple loads
-    ModelToPointCloud mtpc(request->path_to_part, mesh_num_samples_, leaf_size_);
-    mtpc.convertToPCL(part_point_cloud_);
+    ModelToPointCloud mtpc(mesh_num_samples_, leaf_size_);
+    if(!mtpc.convertToPCL(request->path_to_part,part_point_cloud_, response->error))
+    {
+      RCLCPP_ERROR_STREAM(this->get_logger(),response->error);
+      return;
+    }
 
     part_loaded_ = true;
     response->success = true;

@@ -70,8 +70,9 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node,
   : QWidget(parent)
   , ui_(new Ui::CRSApplication)
   , node_(node)
-  , area_selection_widget_(new PolygonAreaSelectionWidget(node, WORLD_FRAME, WORLD_FRAME))
-  , state_machine_interface_widget_(new StateMachineInterfaceWidget(node))
+  , support_widgets_node_(std::make_shared<rclcpp::Node>("support_widget"))
+  , area_selection_widget_(new PolygonAreaSelectionWidget(support_widgets_node_, WORLD_FRAME, WORLD_FRAME))
+  , state_machine_interface_widget_(new StateMachineInterfaceWidget(support_widgets_node_))
 {
   ui_->setupUi(this);
 
@@ -225,7 +226,7 @@ void CRSApplicationWidget::getConfigurationCb(crs_msgs::srv::GetConfiguration::R
 bool CRSApplicationWidget::loadConfig(const std::string config_file)
 {
   namespace fs = boost::filesystem;
-  config_node_.reset();
+  config_yaml_node_.reset();
   YAML::Node config_node = YAML::LoadFile(config_file);
   if(!config_node)
   {
@@ -263,14 +264,14 @@ bool CRSApplicationWidget::loadConfig(const std::string config_file)
   {
     RCLCPP_ERROR(node_->get_logger(),"Failed to parse config file %s with msg: %S", config_file.c_str(), e.what());
   }
-  config_node_ = std::make_shared<YAML::Node>(YAML::Clone(config_node));
+  config_yaml_node_ = std::make_shared<YAML::Node>(YAML::Clone(config_node));
   config_file_path_ = config_file;
   return true;
 }
 
 bool CRSApplicationWidget::updateConfig()
 {
-  if(!config_node_)
+  if(!config_yaml_node_)
   {
     RCLCPP_ERROR(node_->get_logger(),"No config file has been loaded, can not update");
     return false;
@@ -278,8 +279,8 @@ bool CRSApplicationWidget::updateConfig()
 
   try
   {
-    (*config_node_)[CONFIG_ROOT_ITEM][CONFIG_REQUIRED_FIELDS[4]][CONFIG_PART_REG_FIELDS[0]] = cad_part_file_;
-    (*config_node_)[CONFIG_ROOT_ITEM][CONFIG_REQUIRED_FIELDS[4]][CONFIG_PART_REG_FIELDS[1]] = toolpath_file_;
+    (*config_yaml_node_)[CONFIG_ROOT_ITEM][CONFIG_REQUIRED_FIELDS[4]][CONFIG_PART_REG_FIELDS[0]] = cad_part_file_;
+    (*config_yaml_node_)[CONFIG_ROOT_ITEM][CONFIG_REQUIRED_FIELDS[4]][CONFIG_PART_REG_FIELDS[1]] = toolpath_file_;
   }
   catch(YAML::InvalidNode& e)
   {
@@ -291,14 +292,14 @@ bool CRSApplicationWidget::updateConfig()
 
 bool CRSApplicationWidget::saveConfig()
 {
-  if(!config_node_)
+  if(!config_yaml_node_)
   {
     RCLCPP_ERROR(node_->get_logger(),"No config file has been loaded, can not save");
     return false;
   }
 
   std::ofstream config_out(config_file_path_);
-  config_out << *config_node_;
+  config_out << *config_yaml_node_;
   config_out.close();
   RCLCPP_INFO(node_->get_logger(),"Saved yaml config to %s", config_file_path_.c_str());
   return true;

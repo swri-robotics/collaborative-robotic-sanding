@@ -53,6 +53,7 @@ namespace general
 {
 static const std::string INITIALIZATION = "Initialization";
 static const std::string CONFIGURATION = "Configuration";
+static const std::string WAIT_USER_CMD = "Wait_User_Cmd";
 }  // namespace general
 
 // scan acquisition
@@ -151,7 +152,7 @@ common::ActionResult CRSExecutive::configure()
 
   auto call_config = [&](const crs_msgs::msg::ProcessConfiguration config_msg) ->common::ActionResult  {
     process_config_ = config_msg;
-    RCLCPP_INFO(node_->get_logger(), "%s Got Configuration", node_->get_name());
+    RCLCPP_INFO(node_->get_logger(), "Got Configuration", node_->get_name());
 
     // parsing
     YAML::Node config = YAML::LoadFile(process_config_.yaml_config);
@@ -208,11 +209,21 @@ bool CRSExecutive::configureManagers(YAML::Node& node)
     return false;
   }
 
-  return scan_acqt_mngr_->configure(sc_config.get()) &&
+
+  task_mngrs_configured_ =  scan_acqt_mngr_->configure(sc_config.get()) &&
          motion_planning_mngr_->configure(mp_config.get()) &&
          part_regt_mngr_->configure(pr_config.get()) &&
          process_exec_mngr_->configure(pe_config.get()) &&
          part_rework_mngr_->configure(config::PartReworkConfig{});
+  if(task_mngrs_configured_)
+  {
+    RCLCPP_INFO(node_->get_logger(),"Task Managers successfully configured");
+  }
+  else
+  {
+    RCLCPP_ERROR(node_->get_logger(),"Task Managers failed configuration");
+  }
+  return task_mngrs_configured_;
 }
 
 bool CRSExecutive::addStateCallbacks(const std::map<std::string, StateCallbackInfo>& st_callbacks_map)
@@ -324,6 +335,16 @@ bool CRSExecutive::setupGeneralStates()
 
   st_callbacks_map[general::CONFIGURATION] =
   StateCallbackInfo{ entry_cb : std::bind(&CRSExecutive::configure, this), async : false };
+
+  st_callbacks_map[general::WAIT_USER_CMD] =
+  StateCallbackInfo{ entry_cb : [this]() -> common::ActionResult {
+    if(!task_mngrs_configured_)
+    {
+      RCLCPP_ERROR(node_->get_logger(),"Task Managers have not been configured");
+      sm_->postAction(Action{.id = action_names::SM_FAILURE});
+    }
+    return true;
+  }, async : false };
 
   // now adding functions to SM
   return addStateCallbacks(st_callbacks_map);

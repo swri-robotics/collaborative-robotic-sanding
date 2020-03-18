@@ -29,7 +29,8 @@ const static std::string EXECUTE_ACTION = "execute_action";
 const static std::string GET_AVAILABLE_ACTIONS = "get_available_actions";
 const static std::string USER_APPROVES_ACTION_ID = "user_approves";
 const static std::string USER_CANCELS_ACTION_ID = "user_rejects";
-const static double WAIT_FOR_SERVICE_PERIOD = 0.1;
+const static double WAIT_FOR_SERVICE_PERIOD = 2.0;
+static const double WAIT_SERVICE_COMPLETION_PERIOD = 2.0;
 
 namespace crs_gui
 {
@@ -79,7 +80,9 @@ void StateMachineInterfaceWidget::onSMApply()
   }
   // Send request and wait for result
   auto result = execute_action_client_->async_send_request(request);
-  if (rclcpp::spin_until_future_complete(node_, result) != rclcpp::executor::FutureReturnCode::SUCCESS)
+  std::chrono::nanoseconds dur_timeout = rclcpp::Duration::from_seconds(
+      WAIT_SERVICE_COMPLETION_PERIOD).to_chrono<std::chrono::nanoseconds>();
+  if (rclcpp::spin_until_future_complete(node_, result,dur_timeout) != rclcpp::executor::FutureReturnCode::SUCCESS)
   {
     RCLCPP_ERROR(node_->get_logger(), "Failed to call service %s", GET_AVAILABLE_ACTIONS.c_str());
   }
