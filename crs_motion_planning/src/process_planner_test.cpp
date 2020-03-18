@@ -261,9 +261,9 @@ private:
 
     auto proc_req = std::make_shared<crs_msgs::srv::PlanProcessMotions::Request>();
     proc_req->tool_link = "sander_center_link";
-    proc_req->tool_speed = 0.05;
-    proc_req->approach_dist = 0.025;
-    proc_req->retreat_dist = 0.025;
+    proc_req->tool_speed = 0.01;
+    proc_req->approach_dist = 0.045;
+    proc_req->retreat_dist = 0.045;
     proc_req->start_position = curr_joint_state_;
     proc_req->end_position = curr_joint_state_;
     Eigen::Isometry3d tool_offset_req = Eigen::Isometry3d::Identity();

@@ -40,7 +40,7 @@
           <color rgba="0.6 0.6 0.6 1.0"/>
         </material>
       </visual>
-<!--      <collision>
+      <collision>
         <origin xyz="${0.5 * BASE_PLATE_WIDTH} ${0.5 * BASE_PLATE_LENGTH} ${BASE_PLATE_THICKNESS * 0.5}"/>
         <geometry>
           <box size="${BASE_PLATE_WIDTH} ${BASE_PLATE_LENGTH} ${BASE_PLATE_THICKNESS}"/>
@@ -48,7 +48,7 @@
         <material name="StainlessSteel">
           <color rgba="0.6 0.6 0.6 1.0"/>
         </material>
-      </collision>-->
+      </collision>
     </link>
 
     <joint name="table_to_base_plate" type="fixed">

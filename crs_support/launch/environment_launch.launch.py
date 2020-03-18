@@ -85,8 +85,8 @@ def generate_launch_description():
         'tool0_frame': "tool0",
         'manipulator_group': "manipulator",
         'num_steps': 20,
-        'max_joint_velocity': 0.22,
-        'max_joint_acceleration': 0.7,
+        'max_joint_velocity': 0.12,
+        'max_joint_acceleration': 0.4,
 #        'max_joint_velocity': 1.5,
 #        'max_joint_acceleration': 3.0,
         'min_raster_length': 4,
@@ -127,8 +127,8 @@ def generate_launch_description():
              'robot_description_semantic': srdf}]),
         
         # gazebo
-        gzserver,
-        spawner1,
+#        gzserver,
+#        spawner1,
 
         # planning
         motion_planning_server,
