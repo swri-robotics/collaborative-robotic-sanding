@@ -267,7 +267,6 @@ bool crs_motion_planning::splitRastersByJointDist(const trajectory_msgs::msg::Jo
     if (req_joint_vel > max_joint_vel)
     {
       split_exists = true;
-      std::cout << "Size of curr traj: " << curr_raster_pose_array.poses.size() << std::endl;
       split_traj.push_back(curr_traj);
       curr_traj.points.clear();
       split_rasters.push_back(curr_raster_pose_array);

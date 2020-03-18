@@ -10,6 +10,8 @@
 #include <crs_msgs/srv/plan_process_motions.hpp>
 #include <control_msgs/action/follow_joint_trajectory.hpp>
 
+#include <crs_msgs/srv/load_part.hpp>
+
 #include <tf2/transform_storage.h>
 #include <tf2/transform_datatypes.h>
 #include <tf2_eigen/tf2_eigen.h>
@@ -55,8 +57,17 @@ public:
 
     call_process_plan_client_ = this->create_client<crs_msgs::srv::PlanProcessMotions>("plan_process_motion");
 
+    part_loader_client_ = this->create_client<crs_msgs::srv::LoadPart>("load_part_tesseract_env");
+
     toolpath_filepath_ = ament_index_cpp::get_package_share_directory("crs_support") + "/toolpaths/scanned_part1/"
                                                                                        "job_90degrees.yaml";
+
+    test_part_loader_client_ = this->create_service<std_srvs::srv::Trigger>(
+        "test_part_loader",
+        std::bind(&ProcessPlannerTestServer::testPartLoader, this, std::placeholders::_1, std::placeholders::_2));
+
+    part_filepath_ = ament_index_cpp::get_package_share_directory("crs_support") + "/meshes/Parts/visual/"
+                                                                                   "part1_ch.stl";
     // waiting for server
     if (!trajectory_exec_client_->wait_for_action_server(std::chrono::duration<double>(WAIT_SERVER_TIMEOUT)))
     {
@@ -90,7 +101,7 @@ private:
     geometry_msgs::msg::TransformStamped world_to_goal_frame;
     try
     {
-      world_to_goal_frame = tf_buffer_.lookupTransform("world", "part", time_point);
+      world_to_goal_frame = tf_buffer_.lookupTransform("world", waypoint_origin_frame, time_point);
     }
     catch (tf2::LookupException& e)
     {
@@ -125,6 +136,7 @@ private:
     Eigen::Isometry3d tool_offset_req = Eigen::Isometry3d::Identity();
     geometry_msgs::msg::Pose geom_tool_offset;
     tesseract_rosutils::toMsg(geom_tool_offset, tool_offset_req);
+    geom_tool_offset.position.z = 0.025;
     proc_req->tool_offset = geom_tool_offset;
     std::vector<crs_msgs::msg::ToolProcessPath> path_requests;
     crs_msgs::msg::ToolProcessPath path_wf;
@@ -201,11 +213,34 @@ private:
     }
   }
 
+  void testPartLoader(std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+                      std::shared_ptr<std_srvs::srv::Trigger::Response> response)
+  {
+    geometry_msgs::msg::Pose part_pose;
+    part_pose.position.x = -0.439;
+    part_pose.position.y = -0.14;
+    part_pose.position.z = 1.1;
+
+    part_pose.orientation.x = 0.5;
+    part_pose.orientation.y = -0.5;
+    part_pose.orientation.z = 0.5;
+    part_pose.orientation.w = 0.5;
+
+    auto load_part_request = std::make_shared<crs_msgs::srv::LoadPart::Request>();
+    load_part_request->path_to_part = part_filepath_;
+    load_part_request->part_origin = part_pose;
+
+    part_loader_client_->async_send_request(load_part_request);
+  }
+
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr test_process_planner_service_;
   rclcpp::Client<crs_msgs::srv::PlanProcessMotions>::SharedPtr call_process_plan_client_;
   rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SharedPtr trajectory_exec_client_;
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_listener_;
   rclcpp::callback_group::CallbackGroup::SharedPtr trajectory_exec_client_cbgroup_;
+
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr test_part_loader_client_;
+  rclcpp::Client<crs_msgs::srv::LoadPart>::SharedPtr part_loader_client_;
 
   std::shared_ptr<rclcpp::Clock> clock_;
   tf2_ros::Buffer tf_buffer_;
@@ -214,6 +249,7 @@ private:
   sensor_msgs::msg::JointState curr_joint_state_;
 
   std::string toolpath_filepath_;
+  std::string part_filepath_;
 };
 
 int main(int argc, char** argv)

@@ -38,6 +38,7 @@ bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray
   world_to_sander = curr_transforms.find(config_->tcp_frame)->second;
   world_to_tool0 = curr_transforms.find(config_->tool0_frame)->second;
   tool0_to_sander = world_to_tool0.inverse() * world_to_sander;
+  tool0_to_sander = tool0_to_sander * config_->tool_offset;
   descartes_light::KinematicsInterfaceD::Ptr kin_interface =
       std::make_shared<ur_ikfast_kinematics::UR10eKinematicsD>(world_to_base_link, tool0_to_sander, nullptr, nullptr);
 
@@ -349,7 +350,6 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
       // Store new raster and trajectory in final vector to pass to trajopt
       final_split_rasters.push_back(modified_raster);
       final_split_trajs.push_back(new_raster_traj);
-
       // Update time parameterization if required
       if (config_->required_tool_vel)
       {
@@ -432,7 +432,9 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
     tesseract_motion_planners::TrajOptMotionPlanner traj_surface_planner;
     traj_surface_planner.setConfiguration(traj_pc);
     RCLCPP_INFO(logger_, "Solving raster: %i of %i", i + 1, final_split_rasters.size());
-    traj_surface_planner.solve(planner_resp, config_->trajopt_verbose_output);
+    traj_surface_planner.solve(planner_resp,
+                               tesseract_motion_planners::PostPlanCheckType::DISCRETE_CONTINUOUS_COLLISION,
+                               config_->trajopt_verbose_output);
 
     if (planner_resp.status.value() < 0)
     {
@@ -522,12 +524,15 @@ bool crsMotionPlanner::generateOMPLSeed(const tesseract_motion_planners::JointWa
                                         const tesseract_motion_planners::JointWaypoint::Ptr& end_pose,
                                         tesseract_common::JointTrajectory& seed_trajectory)
 {
-  tesseract_motion_planners::OMPLMotionPlanner<ompl::geometric::RRTConnect> ompl_planner;
+  tesseract_motion_planners::OMPLMotionPlanner ompl_planner;
+  auto rrt_connect_configuration = std::make_shared<tesseract_motion_planners::RRTConnectConfigurator>();
+  rrt_connect_configuration->range = config_->ompl_config.range;
 
+  std::vector<tesseract_motion_planners::OMPLPlannerConfigurator::ConstPtr> ompl_configurators;
+  ompl_configurators.insert(ompl_configurators.end(), config_->ompl_config.num_threads, rrt_connect_configuration);
   // Convert ompl_config to an actual ompl config file
-  auto ompl_planner_config =
-      std::make_shared<tesseract_motion_planners::OMPLPlannerFreespaceConfig<ompl::geometric::RRTConnect>>(
-          config_->tesseract_local, config_->manipulator);
+  auto ompl_planner_config = std::make_shared<tesseract_motion_planners::OMPLPlannerFreespaceConfig>(
+      config_->tesseract_local, config_->manipulator, ompl_configurators);
   tesseract_kinematics::ForwardKinematics::ConstPtr kin =
       config_->tesseract_local->getFwdKinematicsManagerConst()->getFwdKinematicSolver(config_->manipulator);
   ompl_planner_config->start_waypoint = start_pose;
@@ -537,8 +542,6 @@ bool crsMotionPlanner::generateOMPLSeed(const tesseract_motion_planners::JointWa
   ompl_planner_config->simplify = config_->ompl_config.simplify;
   ompl_planner_config->collision_continuous = config_->ompl_config.collision_continuous;
   ompl_planner_config->collision_check = config_->ompl_config.collision_check;
-  ompl_planner_config->settings.range = config_->ompl_config.range;
-  ompl_planner_config->num_threads = config_->ompl_config.num_threads;
   ompl_planner_config->max_solutions = config_->ompl_config.max_solutions;
   ompl_planner_config->n_output_states = config_->ompl_config.n_output_states;
   ompl_planner_config->longest_valid_segment_fraction = config_->ompl_config.longest_valid_segment_fraction;
@@ -619,7 +622,9 @@ bool crsMotionPlanner::trajoptFreespaceFromOMPL(const tesseract_motion_planners:
   tesseract_motion_planners::TrajOptMotionPlanner traj_motion_planner;
   tesseract_motion_planners::PlannerResponse plan_resp;
   traj_motion_planner.setConfiguration(traj_pc);
-  traj_motion_planner.solve(plan_resp, config_->trajopt_verbose_output);
+  traj_motion_planner.solve(plan_resp,
+                            tesseract_motion_planners::PostPlanCheckType::DISCRETE_CONTINUOUS_COLLISION,
+                            config_->trajopt_verbose_output);
   if (plan_resp.status.value() != 0)
   {
     RCLCPP_ERROR(logger_, "FAILED TO OPTIMIZE WITH TRAJOPT");
@@ -935,6 +940,7 @@ bool crsMotionPlanner::findClosestJointOrientation(const tesseract_motion_planne
   world_to_sander = curr_transforms.find(config_->tcp_frame)->second;
   world_to_tool0 = curr_transforms.find(config_->tool0_frame)->second;
   tool0_to_sander = world_to_tool0.inverse() * world_to_sander;
+  tool0_to_sander = tool0_to_sander * config_->tool_offset;
   descartes_light::KinematicsInterfaceD::Ptr kin_interface =
       std::make_shared<ur_ikfast_kinematics::UR10eKinematicsD>(world_to_base_link, tool0_to_sander, nullptr, nullptr);
 

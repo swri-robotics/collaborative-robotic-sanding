@@ -8,6 +8,9 @@
 		
 		<include file="$(find-pkg-share crs_application)/launch/load_preview_robot_model.launch.xml">
 		</include>		
+
+    <include file="$(find-pkg-share crs_application)/launch/load_robot_model.launch.xml">
+    </include>
 		
 		<include file="$(find-pkg-share crs_support)/launch/environment_launch.launch.py">
 		</include>

@@ -16,7 +16,7 @@
 #include <tesseract_motion_planners/descartes/descartes_collision.h>
 #include <tesseract_motion_planners/ompl/ompl_motion_planner.h>
 #include <tesseract_motion_planners/ompl/config/ompl_planner_freespace_config.h>
-#include <tesseract_motion_planners/ompl/ompl_settings.h>
+#include <tesseract_motion_planners/core/trajectory_validator.h>
 #include <tesseract_environment/core/environment.h>
 #include <tesseract_environment/core/utils.h>
 #include <tesseract_rosutils/utils.h>
