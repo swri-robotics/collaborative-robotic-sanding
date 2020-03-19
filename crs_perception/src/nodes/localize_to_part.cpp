@@ -5,6 +5,7 @@
 #include <pcl/common/transforms.h>
 #include <pcl/conversions.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include <pcl/filters/crop_box.h>
 #include <tf2/convert.h>
 #include <tf2_eigen/tf2_eigen.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
@@ -113,9 +114,6 @@ private:
       point_cloud.header.stamp = this->now();
       point_cloud.header.frame_id = world_frame_;
       loaded_part_pc_pub_->publish(point_cloud);
-
-      pcl::PCDWriter w;
-      w.writeBinaryCompressed("/home/ayoungs/test_loaded_part.pcd", *part_point_cloud_);
     }
   }
 
@@ -127,49 +125,41 @@ private:
     if (part_loaded_)
     {
       pcl::PointCloud<pcl::PointXYZ>::Ptr combined_point_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
+      pcl::PointCloud<pcl::PointXYZ>::Ptr filtered_combined_point_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
       for (auto& point_cloud_msg : request->point_clouds)
       {
-        geometry_msgs::msg::TransformStamped transform;
-        try
-        {
-          //transform = tf_buffer_.lookupTransform(world_frame_, point_cloud_msg.header.frame_id, point_cloud_msg.header.stamp);
-          transform = tf_buffer_.lookupTransform(world_frame_, point_cloud_msg.header.frame_id, tf2::TimePointZero);
-        }
-        catch (tf2::TransformException ex)
-        {
-          RCLCPP_ERROR(this->get_logger(), "%s", ex.what());
-          response->success = false;
-          response->error = "Failed to transform point cloud from '" + point_cloud_msg.header.frame_id + "' to '" + world_frame_ + "' frame";
-          return;
-        }
+        // todo(ayoungs): should the point clouds be assumed to be in the correct frame at this point?
 
         pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
-        pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
 
         pcl::fromROSMsg(point_cloud_msg, *point_cloud);
-        pcl::transformPointCloud(*point_cloud, *transformed_cloud, 
-                                 tf2::transformToEigen(transform).matrix());
 
         *combined_point_cloud += *point_cloud;
       }
 
+      // filter out the workcell
+      // todo(ayoungs): get the workcell dimensions and use them rather than hard coded values
+      pcl::CropBox<pcl::PointXYZ> boxFilter;
+      boxFilter.setMin(Eigen::Vector4f(-0.8, -1.1, 0.5, 1.0));
+      boxFilter.setMax(Eigen::Vector4f(0.0, 0.9, 1.7, 1.0));
+      boxFilter.setInputCloud(combined_point_cloud);
+      boxFilter.filter(*filtered_combined_point_cloud);
+
       if (enable_debug_visualizations_)
       {
         sensor_msgs::msg::PointCloud2 point_cloud;
-        pcl::toROSMsg(*combined_point_cloud, point_cloud);
+        pcl::toROSMsg(*filtered_combined_point_cloud, point_cloud);
         point_cloud.header.stamp = this->now();
         point_cloud.header.frame_id = world_frame_;
         combined_pc_pub_->publish(point_cloud);
-
-        pcl::PCDWriter w;
-        w.writeBinaryCompressed("/home/ayoungs/test_loaded_part.pcd", *part_point_cloud_);
       }
 
       pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
-      icp.setInputSource(combined_point_cloud);
+      icp.setInputSource(filtered_combined_point_cloud);
       icp.setInputTarget(part_point_cloud_);
       pcl::PointCloud<pcl::PointXYZ> final;
       icp.align(final);
+
       // todo(ayoungs): use convergence and fitness score?
       // std::cout << "has converged:" << icp.hasConverged() << " score: " <<
       // icp.getFitnessScore() << std::endl;
@@ -185,6 +175,21 @@ private:
           tf2::Matrix3x3(tm(0, 0), tm(0, 1), tm(0, 2), tm(1, 0), tm(1, 1), tm(1, 2), tm(2, 0), tm(2, 1), tm(2, 2)),
           tf2::Vector3(tm(0, 3), tm(1, 3), tm(2, 3)));
       response->transform.transform = tf2::toMsg(tf2_transform);
+
+      if (enable_debug_visualizations_)
+      {
+        pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
+
+        pcl::transformPointCloud(*part_point_cloud_, *transformed_cloud, 
+                                 tm.cast<float>().inverse());
+                                 //tf2::transformToEigen(transform).matrix());
+
+        sensor_msgs::msg::PointCloud2 point_cloud;
+        pcl::toROSMsg(*transformed_cloud, point_cloud);
+        point_cloud.header.stamp = this->now();
+        point_cloud.header.frame_id = world_frame_;
+        tf_loaded_part_pc_pub_->publish(point_cloud);
+      }
 
       RCLCPP_INFO(this->get_logger(),
                   "Transform : (%f, %f, %f)",

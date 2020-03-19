@@ -39,7 +39,7 @@
 static const double WAIT_FOR_SERVICE_PERIOD = 10.0;
 static const double WAIT_MESSAGE_TIMEOUT = 2.0;
 static const std::string POINT_CLOUD_TOPIC = "/crs/custom_camera/custom_points";
-static const std::string FREESPACE_MOTION_PLAN_SERVICE = "/plan_freespace_motion";
+static const std::string FREESPACE_MOTION_PLAN_SERVICE = "/crs/plan_freespace_motion";
 static const std::string MANAGER_NAME = "ScanAcquisitionManager";
 
 namespace crs_application
@@ -64,6 +64,8 @@ ScanAcquisitionManager::~ScanAcquisitionManager() {}
 
 common::ActionResult ScanAcquisitionManager::init()
 {
+  common::ActionResult res;
+
   // parameters
   tool_frame_ = node_->declare_parameter("camera_frame_id", "eoat_link");
   max_time_since_last_point_cloud_ = node_->declare_parameter("max_time_since_last_point_cloud", 0.1);
@@ -78,49 +80,41 @@ common::ActionResult ScanAcquisitionManager::init()
       node_->create_client<crs_msgs::srv::CallFreespaceMotion>(FREESPACE_MOTION_PLAN_SERVICE);
 
   // waiting for services
-  common::ActionResult res;
   std::vector<rclcpp::ClientBase*> srv_clients = { call_freespace_motion_client_.get() };
   if (!std::all_of(srv_clients.begin(), srv_clients.end(), [this, &res](rclcpp::ClientBase* c) {
         if (!c->wait_for_service(std::chrono::duration<double>(WAIT_FOR_SERVICE_PERIOD)))
         {
           res.succeeded = false;
           res.err_msg = boost::str(boost::format("service '%s' was not found") % c->get_service_name());
-          return false;
+          return res;
         }
-        return true;
+        res.succeeded = true;
+        return res;
       }))
   {
     RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg);
   }
 
-  return true;
+  res.succeeded = true;
+  return res;
 }
 
 common::ActionResult ScanAcquisitionManager::configure(const ScanAcquisitionConfig& config)
 {
+  common::ActionResult res;
   scan_poses_ = config.scan_poses;
-
-  scan_poses_ = std::vector<geometry_msgs::msg::Transform>();
-  geometry_msgs::msg::Transform tf = geometry_msgs::msg::Transform();
-  tf.translation.x = 0.0;
-  tf.translation.y = -0.6;
-  tf.translation.z = 1.7;
-  tf.rotation.w = -0.1843;
-  tf.rotation.x = 0.0;
-  tf.rotation.y = 0.8791;
-  tf.rotation.z = 0.4395;
-  scan_poses_.push_back(tf);
-
 
   if (scan_poses_.size() == 0)
   {
     RCLCPP_ERROR(node_->get_logger(), "No scan positions provided.");
-    return false;
+    res.succeeded = false;
+    res.err_msg = "No scan positions provided";
+    return res;
   }
   else
   {
-    RCLCPP_INFO(node_->get_logger(), "test");
-    return true;
+    res.succeeded = true;
+    return res;
   }
 }
 
@@ -140,16 +134,29 @@ common::ActionResult ScanAcquisitionManager::verify()
 
 common::ActionResult ScanAcquisitionManager::moveRobot()
 {
+  common::ActionResult res;
   auto freespace_motion_request = std::make_shared<crs_msgs::srv::CallFreespaceMotion::Request>();
   freespace_motion_request->target_link = tool_frame_;
   freespace_motion_request->goal_pose = scan_poses_.at(scan_index_);
   freespace_motion_request->execute = true;
 
+  // todo(ayoungs): sync requests aren't available and this spin_until_future_complete seems to cause a runtime error
+  // consider making a wrapper function to allow for synchrnous calls
   auto result_future = call_freespace_motion_client_->async_send_request(freespace_motion_request);
-  if (rclcpp::spin_until_future_complete(node_, result_future) != rclcpp::executor::FutureReturnCode::SUCCESS)
+  //if (rclcpp::spin_until_future_complete(node_, result_future) != rclcpp::executor::FutureReturnCode::SUCCESS)
+  //{
+  //  RCLCPP_ERROR(node_->get_logger(), "%s Call Freespace Motion service call failed", MANAGER_NAME.c_str());
+  //  return false;
+  //}
+  // todo(ayoungs): why is there a timeout?
+  auto status = result_future.wait_for(std::chrono::seconds(10));
+  return true;
+  if (status == std::future_status::timeout)
   {
-    RCLCPP_ERROR(node_->get_logger(), "%s Call Freespace Motion service call failed", MANAGER_NAME.c_str());
-    return false;
+    RCLCPP_ERROR(node_->get_logger(), "%s Call Freespace Motion service call timed out", MANAGER_NAME.c_str());
+    res.succeeded = false;
+    res.err_msg = "Call to freespace motion service timed out.";
+    return res;
   }
   auto result = result_future.get();
 
@@ -159,17 +166,21 @@ common::ActionResult ScanAcquisitionManager::moveRobot()
     std::chrono::duration<double> sleep_dur(10.0);
     rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::seconds>(sleep_dur));
 
-    return true;
+    res.succeeded = true;
+    return res;
   }
   else
   {
     RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), result->message.c_str());
-    return false;
+    res.succeeded = false;
+    res.err_msg = result->message.c_str();
+    return res;
   }
 }
 
 common::ActionResult ScanAcquisitionManager::capture()
 {
+  common::ActionResult res;
   // sleeping first
   //std::chrono::duration<double> sleep_dur(WAIT_MESSAGE_TIMEOUT);
   //rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::seconds>(sleep_dur));
@@ -198,9 +209,9 @@ common::ActionResult ScanAcquisitionManager::capture()
     catch (tf2::TransformException ex)
     {
       RCLCPP_ERROR(node_->get_logger(), "%s", ex.what());
-      //response->success = false;
-      //response->error = "Failed to transform point cloud from '" + curr_point_cloud_.header.frame_id + "' to '" + world_frame_ + "' frame";
-      return false;
+      res.succeeded = false;
+      res.err_msg = "Failed to transform point cloud from '" + curr_point_cloud_.header.frame_id + "' to '" + world_frame_ + "' frame";
+      return res;
     }
 
     pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
@@ -216,20 +227,24 @@ common::ActionResult ScanAcquisitionManager::capture()
     point_cloud_msg.header.frame_id = world_frame_;
     point_cloud_msg.header.stamp = curr_point_cloud_.header.stamp;
     point_clouds_.push_back(point_cloud_msg);
-    return true;
+    res.succeeded = true;
+    return res;
   }
   else
   {
-    return false;
+    res.succeeded = false;
+    res.err_msg = "Point cloud data is stale. Aborting";
+    return res;
   }
 }
 
 common::ActionResult ScanAcquisitionManager::checkQueue()
 {
-  scan_index_++;
-  if (scan_index_ < scan_poses_.size() - 1)
+  common::ActionResult res;
+  if (scan_index_++ < scan_poses_.size() - 1)
   {
-    return false;
+    res.succeeded = false;
+    return res;
   }
   else
   {
@@ -237,7 +252,8 @@ common::ActionResult ScanAcquisitionManager::checkQueue()
     result_.point_clouds = point_clouds_;
     scan_index_ = 0;
     point_clouds_.clear();
-    return true;
+    res.succeeded = true;
+    return res;
   }
 }
 
@@ -259,15 +275,6 @@ common::ActionResult ScanAcquisitionManager::checkPreReqs()
   scan_poses_.push_back(tf);
 
   tf.translation.x = 0.0;
-  tf.translation.y = -0.53;
-  tf.translation.z = 1.7;
-  tf.rotation.w = -0.0483246;
-  tf.rotation.x = -0.9690091;
-  tf.rotation.y = -0.2422523;
-  tf.rotation.z = 0.3;
-  scan_poses_.push_back(tf);
-tf
-  .translation.x = 0.0;
   tf.translation.y = 0.0;
   tf.translation.z = 1.7;
   tf.rotation.w = -0.0483246;
@@ -276,6 +283,15 @@ tf
   tf.rotation.z = 0.3;
   scan_poses_.push_back(tf);
 
+  tf.translation.x = 0.0;
+  tf.translation.y = -0.53;
+  tf.translation.z = 1.7;
+  tf.rotation.w = -0.0483246;
+  tf.rotation.x = -0.9690091;
+  tf.rotation.y = -0.2422523;
+  tf.rotation.z = 0.3;
+  scan_poses_.push_back(tf);
+  
 
   if (scan_poses_.empty())
   {

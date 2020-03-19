@@ -18,7 +18,7 @@ bool ModelToPointCloud::convertToPCL(pcl::PointCloud<pcl::PointXYZ>::Ptr point_c
   readerQuery->Update();
   polydata1 = readerQuery->GetOutput();
 
-  // make sure that the polygons are triangles!
+  // make sure that the polygons are triangles
   vtkSmartPointer<vtkTriangleFilter> triangleFilter = vtkSmartPointer<vtkTriangleFilter>::New();
   triangleFilter->SetInputData(polydata1);
   triangleFilter->Update();
