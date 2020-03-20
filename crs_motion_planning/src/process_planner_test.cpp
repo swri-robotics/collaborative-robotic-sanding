@@ -345,14 +345,11 @@ private:
             process_plans[j].force_controlled_process_motions;
         if (start_traj.points.size() > 0)
         {
-          trig_req->data = false;
-          successful_controller_change = change_controller(trig_req);
-          RCLCPP_ERROR(node_->get_logger(), "EXECUTING FIRST FREESPACE");
-          if (!successful_controller_change ||
-              !execTrajectory(trajectory_exec_client_, node_->get_logger(), start_traj))
-          {
-            return;
-          }
+          RCLCPP_INFO(this->get_logger(), "EXECUTING FIRST FREESPACE");
+//          if (!execTrajectory(trajectory_exec_client_, this->get_logger(), start_traj))
+//          {
+//            return;
+//          }
         }
 
         for (size_t i = 0; i < freespace_motions.size(); ++i)
