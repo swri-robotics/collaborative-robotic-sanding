@@ -215,7 +215,7 @@ public:
     trajopt_freespace_config.smooth_velocities = true;
     trajopt_freespace_config.smooth_accelerations = true;
     trajopt_freespace_config.smooth_jerks = true;
-    trajopt_freespace_config.special_collision_cost.push_back({"eoat_link", "part", 0.05, 15.0});
+    trajopt_freespace_config.special_collision_cost.push_back({"eoat_link", "part", 0.15, 20.0});
     trajopt_freespace_config.special_collision_cost.push_back({"eoat_link", "robot_frame", 0.05, 15.0});
 
     motion_planner_config_ = std::make_shared<crs_motion_planning::pathPlanningConfig>();

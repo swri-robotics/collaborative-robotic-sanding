@@ -419,8 +419,31 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
     traj_pc->smooth_accelerations = config_->trajopt_surface_config.smooth_accelerations;
     traj_pc->smooth_jerks = config_->trajopt_surface_config.smooth_accelerations;
     traj_pc->target_waypoints = curr_raster;
-    traj_pc->special_collision_constraint = config_->trajopt_surface_config.special_collision_constraint;
-    traj_pc->special_collision_cost = config_->trajopt_surface_config.special_collision_cost;
+    trajopt::SafetyMarginData::Ptr traj_smd_cost =
+        std::make_shared<trajopt::SafetyMarginData>(config_->trajopt_surface_config.coll_cst_cfg.buffer_margin,
+                                                    20);
+    for (auto& spec_cost : config_->trajopt_surface_config.special_collision_cost)
+    {
+      traj_smd_cost->setPairSafetyMarginData(std::get<0>(spec_cost),
+                                             std::get<1>(spec_cost),
+                                             std::get<2>(spec_cost),
+                                             std::get<3>(spec_cost));
+    }
+    trajopt::SafetyMarginData::Ptr traj_smd_cnt =
+        std::make_shared<trajopt::SafetyMarginData>(config_->trajopt_surface_config.coll_cnt_cfg.safety_margin,
+                                                    20);
+    for (auto& spec_cnt : config_->trajopt_surface_config.special_collision_constraint)
+    {
+      traj_smd_cnt->setPairSafetyMarginData(std::get<0>(spec_cnt),
+                                             std::get<1>(spec_cnt),
+                                             std::get<2>(spec_cnt),
+                                             std::get<3>(spec_cnt));
+    }
+
+    if (config_->trajopt_surface_config.special_collision_cost.size() > 0)
+      traj_pc->special_collision_cost = traj_smd_cost;
+    if (config_->trajopt_surface_config.special_collision_constraint.size() > 0)
+      traj_pc->special_collision_constraint = traj_smd_cnt;
 
     Eigen::MatrixXd joint_eigen_from_jt;
     joint_eigen_from_jt = tesseract_rosutils::toEigen(results->descartes_trajectory_results[i],
@@ -609,8 +632,31 @@ bool crsMotionPlanner::trajoptFreespaceFromOMPL(const tesseract_motion_planners:
   traj_pc->contact_test_type = config_->trajopt_freespace_config.contact_test_type;
   traj_pc->longest_valid_segment_fraction = config_->trajopt_freespace_config.longest_valid_segment_fraction;
   traj_pc->longest_valid_segment_length = config_->trajopt_freespace_config.longest_valid_segment_length;
-  traj_pc->special_collision_constraint = config_->trajopt_freespace_config.special_collision_constraint;
-  traj_pc->special_collision_cost = config_->trajopt_freespace_config.special_collision_cost;
+  trajopt::SafetyMarginData::Ptr traj_smd_cost =
+      std::make_shared<trajopt::SafetyMarginData>(config_->trajopt_freespace_config.coll_cst_cfg.buffer_margin,
+                                                  20);
+  for (auto& spec_cost : config_->trajopt_freespace_config.special_collision_cost)
+  {
+    traj_smd_cost->setPairSafetyMarginData(std::get<0>(spec_cost),
+                                           std::get<1>(spec_cost),
+                                           std::get<2>(spec_cost),
+                                           std::get<3>(spec_cost));
+  }
+  trajopt::SafetyMarginData::Ptr traj_smd_cnt =
+      std::make_shared<trajopt::SafetyMarginData>(config_->trajopt_freespace_config.coll_cnt_cfg.safety_margin,
+                                                  20);
+  for (auto& spec_cnt : config_->trajopt_freespace_config.special_collision_constraint)
+  {
+    traj_smd_cnt->setPairSafetyMarginData(std::get<0>(spec_cnt),
+                                           std::get<1>(spec_cnt),
+                                           std::get<2>(spec_cnt),
+                                           std::get<3>(spec_cnt));
+  }
+
+  if (config_->trajopt_freespace_config.special_collision_cost.size() > 0)
+    traj_pc->special_collision_cost = traj_smd_cost;
+  if (config_->trajopt_freespace_config.special_collision_constraint.size() > 0)
+    traj_pc->special_collision_constraint = traj_smd_cnt;
   RCLCPP_INFO(logger_, "OPTIMIZING WITH TRAJOPT");
   std::vector<tesseract_motion_planners::Waypoint::Ptr> trgt_wypts;
   trgt_wypts.push_back(start_pose);
