@@ -81,7 +81,7 @@ bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray
   Eigen::MatrixXd joint_traj_eigen_out =
       Eigen::Map<Eigen::MatrixXd>(seed_traj.data(), kin_interface->dof(), n_rows).transpose();
 
-  crs_motion_planning::tesseractRosutilsToMsg(joint_trajectory, kin->getJointNames(), joint_traj_eigen_out);
+  tesseract_rosutils::toMsg(joint_trajectory, kin->getJointNames(), joint_traj_eigen_out);
   return true;
 }
 
@@ -448,7 +448,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
       Eigen::MatrixXd result_traj(planner_resp.joint_trajectory.trajectory.rows(),
                                   planner_resp.joint_trajectory.trajectory.cols());
       result_traj << planner_resp.joint_trajectory.trajectory;
-      crs_motion_planning::tesseractRosutilsToMsg(
+      tesseract_rosutils::toMsg(
           trajopt_result_traj, results->descartes_trajectory_results[i].joint_names, result_traj);
       results->solved_rasters.push_back(final_split_rasters[i]);
       trajopt_trajectories.push_back(std::move(trajopt_result_traj));
@@ -637,7 +637,7 @@ bool crsMotionPlanner::trajoptFreespaceFromOMPL(const tesseract_motion_planners:
   Eigen::MatrixXd traj_cumulative_trajectory(traj_array.rows(), traj_array.cols());
   traj_cumulative_trajectory << traj_array;
   // Convert trajectory to ROSmsg
-  crs_motion_planning::tesseractRosutilsToMsg(
+  tesseract_rosutils::toMsg(
       joint_trajectory, seed_trajectory.joint_names, traj_cumulative_trajectory);
   return true;
 }
@@ -665,7 +665,7 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr& results)
     trajectory_msgs::msg::JointTrajectory curr_joint_traj, ompl_joint_traj;
     Eigen::MatrixXd cumulative_trajectory(seed_trajectory.trajectory.rows(), seed_trajectory.trajectory.cols());
     cumulative_trajectory << seed_trajectory.trajectory;
-    crs_motion_planning::tesseractRosutilsToMsg(ompl_joint_traj, seed_trajectory.joint_names, cumulative_trajectory);
+    tesseract_rosutils::toMsg(ompl_joint_traj, seed_trajectory.joint_names, cumulative_trajectory);
     ompl_joint_traj.header.frame_id = config_->world_frame;
     if (config_->use_trajopt_freespace)
     {
@@ -728,7 +728,7 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr& results)
     trajectory_msgs::msg::JointTrajectory curr_joint_traj, ompl_joint_traj;
     Eigen::MatrixXd cumulative_trajectory(seed_trajectory.trajectory.rows(), seed_trajectory.trajectory.cols());
     cumulative_trajectory << seed_trajectory.trajectory;
-    crs_motion_planning::tesseractRosutilsToMsg(ompl_joint_traj, seed_trajectory.joint_names, cumulative_trajectory);
+    tesseract_rosutils::toMsg(ompl_joint_traj, seed_trajectory.joint_names, cumulative_trajectory);
     ompl_joint_traj.header.frame_id = config_->world_frame;
     if (config_->use_trajopt_freespace)
     {
@@ -792,7 +792,7 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr& results)
     trajectory_msgs::msg::JointTrajectory curr_joint_traj, ompl_joint_traj;
     Eigen::MatrixXd cumulative_trajectory(seed_trajectory.trajectory.rows(), seed_trajectory.trajectory.cols());
     cumulative_trajectory << seed_trajectory.trajectory;
-    crs_motion_planning::tesseractRosutilsToMsg(ompl_joint_traj, seed_trajectory.joint_names, cumulative_trajectory);
+    tesseract_rosutils::toMsg(ompl_joint_traj, seed_trajectory.joint_names, cumulative_trajectory);
     ompl_joint_traj.header.frame_id = config_->world_frame;
     if (config_->use_trajopt_freespace)
     {
@@ -862,7 +862,7 @@ bool crsMotionPlanner::generateFreespacePlan(const tesseract_motion_planners::Jo
   trajectory_msgs::msg::JointTrajectory ompl_joint_traj;
   Eigen::MatrixXd cumulative_trajectory(seed_trajectory.trajectory.rows(), seed_trajectory.trajectory.cols());
   cumulative_trajectory << seed_trajectory.trajectory;
-  crs_motion_planning::tesseractRosutilsToMsg(ompl_joint_traj, seed_trajectory.joint_names, cumulative_trajectory);
+  tesseract_rosutils::toMsg(ompl_joint_traj, seed_trajectory.joint_names, cumulative_trajectory);
   ompl_joint_traj.header.frame_id = config_->world_frame;
   if (config_->use_trajopt_freespace)
   {
