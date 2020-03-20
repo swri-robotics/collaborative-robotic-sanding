@@ -245,12 +245,18 @@ private:
         goal_handle->abort(result);
         return;
       }
-      Eigen::Isometry3d world_to_sander_eig, curr_cart_goal_eig;
+      Eigen::Isometry3d world_to_sander_eig, curr_cart_goal_eig, original_cart_goal_eig;
       world_to_sander_eig = tf2::transformToEigen(base_to_tool0_tf.transform);
-      tf2::fromMsg(curr_cart_goal.pose, curr_cart_goal_eig);
-      double diff = (curr_cart_goal_eig.translation() - world_to_sander_eig.translation()).norm();
+      tf2::fromMsg(curr_cart_goal.pose, original_cart_goal_eig);
+      curr_cart_goal_eig = original_cart_goal_eig;
+      double diff = (original_cart_goal_eig.translation() - world_to_sander_eig.translation()).norm();
+      Eigen::Vector3d trans_diff = original_cart_goal_eig.translation() - world_to_sander_eig.translation();
+      trans_diff *= 14;
+      curr_cart_goal_eig.translation() = world_to_sander_eig.translation() + trans_diff;
+      curr_cart_goal_eig.translation().z() = original_cart_goal_eig.translation().z();
       while (diff > tolerance)
       {
+        curr_cart_goal.pose = tf2::toMsg(curr_cart_goal_eig);
         compliance_position_publisher_->publish(curr_cart_goal);
         try
         {
@@ -268,7 +274,11 @@ private:
         }
         std::this_thread::sleep_for(std::chrono::milliseconds(50));
         world_to_sander_eig = tf2::transformToEigen(base_to_tool0_tf.transform);
-        diff = (curr_cart_goal_eig.translation() - world_to_sander_eig.translation()).norm();
+        diff = (original_cart_goal_eig.translation() - world_to_sander_eig.translation()).norm();
+        trans_diff = original_cart_goal_eig.translation() - world_to_sander_eig.translation();
+        trans_diff *= 14;
+        curr_cart_goal_eig.translation() = world_to_sander_eig.translation() + trans_diff;
+        curr_cart_goal_eig.translation().z() = original_cart_goal_eig.translation().z();
       }
       count++;
     }

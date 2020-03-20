@@ -104,6 +104,12 @@ def generate_launch_description():
         package='crs_motion_planning',
         node_name='process_test_server',
         output='screen')
+
+    motion_execution_server = launch_ros.actions.Node(
+        node_executable='crs_motion_execution_motion_execution_server',
+        package='crs_motion_execution',
+        node_name='motion_execution_server',
+        output='screen')
         
     return launch.LaunchDescription([
         # arguments
@@ -129,4 +135,7 @@ def generate_launch_description():
         # planning
         motion_planning_server,
         process_planner_test_server,
+
+        # execution
+        motion_execution_server,
 ])

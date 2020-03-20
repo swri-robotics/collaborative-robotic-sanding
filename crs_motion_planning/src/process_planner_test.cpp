@@ -229,10 +229,10 @@ private:
         if (start_traj.points.size() > 0)
         {
           RCLCPP_INFO(this->get_logger(), "EXECUTING FIRST FREESPACE");
-          if (!execTrajectory(trajectory_exec_client_, this->get_logger(), start_traj))
-          {
-            return;
-          }
+//          if (!execTrajectory(trajectory_exec_client_, this->get_logger(), start_traj))
+//          {
+//            return;
+//          }
         }
 
         for (size_t i = 0; i < freespace_motions.size(); ++i)
