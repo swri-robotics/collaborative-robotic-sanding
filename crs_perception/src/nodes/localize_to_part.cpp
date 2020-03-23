@@ -129,9 +129,6 @@ private:
       point_cloud.header.stamp = this->now();
       point_cloud.header.frame_id = world_frame_;
       loaded_part_pc_pub_->publish(point_cloud);
-
-      pcl::PCDWriter w;
-      w.writeBinaryCompressed("/home/ayoungs/test_loaded_part.pcd", *part_point_cloud_);
     }
   }
 
@@ -176,9 +173,6 @@ private:
         point_cloud.header.stamp = this->now();
         point_cloud.header.frame_id = world_frame_;
         combined_pc_pub_->publish(point_cloud);
-
-        pcl::PCDWriter w;
-        w.writeBinaryCompressed("/home/ayoungs/test_loaded_part.pcd", *part_point_cloud_);
       }
 
       pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
@@ -214,6 +208,7 @@ private:
     {
       response->success = false;
       response->error = "Missing part. Please load a part first.";
+      RCLCPP_ERROR_STREAM(this->get_logger(),response->error);
     }
   }
 };
