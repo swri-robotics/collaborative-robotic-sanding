@@ -71,7 +71,6 @@ target_link_libraries(${PROJECT_NAME}_path_processing_utils
   ${tf2_ros_LIBRARIES}
   ${tf2_geometry_msgs_LIBRARIES}
   ${control_msgs_LIBRARIES}
-  tesseract::tesseract_common
   Eigen3::Eigen
   iterative_spline_parameterization::iterative_spline_parameterization
   )

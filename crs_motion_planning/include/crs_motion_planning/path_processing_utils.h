@@ -19,8 +19,6 @@
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <control_msgs/action/follow_joint_trajectory.hpp>
 
-#include <tesseract_common/types.h>
-
 #include <Eigen/Eigen>
 #include <vector>
 
@@ -37,17 +35,6 @@ namespace crs_motion_planning
 bool parsePathFromFile(const std::string& yaml_filepath,
                        const std::string& waypoint_origin_frame,
                        std::vector<geometry_msgs::msg::PoseArray>& raster_strips);
-
-///
-/// \brief tesseract_rosutils_toMsg converts tesserarct TrajArray to trajectory msg
-/// \param traj_msg
-/// \param joint_names
-/// \param traj
-///
-void tesseractRosutilsToMsg(trajectory_msgs::msg::JointTrajectory& traj_msg,
-                            const std::vector<std::string>& joint_names,
-                            const Eigen::Ref<const tesseract_common::TrajArray>& traj);
-
 ///
 /// \brief rasterStripsToMarkerArray Generates marker array from vector of poseStampeds
 /// \param edges

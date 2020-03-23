@@ -70,35 +70,6 @@ bool crs_motion_planning::parsePathFromFile(const std::string& yaml_filepath,
   return true;
 }
 
-void crs_motion_planning::tesseractRosutilsToMsg(trajectory_msgs::msg::JointTrajectory& traj_msg,
-                                                 const std::vector<std::string>& joint_names,
-                                                 const Eigen::Ref<const tesseract_common::TrajArray>& traj)
-{
-  assert(joint_names.size() == static_cast<unsigned>(traj.cols()));
-
-  // Initialze the whole traject with the current state.
-  std::map<std::string, int> jn_to_index;
-  traj_msg.joint_names.resize(joint_names.size());
-  traj_msg.points.resize(static_cast<size_t>(traj.rows()));
-
-  for (int i = 0; i < traj.rows(); ++i)
-  {
-    trajectory_msgs::msg::JointTrajectoryPoint jtp;
-    jtp.positions.resize(static_cast<size_t>(traj.cols()));
-
-    for (int j = 0; j < traj.cols(); ++j)
-    {
-      if (i == 0)
-        traj_msg.joint_names[static_cast<size_t>(j)] = joint_names[static_cast<size_t>(j)];
-
-      jtp.positions[static_cast<size_t>(j)] = traj(i, j);
-    }
-
-    jtp.time_from_start = rclcpp::Duration(i, 0);
-    traj_msg.points[static_cast<size_t>(i)] = jtp;
-  }
-}
-
 void crs_motion_planning::rasterStripsToMarkerArray(const geometry_msgs::msg::PoseArray& strip,
                                                     const std::string& frame,
                                                     visualization_msgs::msg::MarkerArray& arrows,
