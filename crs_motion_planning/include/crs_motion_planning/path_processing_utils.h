@@ -90,16 +90,6 @@ convertToDottedLineMarker(const std::vector<geometry_msgs::msg::PoseArray>& path
                           const float& point_size = 0.005);
 
 ///
-/// \brief tesseract_rosutils_toMsg converts tesserarct TrajArray to trajectory msg
-/// \param traj_msg
-/// \param joint_names
-/// \param traj
-///
-void tesseractRosutilsToMsg(trajectory_msgs::msg::JointTrajectory& traj_msg,
-                            const std::vector<std::string>& joint_names,
-                            const Eigen::Ref<const tesseract_common::TrajArray>& traj);
-
-///
 /// \brief rasterStripsToMarkerArray Generates marker array from vector of poseStampeds
 /// \param edges
 /// \param frame
