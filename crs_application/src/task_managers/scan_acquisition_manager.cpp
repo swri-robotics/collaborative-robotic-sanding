@@ -77,7 +77,7 @@ common::ActionResult ScanAcquisitionManager::init()
   // waiting for services
   common::ActionResult res;
   std::vector<rclcpp::ClientBase*> srv_clients = { call_freespace_motion_client_.get() };
-  RCLCPP_INFO(node_->get_logger(),"%s waiting for services", MANAGER_NAME.c_str());
+  RCLCPP_INFO(node_->get_logger(), "%s waiting for services", MANAGER_NAME.c_str());
   if (!std::all_of(srv_clients.begin(), srv_clients.end(), [this, &res](rclcpp::ClientBase* c) {
         if (!c->wait_for_service(std::chrono::duration<double>(WAIT_FOR_SERVICE_PERIOD)))
         {
@@ -97,7 +97,7 @@ common::ActionResult ScanAcquisitionManager::init()
 common::ActionResult ScanAcquisitionManager::configure(const config::ScanAcquisitionConfig& config)
 {
   common::ActionResult res;
-  if(config.scan_poses.empty())
+  if (config.scan_poses.empty())
   {
     res.err_msg = "no scan poses were found in configuration";
     res.succeeded = false;
@@ -106,13 +106,13 @@ common::ActionResult ScanAcquisitionManager::configure(const config::ScanAcquisi
   }
 
   scan_poses_.clear();
-  for(std::size_t i = 0; i < config.scan_poses.size(); i++)
+  for (std::size_t i = 0; i < config.scan_poses.size(); i++)
   {
     geometry_msgs::msg::Transform tf;
     auto& t = tf.translation;
     auto& q = tf.rotation;
     const std::vector<double>& pose_data = config.scan_poses[i];
-    if(pose_data.size() < POSES_ARRAY_SIZE)
+    if (pose_data.size() < POSES_ARRAY_SIZE)
     {
       res.err_msg = boost::str(boost::format("Scan Pose has less than %lu elements") % POSES_ARRAY_SIZE);
       res.succeeded = false;
@@ -126,7 +126,7 @@ common::ActionResult ScanAcquisitionManager::configure(const config::ScanAcquisi
 
   tool_frame_ = config.tool_frame;
 
-  RCLCPP_INFO(node_->get_logger(), "%s got %lu scan poses",MANAGER_NAME.c_str(), scan_poses_.size());
+  RCLCPP_INFO(node_->get_logger(), "%s got %lu scan poses", MANAGER_NAME.c_str(), scan_poses_.size());
   return true;
 }
 
@@ -161,7 +161,7 @@ common::ActionResult ScanAcquisitionManager::moveRobot()
 
   if (result->success)
   {
-    //todo(ayoungs): wait for robot to finish moving, for now just wait 10 seconds
+    // todo(ayoungs): wait for robot to finish moving, for now just wait 10 seconds
     std::chrono::duration<double> sleep_dur(10.0);
     rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::seconds>(sleep_dur));
 
@@ -177,19 +177,19 @@ common::ActionResult ScanAcquisitionManager::moveRobot()
 common::ActionResult ScanAcquisitionManager::capture()
 {
   // sleeping first
-  //std::chrono::duration<double> sleep_dur(WAIT_MESSAGE_TIMEOUT);
-  //rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::seconds>(sleep_dur));
+  // std::chrono::duration<double> sleep_dur(WAIT_MESSAGE_TIMEOUT);
+  // rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::seconds>(sleep_dur));
 
-  //todo(ayoungs): waitForMessage seems to be broken?
-  //auto msg = common::waitForMessage<sensor_msgs::msg::PointCloud2>(node_, POINT_CLOUD_TOPIC, WAIT_MESSAGE_TIMEOUT);
-  //if (!msg)
+  // todo(ayoungs): waitForMessage seems to be broken?
+  // auto msg = common::waitForMessage<sensor_msgs::msg::PointCloud2>(node_, POINT_CLOUD_TOPIC, WAIT_MESSAGE_TIMEOUT);
+  // if (!msg)
   //{
   //  common::ActionResult res;
   //  res.succeeded = false;
   //  res.err_msg = "Failed to get point cloud message";
   //  return res;
   //}
-  //curr_point_cloud_ = *msg;
+  // curr_point_cloud_ = *msg;
 
   // TODO(ayoungs): transform point cloud
 

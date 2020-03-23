@@ -30,7 +30,7 @@
 
 namespace YAML
 {
-  class Node;
+class Node;
 }
 
 namespace Ui
@@ -48,8 +48,7 @@ class CRSApplicationWidget : public QWidget
 {
   Q_OBJECT
 public:
-  CRSApplicationWidget(rclcpp::Node::SharedPtr node,
-                       QWidget* parent = nullptr);
+  CRSApplicationWidget(rclcpp::Node::SharedPtr node, QWidget* parent = nullptr);
   ~CRSApplicationWidget();
 protected slots:
 

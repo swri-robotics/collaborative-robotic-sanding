@@ -49,7 +49,7 @@ bool parsePathFromFile(const std::string& yaml_filepath,
 visualization_msgs::msg::Marker meshToMarker(const std::string& file_path,
                                              const std::string& ns,
                                              const std::string& frame_id,
-                                             const std::array<float,4> color = { 1.0, 0.8, 1.0, 1.0 });
+                                             const std::array<float, 4> color = { 1.0, 0.8, 1.0, 1.0 });
 
 /**
  * @brief Creates axis markers for each waypoint in the paths
@@ -62,13 +62,14 @@ visualization_msgs::msg::Marker meshToMarker(const std::string& file_path,
  * @param offset
  * @return  A marker
  */
-visualization_msgs::msg::MarkerArray convertToAxisMarkers(const std::vector<geometry_msgs::msg::PoseArray>& path,
-                           const std::string& frame_id,
-                           const std::string& ns,
-                           const std::size_t& start_id = 1,
-                           const double& axis_scale = 0.001,
-                           const double& axis_length = 0.03,
-                           const std::array<float,6>& offset = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0});
+visualization_msgs::msg::MarkerArray
+convertToAxisMarkers(const std::vector<geometry_msgs::msg::PoseArray>& path,
+                     const std::string& frame_id,
+                     const std::string& ns,
+                     const std::size_t& start_id = 1,
+                     const double& axis_scale = 0.001,
+                     const double& axis_length = 0.03,
+                     const std::array<float, 6>& offset = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 });
 
 /**
  * @brief creates lines that connect the waypoints
@@ -81,13 +82,14 @@ visualization_msgs::msg::MarkerArray convertToAxisMarkers(const std::vector<geom
  * @param point_size
  * @return A marker
  */
-visualization_msgs::msg::MarkerArray convertToDottedLineMarker(const std::vector<geometry_msgs::msg::PoseArray>& path,
-                            const std::string& frame_id,
-                            const std::string& ns,
-                            const std::size_t& start_id = 1,
-                            const std::array<float,6>& offset = {0.0, 0.0, 0.0, 0.0, 0.0, 0.0},
-                            const float& line_width = 0.001,
-                            const float& point_size = 0.005);
+visualization_msgs::msg::MarkerArray
+convertToDottedLineMarker(const std::vector<geometry_msgs::msg::PoseArray>& path,
+                          const std::string& frame_id,
+                          const std::string& ns,
+                          const std::size_t& start_id = 1,
+                          const std::array<float, 6>& offset = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },
+                          const float& line_width = 0.001,
+                          const float& point_size = 0.005);
 
 ///
 /// \brief tesseract_rosutils_toMsg converts tesserarct TrajArray to trajectory msg

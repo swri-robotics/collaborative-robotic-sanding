@@ -20,7 +20,7 @@
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 
-//delet me
+// delet me
 #include <pcl/io/pcd_io.h>
 
 namespace crs_perception
@@ -48,9 +48,12 @@ public:
     if (enable_debug_visualizations_)
     {
       // todo(ayoungs: investigate if this behaves like a latched topic
-      loaded_part_pc_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("loaded_part_point_cloud", rclcpp::QoS(1).transient_local());
-      tf_loaded_part_pc_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("tf_loaded_part_point_cloud", rclcpp::QoS(1).transient_local());
-      combined_pc_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("combined_scanned_point_clouds", rclcpp::QoS(1).transient_local());
+      loaded_part_pc_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("loaded_part_point_cloud",
+                                                                                  rclcpp::QoS(1).transient_local());
+      tf_loaded_part_pc_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("tf_loaded_part_point_cloud",
+                                                                                     rclcpp::QoS(1).transient_local());
+      combined_pc_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("combined_scanned_point_clouds",
+                                                                               rclcpp::QoS(1).transient_local());
     }
 
     // services
@@ -103,19 +106,19 @@ private:
 
     part_loaded_ = false;
     response->success = false;
-    if(!fs::exists(fs::path(request->path_to_part)))
+    if (!fs::exists(fs::path(request->path_to_part)))
     {
       response->error = boost::str(boost::format("Part file %s does not exists") % request->path_to_part);
-      RCLCPP_ERROR_STREAM(this->get_logger(),response->error);
+      RCLCPP_ERROR_STREAM(this->get_logger(), response->error);
       return;
     }
 
     RCLCPP_INFO(this->get_logger(), "Loading part from %s", request->path_to_part.c_str());
 
     ModelToPointCloud mtpc(mesh_num_samples_, leaf_size_);
-    if(!mtpc.convertToPCL(request->path_to_part,part_point_cloud_, response->error))
+    if (!mtpc.convertToPCL(request->path_to_part, part_point_cloud_, response->error))
     {
-      RCLCPP_ERROR_STREAM(this->get_logger(),response->error);
+      RCLCPP_ERROR_STREAM(this->get_logger(), response->error);
       return;
     }
 
@@ -145,14 +148,16 @@ private:
         geometry_msgs::msg::TransformStamped transform;
         try
         {
-          //transform = tf_buffer_.lookupTransform(world_frame_, point_cloud_msg.header.frame_id, point_cloud_msg.header.stamp);
+          // transform = tf_buffer_.lookupTransform(world_frame_, point_cloud_msg.header.frame_id,
+          // point_cloud_msg.header.stamp);
           transform = tf_buffer_.lookupTransform(world_frame_, point_cloud_msg.header.frame_id, tf2::TimePointZero);
         }
         catch (tf2::TransformException ex)
         {
           RCLCPP_ERROR(this->get_logger(), "%s", ex.what());
           response->success = false;
-          response->error = "Failed to transform point cloud from '" + point_cloud_msg.header.frame_id + "' to '" + world_frame_ + "' frame";
+          response->error = "Failed to transform point cloud from '" + point_cloud_msg.header.frame_id + "' to '" +
+                            world_frame_ + "' frame";
           return;
         }
 
@@ -160,8 +165,7 @@ private:
         pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
 
         pcl::fromROSMsg(point_cloud_msg, *point_cloud);
-        pcl::transformPointCloud(*point_cloud, *transformed_cloud, 
-                                 tf2::transformToEigen(transform).matrix());
+        pcl::transformPointCloud(*point_cloud, *transformed_cloud, tf2::transformToEigen(transform).matrix());
 
         *combined_point_cloud += *transformed_cloud;
       }
@@ -208,7 +212,7 @@ private:
     {
       response->success = false;
       response->error = "Missing part. Please load a part first.";
-      RCLCPP_ERROR_STREAM(this->get_logger(),response->error);
+      RCLCPP_ERROR_STREAM(this->get_logger(), response->error);
     }
   }
 };

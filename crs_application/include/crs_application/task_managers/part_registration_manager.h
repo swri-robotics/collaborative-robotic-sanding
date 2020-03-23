@@ -51,7 +51,6 @@ namespace crs_application
 {
 namespace task_managers
 {
-
 class PartRegistrationManager
 {
 public:
@@ -78,9 +77,8 @@ protected:
   datatypes::ProcessToolpathData result_;
   geometry_msgs::msg::TransformStamped part_transform_;
 
-
   // parameters
-  std::shared_ptr< config::PartRegistrationConfig> config_;
+  std::shared_ptr<config::PartRegistrationConfig> config_;
 
   // publishers
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr preview_markers_pub_;

@@ -5,14 +5,14 @@ static const double TRAJECTORY_TIME_TOLERANCE = 5.0;  // seconds
 static const double WAIT_RESULT_TIMEOUT = 1.0;        // seconds
 static const rclcpp::Logger LOGGER = rclcpp::get_logger("PATH_PROCESSING_UTILS");
 
-
-static geometry_msgs::msg::Pose pose3DtoPoseMsg(const std::array<float,6>& p)
+static geometry_msgs::msg::Pose pose3DtoPoseMsg(const std::array<float, 6>& p)
 {
   using namespace Eigen;
   geometry_msgs::msg::Pose pose_msg;
-  Eigen::Affine3d eigen_pose = Translation3d(Vector3d(std::get<0>(p),std::get<1>(p),std::get<2>(p))) *
-      AngleAxisd(std::get<3>(p),Vector3d::UnitX()) * AngleAxisd(std::get<4>(p),Vector3d::UnitY()) *
-      AngleAxisd(std::get<5>(p),Vector3d::UnitZ());
+  Eigen::Affine3d eigen_pose = Translation3d(Vector3d(std::get<0>(p), std::get<1>(p), std::get<2>(p))) *
+                               AngleAxisd(std::get<3>(p), Vector3d::UnitX()) *
+                               AngleAxisd(std::get<4>(p), Vector3d::UnitY()) *
+                               AngleAxisd(std::get<5>(p), Vector3d::UnitZ());
 
   pose_msg = tf2::toMsg(eigen_pose);
   return std::move(pose_msg);
@@ -24,20 +24,21 @@ bool crs_motion_planning::parsePathFromFile(const std::string& yaml_filepath,
 {
   std::vector<geometry_msgs::msg::PoseArray> temp_raster_strips;
   YAML::Node full_yaml_node = YAML::LoadFile(yaml_filepath);
-  if(!full_yaml_node)
+  if (!full_yaml_node)
   {
     RCLCPP_ERROR(LOGGER, "Failed to load into YAML from file %s", yaml_filepath.c_str());
     return false;
   }
 
-  if(full_yaml_node.Type() != YAML::NodeType::Sequence)
+  if (full_yaml_node.Type() != YAML::NodeType::Sequence)
   {
-    RCLCPP_WARN(LOGGER, "Top level YAML element is not a sequence but a %i type", static_cast<int>(full_yaml_node.Type()));
+    RCLCPP_WARN(
+        LOGGER, "Top level YAML element is not a sequence but a %i type", static_cast<int>(full_yaml_node.Type()));
     return false;
   }
 
   YAML::Node paths = full_yaml_node[0]["paths"];
-  if(!paths || paths.Type() != YAML::NodeType::Sequence)
+  if (!paths || paths.Type() != YAML::NodeType::Sequence)
   {
     RCLCPP_ERROR(LOGGER, "The 'path' YAML element was not found or is not a sequence");
     return false;
@@ -49,7 +50,7 @@ bool crs_motion_planning::parsePathFromFile(const std::string& yaml_filepath,
     std::vector<geometry_msgs::msg::PoseStamped> temp_poses;
     geometry_msgs::msg::PoseArray curr_pose_array;
     YAML::Node strip = (*path_it)["poses"];
-    if(!strip)
+    if (!strip)
     {
       RCLCPP_ERROR(LOGGER, "The 'poses' YAML element was not found");
       return false;
@@ -136,8 +137,7 @@ void crs_motion_planning::tesseractRosutilsToMsg(trajectory_msgs::msg::JointTraj
   }
 }
 
-
-visualization_msgs::msg::Marker crs_motion_planning::meshToMarker(const std::string &file_path,
+visualization_msgs::msg::Marker crs_motion_planning::meshToMarker(const std::string& file_path,
                                                                   const std::string& ns,
                                                                   const std::string& frame_id,
                                                                   const std::array<float, 4> color)
@@ -150,25 +150,26 @@ visualization_msgs::msg::Marker crs_motion_planning::meshToMarker(const std::str
   m.pose = tf2::toMsg(Eigen::Isometry3d::Identity());
   m.lifetime = rclcpp::Duration(0);
   m.mesh_resource = "file://" + file_path;
-  std::tie(m.scale.x, m.scale.y, m.scale.z)  = std::make_tuple(1.0, 1.0, 1.0);
+  std::tie(m.scale.x, m.scale.y, m.scale.z) = std::make_tuple(1.0, 1.0, 1.0);
   std::tie(m.color.r, m.color.g, m.color.b, m.color.a) = std::make_tuple(color[0], color[1], color[2], color[3]);
   return m;
 }
 
-visualization_msgs::msg::MarkerArray crs_motion_planning::convertToAxisMarkers(const std::vector<geometry_msgs::msg::PoseArray>& path,
-                           const std::string& frame_id,
-                           const std::string& ns,
-                           const std::size_t& start_id,
-                           const double& axis_scale,
-                           const double& axis_length,
-                           const std::array<float,6>& offset)
+visualization_msgs::msg::MarkerArray
+crs_motion_planning::convertToAxisMarkers(const std::vector<geometry_msgs::msg::PoseArray>& path,
+                                          const std::string& frame_id,
+                                          const std::string& ns,
+                                          const std::size_t& start_id,
+                                          const double& axis_scale,
+                                          const double& axis_length,
+                                          const std::array<float, 6>& offset)
 {
   using namespace Eigen;
 
   visualization_msgs::msg::MarkerArray markers;
 
-  auto create_line_marker = [&](const int id, const std::tuple<float, float, float, float>& rgba) -> visualization_msgs::msg::Marker
-  {
+  auto create_line_marker = [&](const int id,
+                                const std::tuple<float, float, float, float>& rgba) -> visualization_msgs::msg::Marker {
     visualization_msgs::msg::Marker line_marker;
     line_marker.action = line_marker.ADD;
     std::tie(line_marker.color.r, line_marker.color.g, line_marker.color.b, line_marker.color.a) = rgba;
@@ -184,40 +185,40 @@ visualization_msgs::msg::MarkerArray crs_motion_planning::convertToAxisMarkers(c
 
   // markers for each axis line
   int marker_id = start_id;
-  visualization_msgs::msg::Marker x_axis_marker = create_line_marker(++marker_id,std::make_tuple(1.0, 0.0, 0.0, 1.0));
-  visualization_msgs::msg::Marker y_axis_marker = create_line_marker(++marker_id,std::make_tuple(0.0, 1.0, 0.0, 1.0));
-  visualization_msgs::msg::Marker z_axis_marker = create_line_marker(++marker_id,std::make_tuple(0.0, 0.0, 1.0, 1.0));
+  visualization_msgs::msg::Marker x_axis_marker = create_line_marker(++marker_id, std::make_tuple(1.0, 0.0, 0.0, 1.0));
+  visualization_msgs::msg::Marker y_axis_marker = create_line_marker(++marker_id, std::make_tuple(0.0, 1.0, 0.0, 1.0));
+  visualization_msgs::msg::Marker z_axis_marker = create_line_marker(++marker_id, std::make_tuple(0.0, 0.0, 1.0, 1.0));
 
-  auto add_axis_line = [](const Isometry3d& eigen_pose, const Vector3d& dir,
-      const geometry_msgs::msg::Point& p1, visualization_msgs::msg::Marker& marker){
-
+  auto add_axis_line = [](const Isometry3d& eigen_pose,
+                          const Vector3d& dir,
+                          const geometry_msgs::msg::Point& p1,
+                          visualization_msgs::msg::Marker& marker) {
     geometry_msgs::msg::Point p2;
     Eigen::Vector3d line_endpoint;
 
     // axis endpoint
     line_endpoint = eigen_pose * dir;
-    std::tie(p2.x, p2.y, p2.z)  = std::make_tuple(line_endpoint.x(), line_endpoint.y(), line_endpoint.z());
+    std::tie(p2.x, p2.y, p2.z) = std::make_tuple(line_endpoint.x(), line_endpoint.y(), line_endpoint.z());
 
     // adding line
     marker.points.push_back(p1);
     marker.points.push_back(p2);
   };
 
-  for(auto& poses : path)
+  for (auto& poses : path)
   {
-    for(auto& pose : poses.poses)
+    for (auto& pose : poses.poses)
     {
       Eigen::Isometry3d eigen_pose;
-      tf2::fromMsg(pose,eigen_pose);
+      tf2::fromMsg(pose, eigen_pose);
 
       geometry_msgs::msg::Point p1;
       std::tie(p1.x, p1.y, p1.z) = std::make_tuple(pose.position.x, pose.position.y, pose.position.z);
 
-      add_axis_line(eigen_pose,Vector3d::UnitX()* axis_length,p1, x_axis_marker);
-      add_axis_line(eigen_pose,Vector3d::UnitY()* axis_length,p1, y_axis_marker);
-      add_axis_line(eigen_pose,Vector3d::UnitZ()* axis_length,p1, z_axis_marker);
+      add_axis_line(eigen_pose, Vector3d::UnitX() * axis_length, p1, x_axis_marker);
+      add_axis_line(eigen_pose, Vector3d::UnitY() * axis_length, p1, y_axis_marker);
+      add_axis_line(eigen_pose, Vector3d::UnitZ() * axis_length, p1, z_axis_marker);
     }
-
   }
 
   markers.markers.push_back(x_axis_marker);
@@ -226,20 +227,22 @@ visualization_msgs::msg::MarkerArray crs_motion_planning::convertToAxisMarkers(c
   return std::move(markers);
 }
 
-visualization_msgs::msg::MarkerArray crs_motion_planning::convertToDottedLineMarker(const std::vector<geometry_msgs::msg::PoseArray>& path,
-                            const std::string& frame_id,
-                            const std::string& ns,
-                            const std::size_t& start_id,
-                            const std::array<float,6>& offset,
-                            const float& line_width,
-                            const float& point_size)
+visualization_msgs::msg::MarkerArray
+crs_motion_planning::convertToDottedLineMarker(const std::vector<geometry_msgs::msg::PoseArray>& path,
+                                               const std::string& frame_id,
+                                               const std::string& ns,
+                                               const std::size_t& start_id,
+                                               const std::array<float, 6>& offset,
+                                               const float& line_width,
+                                               const float& point_size)
 {
   visualization_msgs::msg::MarkerArray markers_msgs;
   visualization_msgs::msg::Marker line_marker, points_marker;
 
   // configure line marker
   line_marker.action = line_marker.ADD;
-  std::tie(line_marker.color.r, line_marker.color.g, line_marker.color.b, line_marker.color.a) = std::make_tuple(1.0, 1.0, 0.2, 1.0);
+  std::tie(line_marker.color.r, line_marker.color.g, line_marker.color.b, line_marker.color.a) =
+      std::make_tuple(1.0, 1.0, 0.2, 1.0);
   line_marker.header.frame_id = frame_id;
   line_marker.type = line_marker.LINE_STRIP;
   line_marker.id = start_id;
@@ -252,17 +255,19 @@ visualization_msgs::msg::MarkerArray crs_motion_planning::convertToDottedLineMar
   points_marker = line_marker;
   points_marker.type = points_marker.POINTS;
   points_marker.ns = ns;
-  std::tie(points_marker.color.r, points_marker.color.g, points_marker.color.b, points_marker.color.a) = std::make_tuple(0.1, .8, 0.2, 1.0);
-  std::tie(points_marker.scale.x, points_marker.scale.y, points_marker.scale.z) = std::make_tuple(point_size,point_size,point_size);
+  std::tie(points_marker.color.r, points_marker.color.g, points_marker.color.b, points_marker.color.a) =
+      std::make_tuple(0.1, .8, 0.2, 1.0);
+  std::tie(points_marker.scale.x, points_marker.scale.y, points_marker.scale.z) =
+      std::make_tuple(point_size, point_size, point_size);
 
   int id_counter = start_id;
-  for(auto& poses : path)
+  for (auto& poses : path)
   {
     line_marker.points.clear();
     points_marker.points.clear();
     line_marker.points.reserve(poses.poses.size());
     points_marker.points.reserve(poses.poses.size());
-    for(auto& pose : poses.poses)
+    for (auto& pose : poses.poses)
     {
       geometry_msgs::msg::Point p;
       std::tie(p.x, p.y, p.z) = std::make_tuple(pose.position.x, pose.position.y, pose.position.z);
