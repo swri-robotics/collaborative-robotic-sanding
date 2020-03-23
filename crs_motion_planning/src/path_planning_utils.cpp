@@ -448,8 +448,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
       Eigen::MatrixXd result_traj(planner_resp.joint_trajectory.trajectory.rows(),
                                   planner_resp.joint_trajectory.trajectory.cols());
       result_traj << planner_resp.joint_trajectory.trajectory;
-      tesseract_rosutils::toMsg(
-          trajopt_result_traj, results->descartes_trajectory_results[i].joint_names, result_traj);
+      tesseract_rosutils::toMsg(trajopt_result_traj, results->descartes_trajectory_results[i].joint_names, result_traj);
       results->solved_rasters.push_back(final_split_rasters[i]);
       trajopt_trajectories.push_back(std::move(trajopt_result_traj));
       trajopt_solved.push_back(true);
@@ -637,8 +636,7 @@ bool crsMotionPlanner::trajoptFreespaceFromOMPL(const tesseract_motion_planners:
   Eigen::MatrixXd traj_cumulative_trajectory(traj_array.rows(), traj_array.cols());
   traj_cumulative_trajectory << traj_array;
   // Convert trajectory to ROSmsg
-  tesseract_rosutils::toMsg(
-      joint_trajectory, seed_trajectory.joint_names, traj_cumulative_trajectory);
+  tesseract_rosutils::toMsg(joint_trajectory, seed_trajectory.joint_names, traj_cumulative_trajectory);
   return true;
 }
 

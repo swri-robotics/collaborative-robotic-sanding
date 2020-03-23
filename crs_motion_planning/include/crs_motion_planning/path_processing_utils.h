@@ -19,8 +19,6 @@
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <control_msgs/action/follow_joint_trajectory.hpp>
 
-#include <tesseract_common/types.h>
-
 #include <Eigen/Eigen>
 #include <vector>
 
