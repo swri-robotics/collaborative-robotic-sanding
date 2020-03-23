@@ -13,28 +13,29 @@
 #include <boost/format.hpp>
 #include <boost/filesystem.hpp>
 
-enum class Extensions: int
+enum class Extensions : int
 {
   STL = 0,
   PLY,
   OBJ
 };
-const static std::map<std::string, Extensions> EXTENSIONS = {{".stl", Extensions::STL},
-                                                           {".ply", Extensions::PLY},
-                                                           {".obj", Extensions::OBJ}};
+const static std::map<std::string, Extensions> EXTENSIONS = { { ".stl", Extensions::STL },
+                                                              { ".ply", Extensions::PLY },
+                                                              { ".obj", Extensions::OBJ } };
 
 namespace crs_perception
 {
-bool ModelToPointCloud::convertToPCL(const std::string& file_path, pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud,
+bool ModelToPointCloud::convertToPCL(const std::string& file_path,
+                                     pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud,
                                      std::string& err_msg)
 {
   namespace fs = boost::filesystem;
 
   fs::path file_path_obj(file_path);
   std::string ext = fs::path(file_path).extension().string();
-  if(!std::any_of(EXTENSIONS.begin(), EXTENSIONS.end(),[ext](const decltype(EXTENSIONS)::value_type& kv){
-    return kv.first == ext;
-  }))
+  if (!std::any_of(EXTENSIONS.begin(), EXTENSIONS.end(), [ext](const decltype(EXTENSIONS)::value_type& kv) {
+        return kv.first == ext;
+      }))
   {
     err_msg = boost::str(boost::format("The extension %s is not supported") % ext);
     return false;
@@ -43,7 +44,7 @@ bool ModelToPointCloud::convertToPCL(const std::string& file_path, pcl::PointClo
   // todo(ayoungs): handle multiple file formats?
   // todo(ayoungs): handle error for bad file
   vtkSmartPointer<vtkPolyData> polydata1 = vtkSmartPointer<vtkPolyData>::New();
-  switch(EXTENSIONS.at(ext))
+  switch (EXTENSIONS.at(ext))
   {
     case Extensions::STL:
     {
@@ -57,7 +58,7 @@ bool ModelToPointCloud::convertToPCL(const std::string& file_path, pcl::PointClo
     case Extensions::PLY:
     {
       vtkSmartPointer<vtkPLYReader> reader = vtkSmartPointer<vtkPLYReader>::New();
-      reader->SetFileName (file_path.c_str());
+      reader->SetFileName(file_path.c_str());
       reader->Update();
       polydata1 = reader->GetOutput();
     }
@@ -72,8 +73,6 @@ bool ModelToPointCloud::convertToPCL(const std::string& file_path, pcl::PointClo
     }
     break;
   }
-
-
 
   // make sure that the polygons are triangles!
   vtkSmartPointer<vtkTriangleFilter> triangleFilter = vtkSmartPointer<vtkTriangleFilter>::New();

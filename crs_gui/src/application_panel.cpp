@@ -19,19 +19,15 @@
 #include <QVBoxLayout>
 #include <QtConcurrent/QtConcurrent>
 
-
-static const float TIMER_INTERVAL_DURATION = 50; // ms
+static const float TIMER_INTERVAL_DURATION = 50;  // ms
 namespace crs_gui
 {
 ApplicationPanel::ApplicationPanel(QWidget* parent)
-  : rviz_common::Panel(parent)
-  , node_(new rclcpp::Node("application_panel_node"))
+  : rviz_common::Panel(parent), node_(new rclcpp::Node("application_panel_node"))
 {
   executor_.add_node(node_);
   application_widget_.reset(new CRSApplicationWidget(node_, this));
-  QtConcurrent::run([this](){
-    executor_.spin();
-  });
+  QtConcurrent::run([this]() { executor_.spin(); });
 }
 
 void ApplicationPanel::onInitialize()
