@@ -18,9 +18,10 @@
 
 #include <atomic>
 #include <QMessageBox>
-#include <QStateMachine>
 
 #include <chrono>
+
+#include <boost/format.hpp>
 
 #include <crs_gui/widgets/state_machine_interface_widget.h>
 
@@ -31,6 +32,25 @@ const static std::string USER_APPROVES_ACTION_ID = "user_approves";
 const static std::string USER_CANCELS_ACTION_ID = "user_rejects";
 const static double WAIT_FOR_SERVICE_PERIOD = 2.0;
 static const double WAIT_SERVICE_COMPLETION_PERIOD = 2.0;
+
+void showMsgBox(bool succeeded, const std::string& msg)
+{
+  QMessageBox msg_box;
+  //msg_box.setWindowModality(Qt::NonModal);
+  if(succeeded)
+  {
+    msg_box.setStandardButtons(QMessageBox::Ok);
+    msg_box.setText(QString::fromStdString(msg));
+    msg_box.setIcon(QMessageBox::Information);
+  }
+  else
+  {
+    msg_box.setStandardButtons(QMessageBox::Ok);
+    msg_box.setText(QString::fromStdString(msg));
+    msg_box.setIcon(QMessageBox::Critical);
+  }
+  msg_box.exec();
+}
 
 namespace crs_gui
 {
@@ -75,7 +95,10 @@ void StateMachineInterfaceWidget::onSMApply()
   // Wait if service is not available
   if (!execute_action_client_->wait_for_service(std::chrono::duration<double>(WAIT_FOR_SERVICE_PERIOD)))
   {
-    RCLCPP_ERROR(node_->get_logger(), "service not available");
+    const std::string msg = boost::str(
+        boost::format("ROS2 Service %s is not available") % execute_action_client_->get_service_name());
+    RCLCPP_ERROR_STREAM(node_->get_logger(), msg);
+    showMsgBox(false,msg);
     return;
   }
   // Send request and wait for result
@@ -84,7 +107,19 @@ void StateMachineInterfaceWidget::onSMApply()
       WAIT_SERVICE_COMPLETION_PERIOD).to_chrono<std::chrono::nanoseconds>();
   if (rclcpp::spin_until_future_complete(node_, result,dur_timeout) != rclcpp::executor::FutureReturnCode::SUCCESS)
   {
-    RCLCPP_ERROR(node_->get_logger(), "Failed to call service %s", GET_AVAILABLE_ACTIONS.c_str());
+    std::string msg = boost::str(boost::format("Call service %s timed out") % GET_AVAILABLE_ACTIONS);
+    RCLCPP_ERROR_STREAM(node_->get_logger(), msg);
+    showMsgBox(false,msg);
+    return;
+  }
+
+  if(result.get()->succeeded)
+  {
+    showMsgBox(true,"Request approved");
+  }
+  else
+  {
+    showMsgBox(false,"Request rejected");
   }
 }
 
@@ -114,7 +149,9 @@ void StateMachineInterfaceWidget::onSMQuery()
   else
   {
     RCLCPP_ERROR(node_->get_logger(), "Failed to call service %s", GET_AVAILABLE_ACTIONS.c_str());
+    return;
   }
+
 }
 
 void StateMachineInterfaceWidget::onSMCancel()
@@ -146,14 +183,29 @@ void StateMachineInterfaceWidget::onSMApprove()
   // Wait if service is not available
   if (!execute_action_client_->wait_for_service(std::chrono::duration<double>(WAIT_FOR_SERVICE_PERIOD)))
   {
-    RCLCPP_ERROR(node_->get_logger(), "service not available");
+    const std::string msg = boost::str(
+        boost::format("ROS2 Service %s is not available") % execute_action_client_->get_service_name());
+    RCLCPP_ERROR_STREAM(node_->get_logger(), msg);
+    showMsgBox(false,msg);
     return;
   }
   // Send request and wait for result
   auto result = execute_action_client_->async_send_request(request);
   if (rclcpp::spin_until_future_complete(node_, result) != rclcpp::executor::FutureReturnCode::SUCCESS)
   {
-    RCLCPP_ERROR(node_->get_logger(), "Failed to call service %s", GET_AVAILABLE_ACTIONS.c_str());
+    std::string msg = boost::str(boost::format("Call service %s timed out") % GET_AVAILABLE_ACTIONS);
+    RCLCPP_ERROR_STREAM(node_->get_logger(), msg);
+    showMsgBox(false,msg);
+    return;
+  }
+
+  if(result.get()->succeeded)
+  {
+    showMsgBox(true,"Request approved");
+  }
+  else
+  {
+    showMsgBox(false,"Request rejected");
   }
 }
 
