@@ -11,6 +11,7 @@
 #include <crs_msgs/srv/call_freespace_motion.hpp>
 #include <crs_msgs/srv/plan_process_motions.hpp>
 #include <crs_msgs/srv/load_part.hpp>
+#include <crs_msgs/srv/robot_positioner.hpp>
 
 #include <tesseract_msgs/srv/modify_environment.hpp>
 #include <tesseract_msgs/msg/tesseract_state.hpp>
@@ -40,12 +41,14 @@ static const std::string FOLLOW_JOINT_TRAJECTORY_ACTION = "follow_joint_trajecto
 
 static const std::string LOAD_PART_SERVICE = "load_part_tesseract_env";
 static const std::string REMOVE_PART_SERVICE = "remove_part_tesseract_env";
+static const std::string MOVE_ROBOT_BASE_SERVICE = "move_robot_base";
 static const std::string MODIFY_ENVIRONMENT_SERVICE_NAME = "modify_tesseract";
 static const std::string ENVIRONMENT_UPDATE_TOPIC_NAME = "monitored_tesseract";
 static const std::string ENVIRONMENT_ID = "crs";
 
 static const std::string LOADED_PART_LINK_NAME = "part";
 static const std::string LOADED_PART_JOINT_NAME = "world_to_part_joint";
+static const std::string ROBOT_BASE_JOINT_NAME = "robot_base_joint";
 
 namespace param_names
 {
@@ -131,6 +134,9 @@ public:
     remove_part_service_ = this->create_service<std_srvs::srv::Trigger>(
         REMOVE_PART_SERVICE,
         std::bind(&MotionPlanningServer::removePartTesseract, this, std::placeholders::_1, std::placeholders::_2));
+    move_ur_base_service_ = this->create_service<crs_msgs::srv::RobotPositioner>(
+        MOVE_ROBOT_BASE_SERVICE,
+        std::bind(&MotionPlanningServer::moveURBase, this, std::placeholders::_1, std::placeholders::_2));
     modify_env_client_ = this->create_client<tesseract_msgs::srv::ModifyEnvironment>(MODIFY_ENVIRONMENT_SERVICE_NAME);
     env_state_sub_ = this->create_subscription<tesseract_msgs::msg::TesseractState>(
         ENVIRONMENT_UPDATE_TOPIC_NAME, 10, std::bind(&MotionPlanningServer::envCallback, this, std::placeholders::_1));
@@ -184,7 +190,7 @@ public:
 
     crs_motion_planning::omplConfig ompl_config;
     ompl_config.collision_safety_margin = 0.0175;
-    ompl_config.planning_time = 5;
+    ompl_config.planning_time = 15;
     ompl_config.n_output_states = this->get_parameter(param_names::NUM_FREEPSACE_STEPS).as_int();
     ompl_config.simplify = true;
     ompl_config.longest_valid_segment_fraction = 0.005;
@@ -507,6 +513,8 @@ private:
     if (!modify_env_client_->wait_for_service(std::chrono::seconds(1)))
     {
       RCLCPP_ERROR(this->get_logger(), "ModifyEnvironment Service unavailable");
+      response->success = false;
+      response->error = "Unable to reach ModifyEnvironment Service";
       return;
     }
     auto result_future = modify_env_client_->async_send_request(mod_env_request);
@@ -538,6 +546,8 @@ private:
     if (!modify_env_client_->wait_for_service(std::chrono::seconds(1)))
     {
       RCLCPP_ERROR(this->get_logger(), "ModifyEnvironment Service unavailable");
+      response->success = false;
+      response->message = "Unable to reach ModifyEnvironment Service";
       return;
     }
 
@@ -546,6 +556,62 @@ private:
     RCLCPP_INFO(this->get_logger(), "Part successfully removed from tesseract environment");
     response->success = true;
     response->message = "No Errors";
+    return;
+  }
+
+  void moveURBase(std::shared_ptr<crs_msgs::srv::RobotPositioner::Request> request,
+                  std::shared_ptr<crs_msgs::srv::RobotPositioner::Response> response)
+  {
+    Eigen::Isometry3d ur_base_pose = Eigen::Isometry3d::Identity();
+    ur_base_pose.rotate(Eigen::Quaterniond(0.7071, 0, 0.7071, 0));
+    if (request->robot_rail == crs_msgs::srv::RobotPositioner::Request::RAIL1)
+    {
+      ur_base_pose.translation().x() = -0.148896;
+    }
+    else
+    {
+      ur_base_pose.translation().x() = -1.050659;
+    }
+    if (request->robot_position == crs_msgs::srv::RobotPositioner::Request::POSITION1)
+    {
+      ur_base_pose.translation().z() = 0.6277;
+    }
+    else if (request->robot_position == crs_msgs::srv::RobotPositioner::Request::POSITION2)
+    {
+      ur_base_pose.translation().z() = -0.0277;
+    }
+    else
+    {
+      ur_base_pose.translation().z() = -0.6677;
+    }
+    ur_base_pose.translation().y() = -2.047406;
+
+    std::vector<tesseract_msgs::msg::EnvironmentCommand> env_command_vector;
+    tesseract_msgs::msg::EnvironmentCommand move_ur_joint_command;
+    move_ur_joint_command.command = tesseract_msgs::msg::EnvironmentCommand::CHANGE_JOINT_ORIGIN;
+    move_ur_joint_command.change_joint_origin_name = ROBOT_BASE_JOINT_NAME;
+    move_ur_joint_command.change_joint_origin_pose = tf2::toMsg(ur_base_pose);
+
+    env_command_vector.push_back(move_ur_joint_command);
+
+    auto mod_env_request = std::make_shared<tesseract_msgs::srv::ModifyEnvironment::Request>();
+    mod_env_request->id = ENVIRONMENT_ID;
+    mod_env_request->revision = tesseract_revision_;
+    mod_env_request->commands = env_command_vector;
+
+    if (!modify_env_client_->wait_for_service(std::chrono::seconds(1)))
+    {
+      RCLCPP_ERROR(this->get_logger(), "ModifyEnvironment Service unavailable");
+      response->success = false;
+      response->error = "Unable to reach ModifyEnvironment Service";
+      return;
+    }
+
+    auto result_future = modify_env_client_->async_send_request(mod_env_request);
+
+    RCLCPP_INFO(this->get_logger(), "Part successfully removed from tesseract environment");
+    response->success = true;
+    response->error = "No Errors";
     return;
   }
 
@@ -558,6 +624,7 @@ private:
 
   rclcpp::Service<crs_msgs::srv::LoadPart>::SharedPtr load_part_service_;
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr remove_part_service_;
+  rclcpp::Service<crs_msgs::srv::RobotPositioner>::SharedPtr move_ur_base_service_;
   rclcpp::Client<tesseract_msgs::srv::ModifyEnvironment>::SharedPtr modify_env_client_;
   rclcpp::Subscription<tesseract_msgs::msg::TesseractState>::SharedPtr env_state_sub_;
 
