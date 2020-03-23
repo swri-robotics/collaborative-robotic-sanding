@@ -49,7 +49,6 @@ namespace crs_application
 {
 namespace task_managers
 {
-
 class ProcessExecutionManager
 {
 public:

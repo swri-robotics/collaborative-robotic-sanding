@@ -46,68 +46,69 @@ namespace crs_application
 {
 namespace config
 {
-  struct MotionPlanningConfig
-  {
-    // home pose
-    std::vector<std::string> joint_names;
-    std::vector<double> joint_home_position;
+struct MotionPlanningConfig
+{
+  // home pose
+  std::vector<std::string> joint_names;
+  std::vector<double> joint_home_position;
 
-    // process path
-    double tool_speed;
-    Eigen::Isometry3d offset_pose;
-    double retreat_dist;
-    double approac_dist;
-    std::string tool_frame;
+  // process path
+  double tool_speed;
+  Eigen::Isometry3d offset_pose;
+  double retreat_dist;
+  double approac_dist;
+  std::string tool_frame;
 
-    // media change
-    double media_change_time;            /** @brief time that needs to elapse for the next media change secs */
-    Eigen::Isometry3d media_change_pose; /** @brief in world coordinates */
+  // media change
+  double media_change_time;            /** @brief time that needs to elapse for the next media change secs */
+  Eigen::Isometry3d media_change_pose; /** @brief in world coordinates */
 
-    // preview
-    double preview_time_scaling = 1.0; /** @brief preview will be played at a scaled speed */
-  };
+  // preview
+  double preview_time_scaling = 1.0; /** @brief preview will be played at a scaled speed */
+};
 
-  struct ProcessExecutionConfig
-  {
-    double traj_time_tolerance = 5.0; /** @brief time tolerance on trajectory duration */
-    std::vector<double> joint_tolerance = std::vector<double>(6, (3.1416 / 180.0) * 2.0); /** @brief how close the robot needs to be to the last position in radians */
-  };
+struct ProcessExecutionConfig
+{
+  double traj_time_tolerance = 5.0; /** @brief time tolerance on trajectory duration */
+  std::vector<double> joint_tolerance =
+      std::vector<double>(6, (3.1416 / 180.0) * 2.0); /** @brief how close the robot needs to be to the last position in
+                                                         radians */
+};
 
-  struct ScanAcquisitionConfig
-  {
-    std::vector<std::vector<double> > scan_poses;
-    std::string tool_frame;
-    bool skip_on_failure = false;
-  };
+struct ScanAcquisitionConfig
+{
+  std::vector<std::vector<double> > scan_poses;
+  std::string tool_frame;
+  bool skip_on_failure = false;
+};
 
-  struct PartRegistrationConfig
-  {
-    std::string target_frame_id;
-    std::string part_file;
-    std::string toolpath_file;
-  };
+struct PartRegistrationConfig
+{
+  std::string target_frame_id;
+  std::string part_file;
+  std::string toolpath_file;
+};
 
-  struct PartReworkConfig
-  {
-  };
+struct PartReworkConfig
+{
+};
 
-  template<class T>
-  boost::optional<T> parse(YAML::Node& config, std::string& err_msg);
+template <class T>
+boost::optional<T> parse(YAML::Node& config, std::string& err_msg);
 
-  template<>
-  boost::optional<MotionPlanningConfig> parse(YAML::Node& config, std::string& err_msg);
+template <>
+boost::optional<MotionPlanningConfig> parse(YAML::Node& config, std::string& err_msg);
 
-  template<>
-  boost::optional<ProcessExecutionConfig> parse(YAML::Node& config, std::string& err_msg);
+template <>
+boost::optional<ProcessExecutionConfig> parse(YAML::Node& config, std::string& err_msg);
 
-  template<>
-  boost::optional<ScanAcquisitionConfig> parse(YAML::Node& config, std::string& err_msg);
+template <>
+boost::optional<ScanAcquisitionConfig> parse(YAML::Node& config, std::string& err_msg);
 
-  template<>
-  boost::optional<PartRegistrationConfig> parse(YAML::Node& config, std::string& err_msg);
+template <>
+boost::optional<PartRegistrationConfig> parse(YAML::Node& config, std::string& err_msg);
 
-
-}
-}
+}  // namespace config
+}  // namespace crs_application
 
 #endif /* INCLUDE_CRS_APPLICATION_COMMON_CONFIG_H_ */
