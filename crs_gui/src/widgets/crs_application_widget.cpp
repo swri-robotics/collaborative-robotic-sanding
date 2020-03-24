@@ -318,6 +318,5 @@ bool CRSApplicationWidget::saveConfig()
 }
 
 void CRSApplicationWidget::meshMarkerTimerCb() { mesh_marker_pub_->publish(current_mesh_marker_); }
-
 void CRSApplicationWidget::toolpathMarkerTimerCb() { toolpath_marker_pub_->publish(current_toolpath_marker_); }
 }  // namespace crs_gui

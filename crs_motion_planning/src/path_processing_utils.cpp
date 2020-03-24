@@ -108,7 +108,6 @@ bool crs_motion_planning::parsePathFromFile(const std::string& yaml_filepath,
   return true;
 }
 
-
 visualization_msgs::msg::Marker crs_motion_planning::meshToMarker(const std::string& file_path,
                                                                   const std::string& ns,
                                                                   const std::string& frame_id,

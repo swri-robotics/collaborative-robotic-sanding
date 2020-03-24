@@ -120,7 +120,6 @@ CRSExecutive::CRSExecutive(std::shared_ptr<rclcpp::Node> node)
 }
 
 CRSExecutive::~CRSExecutive() {}
-
 common::ActionResult CRSExecutive::initialize()
 {
   if (scan_acqt_mngr_->init() && motion_planning_mngr_->init() && part_regt_mngr_->init() &&

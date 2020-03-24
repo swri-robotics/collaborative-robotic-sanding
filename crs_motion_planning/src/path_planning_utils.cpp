@@ -9,7 +9,6 @@ crsMotionPlanner::crsMotionPlanner(pathPlanningConfig::Ptr config, rclcpp::Logge
 }
 
 void crsMotionPlanner::updateConfiguration(pathPlanningConfig::Ptr config) { config_ = std::move(config); }
-
 bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray& waypoints_pose_array,
                                              std::vector<std::size_t>& failed_edges,
                                              std::vector<std::size_t>& failed_vertices,

@@ -59,9 +59,7 @@ namespace crs_application
 namespace task_managers
 {
 MotionPlanningManager::MotionPlanningManager(std::shared_ptr<rclcpp::Node> node) : node_(node) {}
-
 MotionPlanningManager::~MotionPlanningManager() {}
-
 common::ActionResult MotionPlanningManager::init()
 {
   using namespace crs_msgs;

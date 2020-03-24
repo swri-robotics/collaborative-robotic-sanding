@@ -40,9 +40,7 @@ namespace crs_application
 namespace task_managers
 {
 PartReworkManager::PartReworkManager(std::shared_ptr<rclcpp::Node> node) : node_(node) {}
-
 PartReworkManager::~PartReworkManager() {}
-
 common::ActionResult PartReworkManager::init()
 {
   RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);

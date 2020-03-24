@@ -100,9 +100,7 @@ public:
 };
 
 JointPoseTrajectory::JointPoseTrajectory() : impl_(std::make_unique<JointPoseTrajectoryPrivate>()) {}
-
 JointPoseTrajectory::~JointPoseTrajectory() {}
-
 void JointPoseTrajectory::Load(gazebo::physics::ModelPtr model, sdf::ElementPtr sdf)
 {
   impl_->model_ = model;

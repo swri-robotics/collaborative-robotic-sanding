@@ -58,7 +58,6 @@ ScanAcquisitionManager::ScanAcquisitionManager(std::shared_ptr<rclcpp::Node> nod
 }
 
 ScanAcquisitionManager::~ScanAcquisitionManager() {}
-
 common::ActionResult ScanAcquisitionManager::init()
 {
   // parameters

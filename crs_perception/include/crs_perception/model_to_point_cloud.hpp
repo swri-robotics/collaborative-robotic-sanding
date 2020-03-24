@@ -9,7 +9,6 @@ class ModelToPointCloud
 {
 public:
   ModelToPointCloud(int num_samples, float leaf_size) : num_samples_(num_samples), leaf_size_(leaf_size) {}
-
   bool convertToPCL(const std::string& file_path,
                     pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud,
                     std::string& err_msg);

@@ -54,9 +54,7 @@ namespace crs_application
 namespace task_managers
 {
 PartRegistrationManager::PartRegistrationManager(std::shared_ptr<rclcpp::Node> node) : node_(node) {}
-
 PartRegistrationManager::~PartRegistrationManager() {}
-
 common::ActionResult PartRegistrationManager::init()
 {
   // setting up publishers
