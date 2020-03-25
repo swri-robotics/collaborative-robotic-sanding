@@ -48,6 +48,7 @@ namespace task_managers
 {
 ScanAcquisitionManager::ScanAcquisitionManager(std::shared_ptr<rclcpp::Node> node)
   : node_(node)
+  , pnode_(std::make_shared<rclcpp::Node>(std::string(node_->get_name()) + "_exec"))
   , scan_poses_(std::vector<geometry_msgs::msg::Transform>())
   , tool_frame_("")
   , world_frame_("world")
@@ -77,7 +78,7 @@ common::ActionResult ScanAcquisitionManager::init()
 
   // service client
   call_freespace_motion_client_ =
-      node_->create_client<crs_msgs::srv::CallFreespaceMotion>(FREESPACE_MOTION_PLAN_SERVICE);
+      pnode_->create_client<crs_msgs::srv::CallFreespaceMotion>(FREESPACE_MOTION_PLAN_SERVICE);
 
   // waiting for services
   std::vector<rclcpp::ClientBase*> srv_clients = { call_freespace_motion_client_.get() };
@@ -140,23 +141,11 @@ common::ActionResult ScanAcquisitionManager::moveRobot()
   freespace_motion_request->goal_pose = scan_poses_.at(scan_index_);
   freespace_motion_request->execute = true;
 
-  // todo(ayoungs): sync requests aren't available and this spin_until_future_complete seems to cause a runtime error
-  // consider making a wrapper function to allow for synchrnous calls
   auto result_future = call_freespace_motion_client_->async_send_request(freespace_motion_request);
-  //if (rclcpp::spin_until_future_complete(node_, result_future) != rclcpp::executor::FutureReturnCode::SUCCESS)
-  //{
-  //  RCLCPP_ERROR(node_->get_logger(), "%s Call Freespace Motion service call failed", MANAGER_NAME.c_str());
-  //  return false;
-  //}
-  // todo(ayoungs): why is there a timeout?
-  auto status = result_future.wait_for(std::chrono::seconds(10));
-  return true;
-  if (status == std::future_status::timeout)
+  if (rclcpp::spin_until_future_complete(pnode_, result_future) != rclcpp::executor::FutureReturnCode::SUCCESS)
   {
-    RCLCPP_ERROR(node_->get_logger(), "%s Call Freespace Motion service call timed out", MANAGER_NAME.c_str());
-    res.succeeded = false;
-    res.err_msg = "Call to freespace motion service timed out.";
-    return res;
+    RCLCPP_ERROR(node_->get_logger(), "%s Call Freespace Motion service call failed", MANAGER_NAME.c_str());
+    return false;
   }
   auto result = result_future.get();
 

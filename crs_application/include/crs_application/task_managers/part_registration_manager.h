@@ -74,6 +74,7 @@ public:
 
 protected:
   std::shared_ptr<rclcpp::Node> node_;
+  std::shared_ptr<rclcpp::Node> pnode_;
   std::shared_ptr<datatypes::ScanAcquisitionResult> input_ = nullptr;
   datatypes::ProcessToolpathData result_;
 

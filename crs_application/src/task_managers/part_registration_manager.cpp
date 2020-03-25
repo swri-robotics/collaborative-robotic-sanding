@@ -37,20 +37,43 @@
 
 #include <sensor_msgs/msg/point_cloud2.hpp>
 
+static const double WAIT_FOR_SERVICE_PERIOD = 10.0;
+static const std::string MANAGER_NAME = "PartRegistrationManager";
+
 namespace crs_application
 {
 namespace task_managers
 {
-PartRegistrationManager::PartRegistrationManager(std::shared_ptr<rclcpp::Node> node) : node_(node) {}
+PartRegistrationManager::PartRegistrationManager(std::shared_ptr<rclcpp::Node> node)
+: node_(node)
+, pnode_(std::make_shared<rclcpp::Node>(std::string(node_->get_name()) + "_exec"))
+{
+}
 
 PartRegistrationManager::~PartRegistrationManager() {}
 
 common::ActionResult PartRegistrationManager::init()
 {
   common::ActionResult res;
-  // todo(ayoungs): wait on service?
-  load_part_client_ = node_->create_client<crs_msgs::srv::LoadPart>("/load_part");
-  localize_to_part_client_ = node_->create_client<crs_msgs::srv::LocalizeToPart>("/localize_to_part");
+
+  load_part_client_ = pnode_->create_client<crs_msgs::srv::LoadPart>("/load_part");
+  localize_to_part_client_ = pnode_->create_client<crs_msgs::srv::LocalizeToPart>("/localize_to_part");
+
+  // waiting for services
+  std::vector<rclcpp::ClientBase*> srv_clients = { load_part_client_.get(), localize_to_part_client_.get() };
+  if (!std::all_of(srv_clients.begin(), srv_clients.end(), [this, &res](rclcpp::ClientBase* c) {
+        if (!c->wait_for_service(std::chrono::duration<double>(WAIT_FOR_SERVICE_PERIOD)))
+        {
+          res.succeeded = false;
+          res.err_msg = boost::str(boost::format("service '%s' was not found") % c->get_service_name());
+          return res;
+        }
+        res.succeeded = true;
+        return res;
+      }))
+  {
+    RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg);
+  }
 
   res.succeeded = true;
   return res;
@@ -65,13 +88,13 @@ common::ActionResult PartRegistrationManager::configure(const PartRegistrationCo
   load_part_request->path_to_part = "/home/ayoungs/workspaces/crs/src/collaborative-robotic-sanding/crs_support/meshes/Parts/visual/part1_ch.stl";
 
   auto result_future = load_part_client_->async_send_request(load_part_request);
-  //if (rclcpp::spin_until_future_complete(node_, result_future) != rclcpp::executor::FutureReturnCode::SUCCESS)
-  //{
-  //  RCLCPP_ERROR(node_->get_logger(), "Load Part service call failed");
-  //  return false;
-  //}
-  result_future.wait_for(std::chrono::seconds(1));
-  return true;
+  if (rclcpp::spin_until_future_complete(pnode_, result_future) != rclcpp::executor::FutureReturnCode::SUCCESS)
+  {
+    RCLCPP_ERROR(node_->get_logger(), "Load Part service call failed");
+    res.succeeded = false;
+    res.err_msg = "Load Part service call failed.";
+    return false;
+  }
   auto result = result_future.get();
 
   if (!result->success)
@@ -111,14 +134,11 @@ common::ActionResult PartRegistrationManager::computeTransform()
   localize_to_part_request->point_clouds = input_->point_clouds;
 
   auto localize_result_future = localize_to_part_client_->async_send_request(localize_to_part_request);
-  //if (rclcpp::spin_until_future_complete(node_, localize_result_future) != rclcpp::executor::FutureReturnCode::SUCCESS)
-  //{
-  //  RCLCPP_ERROR(node_->get_logger(), "Localize to Part service call failed");
-  //  return false;
-  //}
-  auto status = localize_result_future.wait_for(std::chrono::seconds(1));
-  // todo(ayoungs): figure out how to call service inside
-  return true;
+  if (rclcpp::spin_until_future_complete(pnode_, localize_result_future) != rclcpp::executor::FutureReturnCode::SUCCESS)
+  {
+    RCLCPP_ERROR(node_->get_logger(), "Localize to Part service call failed");
+    return false;
+  }
   auto localize_result = localize_result_future.get();
 
   if (localize_result->success == false)

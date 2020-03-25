@@ -14,7 +14,7 @@
 		<include file="$(find-pkg-share crs_support)/launch/environment_launch.launch.py">
 		</include>
 		
-		<node pkg="crs_application" exec="crs_application_node" name="crs_main" output="screen" launch-prefix="xterm -e gdb --args">
+		<node pkg="crs_application" exec="crs_application_node" name="crs_main" output="screen">
 			<param name="state_machine_file" value="$(var state_machine_file)"/>
 		</node>		
 		

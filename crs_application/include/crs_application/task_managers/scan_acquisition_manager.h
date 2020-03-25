@@ -99,6 +99,7 @@ protected:
   common::ActionResult checkPreReqs();
 
   std::shared_ptr<rclcpp::Node> node_;
+  std::shared_ptr<rclcpp::Node> pnode_;
   datatypes::ScanAcquisitionResult result_;
 
   // parameters

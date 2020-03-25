@@ -99,10 +99,26 @@ private:
     (void)request_header;
     RCLCPP_INFO(this->get_logger(), "Loading part from %s", request->path_to_part.c_str());
 
+    pcl::PointCloud<pcl::PointXYZ>::Ptr pre_transformed_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
+
     // todo(ayoungs): handle error for bad file
     // todo(ayoungs): make sure part gets loaded correctly after multiple loads
     ModelToPointCloud mtpc(request->path_to_part, mesh_num_samples_, leaf_size_);
-    mtpc.convertToPCL(part_point_cloud_);
+    mtpc.convertToPCL(pre_transformed_cloud);
+
+    // todo(ayoungs): transform the object to get the part in a better initial guess
+    geometry_msgs::msg::TransformStamped transform;
+    transform.transform.translation.x = -0.4;
+    transform.transform.translation.y = -0.1;
+    transform.transform.translation.z = 1.1;
+    transform.transform.rotation.x = 0.5;
+    transform.transform.rotation.y = -0.5;
+    transform.transform.rotation.z = 0.5;
+    transform.transform.rotation.w = 0.5;
+
+    pcl::transformPointCloud(*pre_transformed_cloud, *part_point_cloud_, 
+                             tf2::transformToEigen(transform).matrix());
+
 
     part_loaded_ = true;
     response->success = true;
@@ -140,8 +156,8 @@ private:
       // filter out the workcell
       // todo(ayoungs): get the workcell dimensions and use them rather than hard coded values
       pcl::CropBox<pcl::PointXYZ> boxFilter;
-      boxFilter.setMin(Eigen::Vector4f(-0.8, -1.1, 0.5, 1.0));
-      boxFilter.setMax(Eigen::Vector4f(0.0, 0.9, 1.7, 1.0));
+      boxFilter.setMin(Eigen::Vector4f(-0.7, -1.1, 0.5, 1.0));
+      boxFilter.setMax(Eigen::Vector4f(-0.2, 0.9, 1.7, 1.0));
       boxFilter.setInputCloud(combined_point_cloud);
       boxFilter.filter(*filtered_combined_point_cloud);
 
