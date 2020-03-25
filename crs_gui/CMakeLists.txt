@@ -23,8 +23,6 @@ find_package(crs_area_selection REQUIRED path)
 find_package(crs_msgs REQUIRED)
 find_package(crs_motion_planning REQUIRED)
 
-find_package(iterative_spline_parameterization REQUIRED)
-
 find_package(Qt5 REQUIRED COMPONENTS
   Core
   Widgets
@@ -201,6 +199,7 @@ ament_export_dependencies(
     rclcpp
     shape_msgs
     std_srvs)
+    #yaml-cpp)
 
 pluginlib_export_plugin_description_file(rviz_common plugin_description.xml)
 

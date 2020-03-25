@@ -118,8 +118,8 @@ void PartSelectionWidget::onPartSelected()
         ui_->list_widget_parts->currentItem()->data(Qt::ItemDataRole::UserRole).toString().toUtf8().constData();
     std::string current_path =
         ui_->list_widget_part_paths->currentItem()->data(Qt::ItemDataRole::UserRole).toString().toUtf8().constData();
-    emit partSelected(current_part);
-    emit partPathSelected(current_part, current_path);
+    emit partSelected(QString::fromStdString(current_part));
+    emit partPathSelected(QString::fromStdString(current_part), QString::fromStdString(current_path));
   }
 }
 

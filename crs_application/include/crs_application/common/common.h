@@ -94,6 +94,43 @@ static double compare(const sensor_msgs::msg::JointState& js1,
   return diff;
 }
 
+template <typename Srv>
+static typename Srv::Response::SharedPtr waitForResponse(typename rclcpp::Client<Srv>::SharedPtr client,
+                                                         typename Srv::Request::SharedPtr request,
+                                                         double timeout,
+                                                         double interval = 0.05)
+{
+  using namespace std::chrono;
+  static rclcpp::Logger logger = rclcpp::get_logger(client->get_service_name());
+
+  std::promise<typename Srv::Response::SharedPtr> promise;
+  std::shared_future<typename Srv::Response::SharedPtr> res(promise.get_future());
+  client->async_send_request(request, [&promise](const typename rclcpp::Client<Srv>::SharedFuture future) {
+    auto result = future.get();
+    promise.set_value(result);
+  });
+  system_clock::time_point timeout_time = system_clock::now() + duration_cast<nanoseconds>(duration<double>(timeout));
+
+  std::future_status status = std::future_status::timeout;
+  while (system_clock::now() < timeout_time)
+  {
+    status = res.wait_for(duration<double>(interval));
+    if (status == std::future_status::ready)
+    {
+      RCLCPP_ERROR(logger, "future ready");
+      break;
+    }
+  }
+
+  if (status != std::future_status::ready)
+  {
+    RCLCPP_ERROR(
+        logger, "Timed out while waiting for response from service with status flag '%i'", static_cast<int>(status));
+    return nullptr;
+  }
+  return res.get();
+}
+
 template <class Msg>
 static std::shared_ptr<Msg> waitForMessage(std::shared_ptr<rclcpp::Node> node,
                                            const std::string& topic_name,

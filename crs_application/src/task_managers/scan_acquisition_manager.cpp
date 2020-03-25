@@ -38,8 +38,9 @@
 
 static const double WAIT_FOR_SERVICE_PERIOD = 10.0;
 static const double WAIT_MESSAGE_TIMEOUT = 2.0;
-static const std::string POINT_CLOUD_TOPIC = "point_cloud";
-static const std::string FREESPACE_MOTION_PLAN_SERVICE = "test_plan";
+static const std::size_t POSES_ARRAY_SIZE = 7;
+static const std::string POINT_CLOUD_TOPIC = "custom_camera/custom_points";
+static const std::string FREESPACE_MOTION_PLAN_SERVICE = "plan_freespace_motion";
 static const std::string MANAGER_NAME = "ScanAcquisitionManager";
 
 namespace crs_application
@@ -48,8 +49,8 @@ namespace task_managers
 {
 ScanAcquisitionManager::ScanAcquisitionManager(std::shared_ptr<rclcpp::Node> node)
   : node_(node)
-  , scan_positions_(std::vector<geometry_msgs::msg::Transform>())
-  , camera_frame_id_("")
+  , scan_poses_(std::vector<geometry_msgs::msg::Transform>())
+  , tool_frame_("")
   , max_time_since_last_point_cloud_(0.1)
   , point_clouds_(std::vector<sensor_msgs::msg::PointCloud2>())
   , scan_index_(0)
@@ -57,11 +58,10 @@ ScanAcquisitionManager::ScanAcquisitionManager(std::shared_ptr<rclcpp::Node> nod
 }
 
 ScanAcquisitionManager::~ScanAcquisitionManager() {}
-
 common::ActionResult ScanAcquisitionManager::init()
 {
   // parameters
-  camera_frame_id_ = node_->declare_parameter("camera_frame_id", "eoat_link");
+  tool_frame_ = node_->declare_parameter("camera_frame_id", "eoat_link");
   max_time_since_last_point_cloud_ = node_->declare_parameter("max_time_since_last_point_cloud", 0.1);
   pre_acquisition_pause_ = node_->declare_parameter("pre_acquisition_pause", 1.0);
 
@@ -76,6 +76,7 @@ common::ActionResult ScanAcquisitionManager::init()
   // waiting for services
   common::ActionResult res;
   std::vector<rclcpp::ClientBase*> srv_clients = { call_freespace_motion_client_.get() };
+  RCLCPP_INFO(node_->get_logger(), "%s waiting for services", MANAGER_NAME.c_str());
   if (!std::all_of(srv_clients.begin(), srv_clients.end(), [this, &res](rclcpp::ClientBase* c) {
         if (!c->wait_for_service(std::chrono::duration<double>(WAIT_FOR_SERVICE_PERIOD)))
         {
@@ -86,23 +87,46 @@ common::ActionResult ScanAcquisitionManager::init()
         return true;
       }))
   {
-    RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg);
+    RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
   }
 
   return true;
 }
 
-common::ActionResult ScanAcquisitionManager::configure(const ScanAcquisitionConfig& config)
+common::ActionResult ScanAcquisitionManager::configure(const config::ScanAcquisitionConfig& config)
 {
-  if (scan_positions_.size() == 0)
+  common::ActionResult res;
+  if (config.scan_poses.empty())
   {
-    RCLCPP_ERROR(node_->get_logger(), "No scan positions provided.");
-    return false;
+    res.err_msg = "no scan poses were found in configuration";
+    res.succeeded = false;
+    RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg);
+    return res;
   }
-  else
+
+  scan_poses_.clear();
+  for (std::size_t i = 0; i < config.scan_poses.size(); i++)
   {
-    return true;
+    geometry_msgs::msg::Transform tf;
+    auto& t = tf.translation;
+    auto& q = tf.rotation;
+    const std::vector<double>& pose_data = config.scan_poses[i];
+    if (pose_data.size() < POSES_ARRAY_SIZE)
+    {
+      res.err_msg = boost::str(boost::format("Scan Pose has less than %lu elements") % POSES_ARRAY_SIZE);
+      res.succeeded = false;
+      RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg);
+      return res;
+    }
+    std::tie(t.x, t.y, t.z) = std::make_tuple(pose_data[0], pose_data[1], pose_data[2]);
+    std::tie(q.x, q.y, q.z, q.w) = std::make_tuple(pose_data[3], pose_data[4], pose_data[5], pose_data[6]);
+    scan_poses_.push_back(tf);
   }
+
+  tool_frame_ = config.tool_frame;
+
+  RCLCPP_INFO(node_->get_logger(), "%s got %lu scan poses", MANAGER_NAME.c_str(), scan_poses_.size());
+  return true;
 }
 
 common::ActionResult ScanAcquisitionManager::verify()
@@ -122,8 +146,8 @@ common::ActionResult ScanAcquisitionManager::verify()
 common::ActionResult ScanAcquisitionManager::moveRobot()
 {
   auto freespace_motion_request = std::make_shared<crs_msgs::srv::CallFreespaceMotion::Request>();
-  freespace_motion_request->target_link = camera_frame_id_;
-  freespace_motion_request->goal_pose = scan_positions_.at(scan_index_);
+  freespace_motion_request->target_link = tool_frame_;
+  freespace_motion_request->goal_pose = scan_poses_.at(scan_index_);
   freespace_motion_request->execute = true;
 
   auto result_future = call_freespace_motion_client_->async_send_request(freespace_motion_request);
@@ -136,6 +160,10 @@ common::ActionResult ScanAcquisitionManager::moveRobot()
 
   if (result->success)
   {
+    // todo(ayoungs): wait for robot to finish moving, for now just wait 10 seconds
+    std::chrono::duration<double> sleep_dur(10.0);
+    rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::seconds>(sleep_dur));
+
     return true;
   }
   else
@@ -148,23 +176,24 @@ common::ActionResult ScanAcquisitionManager::moveRobot()
 common::ActionResult ScanAcquisitionManager::capture()
 {
   // sleeping first
-  std::chrono::duration<double> sleep_dur(WAIT_MESSAGE_TIMEOUT);
-  rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::nanoseconds>(sleep_dur));
+  // std::chrono::duration<double> sleep_dur(WAIT_MESSAGE_TIMEOUT);
+  // rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::seconds>(sleep_dur));
 
-  auto msg = common::waitForMessage<sensor_msgs::msg::PointCloud2>(node_, POINT_CLOUD_TOPIC, WAIT_MESSAGE_TIMEOUT);
-  if (!msg)
-  {
-    common::ActionResult res;
-    res.succeeded = false;
-    res.err_msg = "Failed to get point cloud message";
-    return res;
-  }
-  curr_point_cloud_ = *msg;
+  // todo(ayoungs): waitForMessage seems to be broken?
+  // auto msg = common::waitForMessage<sensor_msgs::msg::PointCloud2>(node_, POINT_CLOUD_TOPIC, WAIT_MESSAGE_TIMEOUT);
+  // if (!msg)
+  //{
+  //  common::ActionResult res;
+  //  res.succeeded = false;
+  //  res.err_msg = "Failed to get point cloud message";
+  //  return res;
+  //}
+  // curr_point_cloud_ = *msg;
 
   // TODO(ayoungs): transform point cloud
 
   // TODO asses if the logic below is still needed
-  if (node_->now() - curr_point_cloud_.header.stamp <= rclcpp::Duration(max_time_since_last_point_cloud_))
+  if (node_->now() - curr_point_cloud_.header.stamp >= rclcpp::Duration(max_time_since_last_point_cloud_))
   {
     point_clouds_.push_back(curr_point_cloud_);
     return true;
@@ -178,7 +207,7 @@ common::ActionResult ScanAcquisitionManager::capture()
 common::ActionResult ScanAcquisitionManager::checkQueue()
 {
   scan_index_++;
-  if (scan_index_ < scan_positions_.size() - 1)
+  if (scan_index_ < scan_poses_.size() - 1)
   {
     return false;
   }
@@ -195,7 +224,8 @@ common::ActionResult ScanAcquisitionManager::checkQueue()
 common::ActionResult ScanAcquisitionManager::checkPreReqs()
 {
   common::ActionResult res;
-  if (scan_positions_.empty())
+
+  if (scan_poses_.empty())
   {
     res.succeeded = false;
     res.err_msg = "No scan positions available, cannot proceed";
@@ -203,7 +233,7 @@ common::ActionResult ScanAcquisitionManager::checkPreReqs()
     return res;
   }
 
-  if (camera_frame_id_.empty())
+  if (tool_frame_.empty())
   {
     res.succeeded = false;
     res.err_msg = "No camera frame has been specified, cannot proceed";

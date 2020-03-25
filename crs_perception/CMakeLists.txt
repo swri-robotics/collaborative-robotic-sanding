@@ -26,6 +26,7 @@ find_package(crs_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(PCL REQUIRED)
 find_package(VTK REQUIRED NO_MODULE)
@@ -45,16 +46,11 @@ add_library(${PROJECT_NAME}_nodes SHARED
   src/nodes/localize_to_part.cpp)
 rclcpp_components_register_nodes(${PROJECT_NAME}_nodes "crs_perception::LocalizeToPart")
 target_link_libraries(${PROJECT_NAME}_nodes ${PROJECT_NAME} ${PCL_LIBRARIES})
-ament_target_dependencies(${PROJECT_NAME}_nodes
-  crs_msgs
-)
+ament_target_dependencies(${PROJECT_NAME}_nodes rclcpp rclcpp_components crs_msgs tf2_ros)
 
 add_executable(test_localize_to_part src/nodes/test_localize_to_part.cpp)
 target_link_libraries(test_localize_to_part ${PROJECT_NAME} ${PCL_LIBRARIES})
-ament_target_dependencies(test_localize_to_part
-  rclcpp
-  crs_msgs
-  std_msgs)
+ament_target_dependencies(test_localize_to_part rclcpp crs_msgs std_msgs)
 install(TARGETS test_localize_to_part
 DESTINATION lib/${PROJECT_NAME})
 

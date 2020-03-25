@@ -59,9 +59,7 @@ namespace crs_application
 namespace task_managers
 {
 MotionPlanningManager::MotionPlanningManager(std::shared_ptr<rclcpp::Node> node) : node_(node) {}
-
 MotionPlanningManager::~MotionPlanningManager() {}
-
 common::ActionResult MotionPlanningManager::init()
 {
   using namespace crs_msgs;
@@ -83,9 +81,9 @@ common::ActionResult MotionPlanningManager::init()
   return true;
 }
 
-common::ActionResult MotionPlanningManager::configure(const MotionPlanningConfig& config)
+common::ActionResult MotionPlanningManager::configure(const config::MotionPlanningConfig& config)
 {
-  config_ = std::make_shared<MotionPlanningConfig>(config);
+  config_ = std::make_shared<config::MotionPlanningConfig>(config);
   home_js_.reset();
   if (config_->joint_home_position.empty() || config_->joint_names.empty())
   {

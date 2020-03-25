@@ -40,6 +40,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include "crs_application/common/common.h"
 #include "crs_application/common/datatypes.h"
+#include "crs_application/common/config.h"
 #include <crs_msgs/srv/call_freespace_motion.hpp>
 
 #include <geometry_msgs/msg/transform.hpp>
@@ -49,13 +50,6 @@ namespace crs_application
 {
 namespace task_managers
 {
-struct ScanAcquisitionConfig
-{
-  std::vector<std::vector<double> > scan_poses;
-  std::string tool_frame;
-  bool skip_on_failure = false;
-};
-
 class ScanAcquisitionManager
 {
 public:
@@ -64,7 +58,7 @@ public:
 
   // initialization and configuration
   common::ActionResult init();
-  common::ActionResult configure(const ScanAcquisitionConfig& config);
+  common::ActionResult configure(const config::ScanAcquisitionConfig& config);
 
   // Process Actions
   /**
@@ -92,8 +86,8 @@ protected:
   datatypes::ScanAcquisitionResult result_;
 
   // parameters
-  std::vector<geometry_msgs::msg::Transform> scan_positions_;
-  std::string camera_frame_id_;
+  std::vector<geometry_msgs::msg::Transform> scan_poses_;
+  std::string tool_frame_;
   double pre_acquisition_pause_;
   double max_time_since_last_point_cloud_;
 
