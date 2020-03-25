@@ -115,6 +115,10 @@ protected:
   // service clients
   rclcpp::Client<crs_msgs::srv::CallFreespaceMotion>::SharedPtr call_freespace_motion_client_;
 
+  // action clients
+  rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SharedPtr trajectory_exec_client_;
+
+
   sensor_msgs::msg::PointCloud2 curr_point_cloud_;
   std::vector<sensor_msgs::msg::PointCloud2> point_clouds_;
   uint scan_index_;

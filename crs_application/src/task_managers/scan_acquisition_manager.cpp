@@ -34,12 +34,16 @@
  */
 
 #include <boost/format.hpp>
+#include <control_msgs/action/follow_joint_trajectory.hpp>
+#include <rclcpp_action/rclcpp_action.hpp>
 #include "crs_application/task_managers/scan_acquisition_manager.h"
 
 static const double WAIT_FOR_SERVICE_PERIOD = 10.0;
+static const double WAIT_SERVER_TIMEOUT = 10.0;
 static const double WAIT_MESSAGE_TIMEOUT = 2.0;
 static const std::string POINT_CLOUD_TOPIC = "/crs/custom_camera/custom_points";
 static const std::string FREESPACE_MOTION_PLAN_SERVICE = "/crs/plan_freespace_motion";
+static const std::string FOLLOW_JOINT_TRAJECTORY_ACTION = "/crs/follow_joint_trajectory";
 static const std::string MANAGER_NAME = "ScanAcquisitionManager";
 
 namespace crs_application
@@ -80,6 +84,11 @@ common::ActionResult ScanAcquisitionManager::init()
   call_freespace_motion_client_ =
       pnode_->create_client<crs_msgs::srv::CallFreespaceMotion>(FREESPACE_MOTION_PLAN_SERVICE);
 
+  // action client
+  trajectory_exec_client_ =
+    rclcpp_action::create_client<control_msgs::action::FollowJointTrajectory>(pnode_,
+                                                                              FOLLOW_JOINT_TRAJECTORY_ACTION);
+
   // waiting for services
   std::vector<rclcpp::ClientBase*> srv_clients = { call_freespace_motion_client_.get() };
   if (!std::all_of(srv_clients.begin(), srv_clients.end(), [this, &res](rclcpp::ClientBase* c) {
@@ -94,6 +103,18 @@ common::ActionResult ScanAcquisitionManager::init()
       }))
   {
     RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg);
+  }
+
+  // waiting for action server
+  if (!trajectory_exec_client_->wait_for_action_server(std::chrono::duration<double>(WAIT_SERVER_TIMEOUT)))
+  {
+    RCLCPP_ERROR(node_->get_logger(),
+                 "%s Failed to find action server %s",
+                 MANAGER_NAME.c_str(),
+                 FOLLOW_JOINT_TRAJECTORY_ACTION.c_str());
+    res.succeeded = false;
+    res.err_msg = boost::str(boost::format("Failed to find action server %s") % FOLLOW_JOINT_TRAJECTORY_ACTION);
+    return res;
   }
 
   res.succeeded = true;
@@ -139,7 +160,7 @@ common::ActionResult ScanAcquisitionManager::moveRobot()
   auto freespace_motion_request = std::make_shared<crs_msgs::srv::CallFreespaceMotion::Request>();
   freespace_motion_request->target_link = tool_frame_;
   freespace_motion_request->goal_pose = scan_poses_.at(scan_index_);
-  freespace_motion_request->execute = true;
+  freespace_motion_request->execute = false;
 
   auto result_future = call_freespace_motion_client_->async_send_request(freespace_motion_request);
   if (rclcpp::spin_until_future_complete(pnode_, result_future) != rclcpp::executor::FutureReturnCode::SUCCESS)
@@ -151,9 +172,59 @@ common::ActionResult ScanAcquisitionManager::moveRobot()
 
   if (result->success)
   {
-    //todo(ayoungs): wait for robot to finish moving, for now just wait 10 seconds
-    std::chrono::duration<double> sleep_dur(10.0);
-    rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::seconds>(sleep_dur));
+    // todo(ayoungs): should this be a library function?
+    static const double GOAL_ACCEPT_TIMEOUT_PERIOD = 10.0;
+ 
+    rclcpp::Duration traj_dur(result->output_trajectory.points.back().time_from_start);
+ 
+    control_msgs::action::FollowJointTrajectory::Goal goal;
+    goal.trajectory = result->output_trajectory;
+    auto goal_options = rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SendGoalOptions();
+    // TODO populate tolerances
+ 
+    // send goal
+    auto trajectory_exec_fut = trajectory_exec_client_->async_send_goal(goal);
+    // todo(ayoungs): where to get this tolerance? Should not be hardcoded
+    traj_dur = traj_dur + rclcpp::Duration(0.5);
+ 
+    // wait for goal
+    if (trajectory_exec_fut.wait_for(std::chrono::duration<double>(GOAL_ACCEPT_TIMEOUT_PERIOD)) !=
+        std::future_status::ready)
+    {
+      res.err_msg = "Timed out waiting for goal to be accepted";
+      RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
+      trajectory_exec_client_->async_cancel_all_goals();
+      return res;
+    }
+ 
+    // get goal handle
+    auto gh = trajectory_exec_fut.get();
+    if (!gh)
+    {
+      res.err_msg = "Goal was rejected";
+      RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
+      trajectory_exec_client_->async_cancel_all_goals();
+      return res;
+    }
+ 
+    // wait for result
+    if (trajectory_exec_client_->async_get_result(gh).wait_for(traj_dur.to_chrono<std::chrono::seconds>()) !=
+        std::future_status::ready)
+    {
+      res.err_msg = "Trajectory execution timed out";
+      RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
+      trajectory_exec_client_->async_cancel_all_goals();
+      return res;
+    }
+ 
+    rclcpp_action::ClientGoalHandle<control_msgs::action::FollowJointTrajectory>::WrappedResult wrapped_result =
+        trajectory_exec_client_->async_get_result(gh).get();
+    if (wrapped_result.code != rclcpp_action::ResultCode::SUCCEEDED)
+    {
+      res.err_msg = wrapped_result.result->error_string;
+      RCLCPP_ERROR(node_->get_logger(), "Trajectory execution failed with error message: %s", res.err_msg.c_str());
+      return res;
+    }
 
     res.succeeded = true;
     return res;
