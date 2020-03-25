@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: '0 5 * * *'
+
+jobs:
+  industrial_ci:
+    strategy:
+      fail-fast: false
+      matrix:
+        env:
+          - {OS_NAME: ubuntu,
+             OS_CODE_NAME: bionic,
+             ROS_DISTRO: eloquent,
+             ROS_REPO: main,
+             ROSDEP_SKIP_KEYS: "catkin ompl message_runtime message_generation dynamic_reconfigure roscpp roslib eigen_conversions scxml_core tesseract tesseract_kinematics tesseract_visualization trajopt trajopt_utils trajopt_sco descartes_light descartes_ikfast descartes_samplers ur_ikfast_kinematics iterative_spline_parameterization",
+             CLANG_FORMAT_CHECK: file,
+             CLANG_FORMAT_VERSION: 8,
+             BADGE: clang-format}
+          - {OS_NAME: ubuntu,
+             OS_CODE_NAME: bionic,
+             UPSTREAM_WORKSPACE: file,
+             ROSINSTALL_FILENAME: 'crs.rosinstall',
+             ROSDEP_SKIP_KEYS: "catkin ompl message_runtime message_generation dynamic_reconfigure roscpp roslib eigen_conversions scxml_core tesseract tesseract_kinematics tesseract_visualization trajopt trajopt_utils trajopt_sco descartes_light descartes_ikfast descartes_samplers ur_ikfast_kinematics iterative_spline_parameterization",
+             DOCKER_IMAGE: "mpowelson/bionic-qt-ros:eloquent",
+             BADGE: eloquent,
+             UPSTREAM_CMAKE_ARGS: "-DCMAKE_BUILD_TYPE=Debug",
+             TARGET_CMAKE_ARGS: "-DCMAKE_BUILD_TYPE=Debug",
+             DOWNSTREAM_CMAKE_ARGS: "-DCMAKE_BUILD_TYPE=Debug",
+             ADDITIONAL_DEBS: "libompl-dev",
+             NOT_TEST_BUILD: true}
+
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - uses: 'ipa-mdl/industrial_ci@revert-revert-colcon-chain'
+        env: ${{matrix.env}}
