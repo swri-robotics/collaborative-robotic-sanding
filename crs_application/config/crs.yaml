@@ -17,9 +17,9 @@ crs:
       time_scaling: 1.0
   scan_acquisition: 
     scan_poses:
-      - pose: [0.0, -0.6, 1.7, 0.0, 0.8791, 0.4395, -0.1843]  # [px, py, pz, qx, qy, qz, qw]
-      - pose: [0.0, -0.53, 1.7, -0.9690091, -0.2422523, 0.3, -0.0483246]
-      - pose: [0.0, 0.0, 1.7, -0.9690091, -0.2422523, 0.3, -0.0483246]
+      - pose: [0.0, -0.6, 1.7, 2.35619, 0.0, 1.57]  # [px, py, pz, rx, ry, rz]
+      - pose: [0.0, -0.53, 1.7, 2.35619, 0.0, 1.57]
+      - pose: [0.0, 0.0, 1.7, 2.35619, 0.0, 1.57]
     tool_frame: "camera_link_optical" 
     skip_on_failure: true
   process_execution:
