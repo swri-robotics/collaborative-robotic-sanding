@@ -242,7 +242,7 @@ common::ActionResult ScanAcquisitionManager::capture()
 common::ActionResult ScanAcquisitionManager::checkQueue()
 {
   scan_index_++;
-  if (scan_index_ < scan_poses_.size() - 1)
+  if (scan_index_ < scan_poses_.size())
   {
     return false;
   }
