@@ -76,7 +76,7 @@ common::ActionResult ScanAcquisitionManager::init()
       POINT_CLOUD_TOPIC, 1, std::bind(&ScanAcquisitionManager::handlePointCloud, this, std::placeholders::_1));
 
   // publishers
-  scan_poses_pub_ = node_->create_publisher<geometry_msgs::msg::PoseArray>(SCAN_POSES_TOPIC,rclcpp::QoS(1));
+  scan_poses_pub_ = node_->create_publisher<geometry_msgs::msg::PoseArray>(SCAN_POSES_TOPIC, rclcpp::QoS(1));
 
   // service client
   call_freespace_motion_client_ =
@@ -131,20 +131,21 @@ common::ActionResult ScanAcquisitionManager::configure(const config::ScanAcquisi
       return res;
     }
 
-    Isometry3d eigen_t = Translation3d(Vector3d(pose_data[0], pose_data[1], pose_data[2]))
-        * AngleAxisd(pose_data[3], Vector3d::UnitX()) * AngleAxisd(pose_data[4], Vector3d::UnitY())
-        * AngleAxisd(pose_data[5], Vector3d::UnitZ());
+    Isometry3d eigen_t = Translation3d(Vector3d(pose_data[0], pose_data[1], pose_data[2])) *
+                         AngleAxisd(pose_data[3], Vector3d::UnitX()) * AngleAxisd(pose_data[4], Vector3d::UnitY()) *
+                         AngleAxisd(pose_data[5], Vector3d::UnitZ());
     Quaterniond eigen_q(eigen_t.linear());
-    std::tie(t.x, t.y, t.z) = std::make_tuple(eigen_t.translation().x(), eigen_t.translation().y(), eigen_t.translation().z());
+    std::tie(t.x, t.y, t.z) =
+        std::make_tuple(eigen_t.translation().x(), eigen_t.translation().y(), eigen_t.translation().z());
     std::tie(q.x, q.y, q.z, q.w) = std::make_tuple(eigen_q.x(), eigen_q.y(), eigen_q.z(), eigen_q.w());
     scan_poses_.push_back(tf);
   }
 
   // publish scan poses
-  scan_poses_pub_timer_ = node_->create_wall_timer(10ms,[this]() -> void{
+  scan_poses_pub_timer_ = node_->create_wall_timer(10ms, [this]() -> void {
     geometry_msgs::msg::PoseArray poses;
     poses.header.frame_id = DEFAULT_WORLD_FRAME_ID;
-    for(std::size_t i = 0; i < scan_poses_.size(); i++)
+    for (std::size_t i = 0; i < scan_poses_.size(); i++)
     {
       geometry_msgs::msg::Pose p;
       p.position.x = scan_poses_[i].translation.x;
@@ -234,7 +235,7 @@ common::ActionResult ScanAcquisitionManager::capture()
   }
   else
   {
-    RCLCPP_ERROR(node_->get_logger(),"Failed to get scan");
+    RCLCPP_ERROR(node_->get_logger(), "Failed to get scan");
     return false;
   }
 }
