@@ -47,6 +47,7 @@
 
 static const double STATE_PUB_RATE = 0.5;
 static const double ROS_SPIN_TIMEOUT = 0.1;
+static const double WAIT_SM_BUSY_TIMEOUT = 2.0;
 static const std::string NODE_NAME = "crs_application";
 static const std::string CURRENT_ST_TOPIC = "current_state";
 static const std::string EXECUTE_ACTION_SERVICE = "execute_action";
@@ -105,8 +106,8 @@ int main(int argc, char** argv)
       GET_AVAILABLE_ACTIONS_SERVICE,
       [&exec, &node](std::shared_ptr<srv::GetAvailableActions::Request> req,
                      std::shared_ptr<srv::GetAvailableActions::Response> res) -> void {
-        res->succeeded = false;
-        if (exec.getSM()->isBusy())
+        res->succeeded = true;
+        if (!exec.getSM()->wait(WAIT_SM_BUSY_TIMEOUT))
         {
           res->succeeded = false;
           res->err_msg = "State Machine is busy";

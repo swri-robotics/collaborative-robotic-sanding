@@ -34,14 +34,17 @@
  */
 
 #include <boost/format.hpp>
+#include <Eigen/Core>
 #include "crs_application/task_managers/scan_acquisition_manager.h"
 
 static const double WAIT_FOR_SERVICE_PERIOD = 10.0;
 static const double WAIT_MESSAGE_TIMEOUT = 2.0;
-static const std::size_t POSES_ARRAY_SIZE = 7;
+static const std::size_t POSES_ARRAY_SIZE = 6;
 static const std::string POINT_CLOUD_TOPIC = "custom_camera/custom_points";
 static const std::string FREESPACE_MOTION_PLAN_SERVICE = "plan_freespace_motion";
 static const std::string MANAGER_NAME = "ScanAcquisitionManager";
+static const std::string SCAN_POSES_TOPIC = "scan_poses";
+static const std::string DEFAULT_WORLD_FRAME_ID = "world";
 
 namespace crs_application
 {
@@ -54,12 +57,15 @@ ScanAcquisitionManager::ScanAcquisitionManager(std::shared_ptr<rclcpp::Node> nod
   , max_time_since_last_point_cloud_(0.1)
   , point_clouds_(std::vector<sensor_msgs::msg::PointCloud2>())
   , scan_index_(0)
+  , private_node_(std::make_shared<rclcpp::Node>(MANAGER_NAME + "_private"))
 {
 }
 
 ScanAcquisitionManager::~ScanAcquisitionManager() {}
 common::ActionResult ScanAcquisitionManager::init()
 {
+  using namespace std::chrono_literals;
+
   // parameters
   tool_frame_ = node_->declare_parameter("camera_frame_id", "eoat_link");
   max_time_since_last_point_cloud_ = node_->declare_parameter("max_time_since_last_point_cloud", 0.1);
@@ -68,6 +74,9 @@ common::ActionResult ScanAcquisitionManager::init()
   // subscribers
   point_cloud_sub_ = node_->create_subscription<sensor_msgs::msg::PointCloud2>(
       POINT_CLOUD_TOPIC, 1, std::bind(&ScanAcquisitionManager::handlePointCloud, this, std::placeholders::_1));
+
+  // publishers
+  scan_poses_pub_ = node_->create_publisher<geometry_msgs::msg::PoseArray>(SCAN_POSES_TOPIC, rclcpp::QoS(1));
 
   // service client
   call_freespace_motion_client_ =
@@ -95,12 +104,15 @@ common::ActionResult ScanAcquisitionManager::init()
 
 common::ActionResult ScanAcquisitionManager::configure(const config::ScanAcquisitionConfig& config)
 {
+  using namespace std::chrono_literals;
+  using namespace Eigen;
+
   common::ActionResult res;
   if (config.scan_poses.empty())
   {
     res.err_msg = "no scan poses were found in configuration";
     res.succeeded = false;
-    RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg);
+    RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
     return res;
   }
 
@@ -115,13 +127,36 @@ common::ActionResult ScanAcquisitionManager::configure(const config::ScanAcquisi
     {
       res.err_msg = boost::str(boost::format("Scan Pose has less than %lu elements") % POSES_ARRAY_SIZE);
       res.succeeded = false;
-      RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg);
+      RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
       return res;
     }
-    std::tie(t.x, t.y, t.z) = std::make_tuple(pose_data[0], pose_data[1], pose_data[2]);
-    std::tie(q.x, q.y, q.z, q.w) = std::make_tuple(pose_data[3], pose_data[4], pose_data[5], pose_data[6]);
+
+    Isometry3d eigen_t = Translation3d(Vector3d(pose_data[0], pose_data[1], pose_data[2])) *
+                         AngleAxisd(pose_data[3], Vector3d::UnitX()) * AngleAxisd(pose_data[4], Vector3d::UnitY()) *
+                         AngleAxisd(pose_data[5], Vector3d::UnitZ());
+    Quaterniond eigen_q(eigen_t.linear());
+    std::tie(t.x, t.y, t.z) =
+        std::make_tuple(eigen_t.translation().x(), eigen_t.translation().y(), eigen_t.translation().z());
+    std::tie(q.x, q.y, q.z, q.w) = std::make_tuple(eigen_q.x(), eigen_q.y(), eigen_q.z(), eigen_q.w());
     scan_poses_.push_back(tf);
   }
+
+  // publish scan poses
+  scan_poses_pub_timer_ = node_->create_wall_timer(10ms, [this]() -> void {
+    geometry_msgs::msg::PoseArray poses;
+    poses.header.frame_id = DEFAULT_WORLD_FRAME_ID;
+    for (std::size_t i = 0; i < scan_poses_.size(); i++)
+    {
+      geometry_msgs::msg::Pose p;
+      p.position.x = scan_poses_[i].translation.x;
+      p.position.y = scan_poses_[i].translation.y;
+      p.position.z = scan_poses_[i].translation.z;
+      p.orientation = scan_poses_[i].rotation;
+      poses.poses.push_back(p);
+    }
+    scan_poses_pub_->publish(poses);
+  });
+  rclcpp::spin_some(node_);
 
   tool_frame_ = config.tool_frame;
 
@@ -200,6 +235,7 @@ common::ActionResult ScanAcquisitionManager::capture()
   }
   else
   {
+    RCLCPP_ERROR(node_->get_logger(), "Failed to get scan");
     return false;
   }
 }
@@ -207,7 +243,7 @@ common::ActionResult ScanAcquisitionManager::capture()
 common::ActionResult ScanAcquisitionManager::checkQueue()
 {
   scan_index_++;
-  if (scan_index_ < scan_poses_.size() - 1)
+  if (scan_index_ < scan_poses_.size())
   {
     return false;
   }

@@ -18,6 +18,7 @@
 
 #include <atomic>
 #include <QMessageBox>
+#include <QtConcurrent/QtConcurrent>
 
 #include <chrono>
 
@@ -55,14 +56,18 @@ void showMsgBox(bool succeeded, const std::string& msg)
 namespace crs_gui
 {
 StateMachineInterfaceWidget::StateMachineInterfaceWidget(rclcpp::Node::SharedPtr node, QWidget* parent)
-  : QWidget(parent), current_state_(""), ui_(new Ui::StateMachineInterface), node_(node)
+  : QWidget(parent)
+  , current_state_("")
+  , ui_(new Ui::StateMachineInterface)
+  , node_(node)
+  , pnode_(std::make_shared<rclcpp::Node>("state_machine_widget"))
 
 {
   ui_->setupUi(this);
 
   // Initialize state machine interfaces
   auto current_state_cb = std::bind(&StateMachineInterfaceWidget::currentStateCB, this, std::placeholders::_1);
-  current_state_sub_ = node_->create_subscription<std_msgs::msg::String>(CURRENT_STATE_TOPIC, 1, current_state_cb);
+  current_state_sub_ = pnode_->create_subscription<std_msgs::msg::String>(CURRENT_STATE_TOPIC, 1, current_state_cb);
   get_available_actions_client_ = node_->create_client<crs_msgs::srv::GetAvailableActions>(GET_AVAILABLE_ACTIONS);
   execute_action_client_ = node_->create_client<crs_msgs::srv::ExecuteAction>(EXECUTE_ACTION);
 
@@ -71,6 +76,8 @@ StateMachineInterfaceWidget::StateMachineInterfaceWidget(rclcpp::Node::SharedPtr
   connect(ui_->push_button_sm_query, &QPushButton::clicked, this, &StateMachineInterfaceWidget::onSMQuery);
   connect(ui_->push_button_sm_cancel, &QPushButton::clicked, this, &StateMachineInterfaceWidget::onSMCancel);
   connect(ui_->push_button_sm_approve, &QPushButton::clicked, this, &StateMachineInterfaceWidget::onSMApprove);
+
+  QtConcurrent::run([this]() { rclcpp::spin(pnode_); });
 }
 
 StateMachineInterfaceWidget::~StateMachineInterfaceWidget() = default;
@@ -81,6 +88,8 @@ void StateMachineInterfaceWidget::currentStateCB(const std_msgs::msg::String::Co
   if (current_state.get()->data != current_state_)
   {
     current_state_ = current_state.get()->data;
+    RCLCPP_INFO(pnode_->get_logger(), "State changed to '%s'", current_state_.c_str());
+    onSMQuery();
     emit onStateChange(current_state_);
   }
 }
@@ -137,20 +146,37 @@ void StateMachineInterfaceWidget::onSMQuery()
   }
   // Send request and wait for result
   auto result = get_available_actions_client_->async_send_request(request);
-  if (rclcpp::spin_until_future_complete(node_, result) == rclcpp::executor::FutureReturnCode::SUCCESS)
-  {
-    // Convert ROS msg to QStringList and update combo box
-    QStringList available_actions;
-    for (std::string action : result.get()->action_ids)
-      available_actions.push_back(QString::fromUtf8(action.c_str()));
-    ui_->combo_box_sm_available_actions->clear();
-    ui_->combo_box_sm_available_actions->addItems(available_actions);
-  }
-  else
+  if (rclcpp::spin_until_future_complete(node_, result) != rclcpp::executor::FutureReturnCode::SUCCESS)
   {
     RCLCPP_ERROR(node_->get_logger(), "Failed to call service %s", GET_AVAILABLE_ACTIONS.c_str());
     return;
   }
+
+  if (!result.get()->succeeded)
+  {
+    RCLCPP_ERROR(node_->get_logger(),
+                 "Failed to get actions list in state '%s' with error msg: %s",
+                 current_state_.c_str(),
+                 result.get()->err_msg.c_str());
+    return;
+  }
+
+  bool buttons_enabled = !result.get()->action_ids.empty();
+  ui_->push_button_sm_apply->setEnabled(buttons_enabled);
+  ui_->push_button_sm_approve->setEnabled(buttons_enabled);
+  ui_->push_button_sm_cancel->setEnabled(buttons_enabled);
+  ui_->combo_box_sm_available_actions->clear();
+  if (result.get()->action_ids.empty())
+  {
+    RCLCPP_WARN(node_->get_logger(), "No available actions in the current state");
+    return;
+  }
+
+  // Convert ROS msg to QStringList and update combo box
+  QStringList available_actions;
+  for (std::string action : result.get()->action_ids)
+    available_actions.push_back(QString::fromUtf8(action.c_str()));
+  ui_->combo_box_sm_available_actions->addItems(available_actions);
 }
 
 void StateMachineInterfaceWidget::onSMCancel()

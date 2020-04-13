@@ -44,6 +44,7 @@
 #include <crs_msgs/srv/call_freespace_motion.hpp>
 
 #include <geometry_msgs/msg/transform.hpp>
+#include <geometry_msgs/msg/pose_array.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 
 namespace crs_application
@@ -83,6 +84,8 @@ protected:
   common::ActionResult checkPreReqs();
 
   std::shared_ptr<rclcpp::Node> node_;
+  std::shared_ptr<rclcpp::Node> private_node_;
+  rclcpp::executors::MultiThreadedExecutor pnode_executor_;
   datatypes::ScanAcquisitionResult result_;
 
   // parameters
@@ -94,8 +97,14 @@ protected:
   // subscribers
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr point_cloud_sub_;
 
+  // publishers
+  rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr scan_poses_pub_;
+
   // service clients
   rclcpp::Client<crs_msgs::srv::CallFreespaceMotion>::SharedPtr call_freespace_motion_client_;
+
+  // timers
+  rclcpp::TimerBase::SharedPtr scan_poses_pub_timer_;
 
   sensor_msgs::msg::PointCloud2 curr_point_cloud_;
   std::vector<sensor_msgs::msg::PointCloud2> point_clouds_;
