@@ -195,13 +195,12 @@ void JointPoseTrajectoryPrivate::OnUpdate(const gazebo::common::UpdateInfo& info
   {
     return;
   }
-
   std::lock_guard<std::mutex> scoped_lock(lock_);
   if (has_trajectory_ && current_time >= trajectory_start_time_)
   {
     if (trajectory_index_ < points_.size())
     {
-      RCLCPP_DEBUG(ros_node_->get_logger(),
+      RCLCPP_INFO(ros_node_->get_logger(),
                    "time [%f] updating configuration [%d/%lu]",
                    current_time.Double(),
                    trajectory_index_ + 1,
@@ -364,13 +363,7 @@ bool JointPoseTrajectoryPrivate::executeTrajectory(const std::shared_ptr<GoalHan
   }
 
   // trajectory start time
-  trajectory_start_time_ = gazebo_ros::Convert<gazebo::common::Time>(msg.header.stamp);
-
-  gazebo::common::Time cur_time = world_->SimTime();
-  if (trajectory_start_time_ < cur_time)
-  {
-    trajectory_start_time_ = cur_time;
-  }
+  trajectory_start_time_ = world_->SimTime();
 
   // update the joint trajectory to play
   has_trajectory_ = true;
