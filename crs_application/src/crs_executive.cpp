@@ -110,9 +110,9 @@ namespace crs_application
 {
 CRSExecutive::CRSExecutive(std::shared_ptr<rclcpp::Node> node)
   : node_(node)
-  , pnode_(std::make_shared<rclcpp::Node>(std::string(node_->get_name()) + "_exec"))
-  , managers_node_(std::make_shared<rclcpp::Node>(std::string(node_->get_name()) + "_tasks"))
+  , managers_node_(std::make_shared<rclcpp::Node>(std::string(node_->get_name()),"managers"))
 {
+  pnode_ = std::make_shared<rclcpp::Node>(std::string(node_->get_name()) + "_exec");
   if (!setup())
   {
     throw std::runtime_error("Failed initial setup");
@@ -403,7 +403,7 @@ bool CRSExecutive::setupPartRegistrationStates()
 
   st_callbacks_map[part_reg::COMPUTE_TRANSFORM] = StateCallbackInfo{
     entry_cb : std::bind(&task_managers::PartRegistrationManager::computeTransform, part_regt_mngr_.get()),
-    async : false
+    async : true
   };
 
   st_callbacks_map[part_reg::APPLY_TRANSFORM] = StateCallbackInfo{
@@ -515,7 +515,7 @@ bool CRSExecutive::setupScanAcquisitionStates()
 
   st_callbacks_map[scan::MOVE_ROBOT] = StateCallbackInfo{
     entry_cb : std::bind(&task_managers::ScanAcquisitionManager::moveRobot, scan_acqt_mngr_.get()),
-    async : false
+    async : true
   };
 
   st_callbacks_map[scan::VERIFICATION] = StateCallbackInfo{

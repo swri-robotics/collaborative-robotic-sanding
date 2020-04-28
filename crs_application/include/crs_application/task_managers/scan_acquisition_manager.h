@@ -38,6 +38,8 @@
 
 #include <vector>
 #include <rclcpp/rclcpp.hpp>
+#include <rclcpp_action/rclcpp_action.hpp>
+
 #include "crs_application/common/common.h"
 #include "crs_application/common/datatypes.h"
 #include "crs_application/common/config.h"
@@ -46,6 +48,13 @@
 #include <geometry_msgs/msg/transform.hpp>
 #include <geometry_msgs/msg/pose_array.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
+#include <trajectory_msgs/msg/joint_trajectory.hpp>
+#include <control_msgs/action/follow_joint_trajectory.hpp>
+
+#include <moveit/moveit_cpp/moveit_cpp.h>
+#include <moveit/moveit_cpp/planning_component.h>
+#include <moveit/robot_state/conversions.h>
+#include <moveit_msgs/msg/display_robot_state.hpp>
 
 namespace crs_application
 {
@@ -54,7 +63,8 @@ namespace task_managers
 class ScanAcquisitionManager
 {
 public:
-  ScanAcquisitionManager(std::shared_ptr<rclcpp::Node> node);
+  ScanAcquisitionManager(std::shared_ptr<rclcpp::Node> node,
+                         moveit::planning_interface::PlanningComponentPtr moveit_arm = nullptr);
   virtual ~ScanAcquisitionManager();
 
   // initialization and configuration
@@ -71,6 +81,12 @@ public:
   common::ActionResult capture();
 
   /**
+   * @brief plans and executes free-space motion plans with moveit
+   */
+  common::ActionResult moveRobotWithMoveIt();
+  common::ActionResult moveRobotWithTesseract();
+
+  /**
    * @brief checks if there are any scan positions left in the queue
    * @return  True all scan positions have been visited
    */
@@ -82,6 +98,17 @@ public:
 protected:
   // support methods
   common::ActionResult checkPreReqs();
+  common::ActionResult execTrajectory(const trajectory_msgs::msg::JointTrajectory& traj);
+
+  // moveit 2
+  moveit::planning_interface::MoveItCppPtr moveit_cpp_;
+  moveit::planning_interface::PlanningComponentPtr moveit_arm_;
+
+  // trajectory execution
+  using GoalHandleT = rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::GoalHandle;
+  rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SharedPtr trajectory_exec_client_;
+  rclcpp::callback_group::CallbackGroup::SharedPtr trajectory_exec_client_cbgroup_;
+  std::shared_future<GoalHandleT::SharedPtr> trajectory_exec_fut_;
 
   std::shared_ptr<rclcpp::Node> node_;
   std::shared_ptr<rclcpp::Node> private_node_;

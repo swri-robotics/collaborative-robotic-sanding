@@ -43,8 +43,13 @@
 #include <crs_msgs/srv/get_configuration.hpp>
 #include <std_srvs/srv/trigger.hpp>
 #include <std_msgs/msg/string.hpp>
+
 #include <scxml_core/state_machine.h>
+
 #include <QObject>
+
+#include <moveit/moveit_cpp/moveit_cpp.h>
+#include <moveit/moveit_cpp/planning_component.h>
 
 #include "crs_application/common/config.h"
 #include "crs_application/task_managers/motion_planning_manager.h"
