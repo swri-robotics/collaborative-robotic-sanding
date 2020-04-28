@@ -10,6 +10,14 @@ The CRS (Collaborative Robotic Sanding) Application buit in ROS2 eloquent
 
 ---
 ### Workspace Setup
+#### Create a colcon worspace for moveit2
+  - Follow the steps in the [moveit2 site](https://github.com/ros-planning/moveit2) to create and build an moveit 2 workspace
+  - Take note of the workspace location as it'll be used later
+
+#### Create a new Colcon workspace directory for the CRS application
+  - In a different location create a directory called `crs_ws`
+  - This will be the root directory of your colcon workspace for the CRS application
+
 #### Download source dependencies
 - Install [wstool](http://wiki.ros.org/wstool)
 - cd into your colcon workspace root directory
@@ -68,6 +76,10 @@ The CRS (Collaborative Robotic Sanding) Application buit in ROS2 eloquent
     - Run the script
         ```
         python3 colcon_ws_setup.py
+        ```
+    - Overlay the moveit2 workspace on top of ours
+        ```
+          source [location/of/moveit2/workspace]/install/setup.bash
         ```
     - Build the colcon workspace
         ```
