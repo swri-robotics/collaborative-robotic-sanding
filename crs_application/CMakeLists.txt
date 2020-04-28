@@ -30,6 +30,7 @@ find_package(Qt5 REQUIRED COMPONENTS Widgets)
 find_package(crs_motion_planning REQUIRED)
 find_package(Eigen3 REQUIRED NO_MODULE)
 find_package(yaml_cpp_vendor REQUIRED)
+find_package(moveit_ros_planning_interface REQUIRED)
 
 ##################################
 # build
@@ -51,7 +52,16 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
     "$<INSTALL_INTERFACE:include>")
 target_include_directories(${PROJECT_NAME} SYSTEM PUBLIC)
-ament_target_dependencies(${PROJECT_NAME} rclcpp rclcpp_components crs_msgs crs_motion_planning control_msgs tf2_eigen rclcpp_action yaml_cpp_vendor)
+ament_target_dependencies(${PROJECT_NAME} 
+ rclcpp 
+ rclcpp_components
+ crs_msgs
+ crs_motion_planning
+ control_msgs
+ tf2_eigen
+ rclcpp_action
+ yaml_cpp_vendor
+ moveit_ros_planning_interface)
 
 add_executable(${PROJECT_NAME}_node src/crs_application.cpp)
 target_link_libraries(${PROJECT_NAME}_node 

@@ -10,15 +10,16 @@
 		<include file="$(find-pkg-share crs_application)/launch/load_preview_robot_model.launch.xml">
 		</include>		
 
-    <include file="$(find-pkg-share crs_application)/launch/load_robot_model.launch.xml">
-    </include>
+	    <include file="$(find-pkg-share crs_application)/launch/load_robot_model.launch.xml">
+	    </include>
 		
 		<include file="$(find-pkg-share crs_support)/launch/environment_launch.launch.py">
 		</include>
 		
-		<node pkg="crs_application" exec="crs_application_node" name="crs_main" output="screen">
+		<!--<node pkg="crs_application" exec="crs_application_node" name="crs_main" output="screen">
 			<param name="state_machine_file" value="$(var state_machine_file)"/>
-		</node>		
+		</node>-->		
+		<include file="$(find-pkg-share crs_application)/launch/main.launch.py"/>
 				
 		<!-- ros2 component standalone crs_perception crs_perception::LocalizeToPart  -->
 		<let name="node_ns" value="/$(var group_ns)"/>

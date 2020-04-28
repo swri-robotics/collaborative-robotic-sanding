@@ -1,0 +1,22 @@
+planning_scene_monitor_options:
+  name: "planning_scene_monitor"
+  robot_description: "robot_description"
+  joint_state_topic: "joint_states"
+  attached_collision_object_topic: "planning_scene_monitor"
+  publish_planning_scene_topic: "publish_planning_scene"
+  monitored_planning_scene_topic: "monitored_planning_scene"
+  wait_for_initial_state_timeout: 10.0
+  
+planning_pipelines:
+  #namespace: "moveit_cpp"  # optional, default is ~
+  pipeline_names: ["ompl"]
+  
+default_planner_options:
+  planning_attempts: 10
+  max_velocity_scaling_factor: 1.0
+  max_acceleration_scaling_factor: 1.0000
+  
+# application specific  
+workspace_bounds: 
+  min: [-2.5, -2.5, 0.5]
+  max: [2.5, 2.5, 3.0]

@@ -4,7 +4,7 @@
   <let name="ns" value="live"/>
   <let name="robot_description_file" value="$(find-pkg-share crs_support)/urdf/crs.urdf"/>
 
-  <node pkg="robot_state_publisher" exec="robot_state_publisher" name="$(var ns)/robot_state_publisher" namespace="$(var ns)"
+  <node pkg="robot_state_publisher" exec="robot_state_publisher" name="$(var ns)/robot_state_publisher" namespace=""
     args="$(var robot_description_file)"/>
 	
 </launch>
