@@ -77,7 +77,12 @@ StateMachineInterfaceWidget::StateMachineInterfaceWidget(rclcpp::Node::SharedPtr
   connect(ui_->push_button_sm_cancel, &QPushButton::clicked, this, &StateMachineInterfaceWidget::onSMCancel);
   connect(ui_->push_button_sm_approve, &QPushButton::clicked, this, &StateMachineInterfaceWidget::onSMApprove);
 
-  QtConcurrent::run([this]() { rclcpp::spin(pnode_); });
+  QtConcurrent::run([this]() {
+    while(rclcpp::ok())
+    {
+      rclcpp::spin_some(pnode_);
+    }
+   });
 }
 
 StateMachineInterfaceWidget::~StateMachineInterfaceWidget() = default;

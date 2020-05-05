@@ -52,7 +52,7 @@ public:
   ~CRSApplicationWidget();
 protected slots:
 
-  void onPartSelected(const QString selected_part);
+  void onPartSelected(const QString selected_part, const QString part_mesh);
 
   void onPartPathSelected(const QString qselected_part, const QString qselected_path);
 

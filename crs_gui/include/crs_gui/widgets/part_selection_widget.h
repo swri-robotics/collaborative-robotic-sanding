@@ -41,7 +41,7 @@ public:
   ~PartSelectionWidget();
 Q_SIGNALS:
   /** @brief Signal eitted when Load Selected Part is clicked with name of the part selected*/
-  void partSelected(QString);
+  void partSelected(QString, QString);
   /** @brief Signal emmited when Load Selected Part is clicked. First arg is part selected. Second arg is path to
    * toolpath yaml */
   void partPathSelected(QString, QString);

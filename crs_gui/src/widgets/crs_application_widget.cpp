@@ -55,7 +55,6 @@ static const std::string TOOLPATH_FILE_EXT = ".yaml";
 static const std::string CONFIG_FILES_DIR = "configs";
 static const std::string CONFIG_FILE_SUFFIX = "_config.yaml";
 static const std::string WORLD_FRAME = "world";
-static const std::string CAD_EXT = ".ply";
 
 // configuration variables
 static const std::string CONFIG_ROOT_ITEM = "crs";
@@ -141,14 +140,14 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node, QWidget
 
 CRSApplicationWidget::~CRSApplicationWidget() = default;
 
-void CRSApplicationWidget::onPartSelected(const QString selected_part)
+void CRSApplicationWidget::onPartSelected(const QString selected_part, const QString part_mesh)
 {
   RCLCPP_INFO(node_->get_logger(), "Selected Part: %s", selected_part.toStdString().c_str());
   visualization_msgs::msg::Marker marker;
   marker.header.frame_id = WORLD_FRAME;
 
   cad_part_file_ =
-      database_directory_ + "/" + selected_part.toStdString() + "/" + selected_part.toStdString() + CAD_EXT;
+      database_directory_ + "/" + selected_part.toStdString() + "/" + part_mesh.toStdString() ;
   marker.mesh_resource = "file://" + cad_part_file_;
   marker.mesh_use_embedded_materials = true;
   marker.scale.x = 1.0;
