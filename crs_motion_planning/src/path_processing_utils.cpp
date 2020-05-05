@@ -1,4 +1,5 @@
 #include <rclcpp/logging.hpp>
+#include <boost/format.hpp>
 #include <crs_motion_planning/path_processing_utils.h>
 
 static const double TRAJECTORY_TIME_TOLERANCE = 5.0;  // seconds
@@ -513,73 +514,81 @@ bool crs_motion_planning::timeParameterizeTrajectories(const trajectory_msgs::ms
 bool crs_motion_planning::execTrajectory(
     rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SharedPtr ac,
     const rclcpp::Logger& logger,
-    const trajectory_msgs::msg::JointTrajectory& traj)
+    const trajectory_msgs::msg::JointTrajectory& traj, rclcpp::Node::SharedPtr node)
 {
   using namespace control_msgs::action;
-  using namespace rclcpp_action;
-  using GoalHandleT = Client<FollowJointTrajectory>::GoalHandle;
+
+  auto print_time = [&](const trajectory_msgs::msg::JointTrajectory& traj)
+  {
+    for(std::size_t i = 0; i < traj.points.size(); i++)
+    {
+      auto& p  = traj.points[i];
+      rclcpp::Duration dur(p.time_from_start);
+      RCLCPP_INFO(logger,"Point %lu time: %f", i,dur.seconds());
+    }
+  };
+  print_time(traj);
 
   rclcpp::Duration traj_dur(traj.points.back().time_from_start);
   bool res = false;
-  std::string err_msg;
-
-  auto print_traj_time = [&](const trajectory_msgs::msg::JointTrajectory& traj) {
-    RCLCPP_ERROR(logger, "Trajectory with %lu points time data", traj.points.size());
-    for (std::size_t i = 0; i < traj.points.size(); i++)
-    {
-      const auto& p = traj.points[i];
-      RCLCPP_ERROR(logger, "\tPoint %lu : %f secs", rclcpp::Duration(p.time_from_start).seconds());
-    }
-  };
 
   FollowJointTrajectory::Goal goal;
   goal.trajectory = traj;
   auto goal_options = rclcpp_action::Client<FollowJointTrajectory>::SendGoalOptions();
-  // TODO populate tolerances
+
+  using GoalHandle = rclcpp_action::ClientGoalHandle<FollowJointTrajectory>;
+  std::promise<bool> result_promise;
+  std::future<bool> result_fut = result_promise.get_future();
+  goal_options.goal_response_callback = [&](std::shared_future<GoalHandle::SharedPtr> future){
+    if(!future.get())
+    {
+      std::string err_msg = "Failed to accepte goal";
+      RCLCPP_ERROR(logger, err_msg.c_str());
+      ac->async_cancel_all_goals();
+      result_promise.set_value(false);
+    }
+  };
+
+  goal_options.result_callback = [&](const GoalHandle::WrappedResult& result){
+    if (result.code != rclcpp_action::ResultCode::SUCCEEDED)
+    {
+      std::string err_msg = result.result->error_string;
+      RCLCPP_ERROR(logger, "Trajectory execution failed with error message: %s", err_msg.c_str());
+      result_promise.set_value(false);
+      return;
+    }
+    result_promise.set_value(true);
+  };
 
   // send goal
-  std::shared_future<GoalHandleT::SharedPtr> trajectory_exec_fut = ac->async_send_goal(goal);
-  traj_dur = traj_dur + rclcpp::Duration(std::chrono::duration<double>(TRAJECTORY_TIME_TOLERANCE));
+  auto trajectory_exec_fut_ = ac->async_send_goal(goal, goal_options);
 
-  // wait for goal acceptance
-  std::future_status status = trajectory_exec_fut.wait_for(std::chrono::duration<double>(WAIT_RESULT_TIMEOUT));
+  // spinning
+  std::atomic<bool> done;
+  done = false;
+  std::future<bool> spinner_fut;
+  if(node)
+  {
+    spinner_fut = std::async([&]() -> bool {
+      while (!done)
+      {
+        rclcpp::spin_some(node);
+      }
+      return true;
+    });
+  }
+
+  traj_dur = traj_dur + rclcpp::Duration(std::chrono::duration<double>(TRAJECTORY_TIME_TOLERANCE));
+  RCLCPP_INFO(logger, "Waiting %f seconds for goal", traj_dur.seconds());
+  std::future_status status = result_fut.wait_for(traj_dur.to_chrono<std::chrono::seconds>());
+  done = true;
   if (status != std::future_status::ready)
   {
-    err_msg = "Action request was not accepted in time";
-    RCLCPP_ERROR(logger, "%s", err_msg.c_str());
+    std::string err_msg = boost::str(boost::format("Trajectory execution timed out with flag %i") %  static_cast<int>(status));
+    RCLCPP_ERROR(logger, err_msg.c_str());
     ac->async_cancel_all_goals();
     return res;
   }
-
-  auto gh = trajectory_exec_fut.get();
-  if (!gh)
-  {
-    RCLCPP_ERROR(logger, "Goal was rejected by server");
-    return res;
-  }
-
-  // getting result
-  RCLCPP_INFO(logger, "Waiting %f seconds for goal", traj_dur.seconds());
-  auto result_fut = ac->async_get_result(gh);
-  status = result_fut.wait_for(traj_dur.to_chrono<std::chrono::seconds>());
-  if (status != std::future_status::ready)
-  {
-    print_traj_time(traj);
-    err_msg = "trajectory execution timed out";
-    RCLCPP_ERROR(logger, "%s", err_msg.c_str());
-    return res;
-  }
-
-  rclcpp_action::ClientGoalHandle<FollowJointTrajectory>::WrappedResult wrapped_result = result_fut.get();
-  if (wrapped_result.code != rclcpp_action::ResultCode::SUCCEEDED)
-  {
-    err_msg = wrapped_result.result->error_string;
-    RCLCPP_ERROR(logger, "Trajectory execution failed with error message: %s", err_msg.c_str());
-    return res;
-  }
-
-  // reset future
-  RCLCPP_INFO(logger, "Trajectory completed");
   return true;
 }
 

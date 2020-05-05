@@ -157,7 +157,8 @@ bool timeParameterizeTrajectories(const trajectory_msgs::msg::JointTrajectory& g
 
 bool execTrajectory(rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SharedPtr ac,
                     const rclcpp::Logger& logger,
-                    const trajectory_msgs::msg::JointTrajectory& traj);
+                    const trajectory_msgs::msg::JointTrajectory& traj,
+                    rclcpp::Node::SharedPtr node = nullptr);
 
 bool timeParameterizeFreespace(const trajectory_msgs::msg::JointTrajectory& given_traj,
                                const double& max_joint_vel,
