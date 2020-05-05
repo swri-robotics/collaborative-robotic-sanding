@@ -26,6 +26,7 @@ crs:
     time_tolerance: 5.0 # seconds
     joint_tolerance: [0.035, 0.035, 0.035, 0.035, 0.035, 0.035] # radians
   part_registration:
+    seed_pose: [-0.7, 0.0, 1.1, 0.0, 0.0, 0.0]
     target_frame_id: "world"
     part_file: "null"      # relative to known data directory
     toolpath_file: "null"  # relative to known data directory

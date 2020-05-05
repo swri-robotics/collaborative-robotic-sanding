@@ -33,6 +33,8 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <boost/format.hpp>
+
 #include "crs_application/task_managers/part_registration_manager.h"
 
 #include <sensor_msgs/msg/point_cloud2.hpp>
@@ -42,18 +44,27 @@
 
 static const double WAIT_SERVICE_DURATION = 2.0;            // secs
 static const double WAIT_SERVICE_COMPLETION_TIMEOUT = 2.0;  // secs
+
 static const std::string PREVIEW_TOPIC = "part_registration_preview";
 static const std::string LOAD_PART_SERVICE = "load_part";
 static const std::string LOCALIZE_TO_PART_SERVICE = "localize_to_part";
+
 static const std::string MANAGER_NAME = "PartRegistrationManager";
 static const std::string MARKER_NS_PART = "part";
 static const std::string MARKER_NS_TOOLPATH = "toolpath";
+static const std::string PART_FRAME_ID = "part";
 
 namespace crs_application
 {
 namespace task_managers
 {
-PartRegistrationManager::PartRegistrationManager(std::shared_ptr<rclcpp::Node> node) : node_(node) {}
+PartRegistrationManager::PartRegistrationManager(std::shared_ptr<rclcpp::Node> node) :
+    node_(node),
+    tf_broadcaster_(node)
+    {
+
+    }
+
 PartRegistrationManager::~PartRegistrationManager() {}
 common::ActionResult PartRegistrationManager::init()
 {
@@ -64,18 +75,34 @@ common::ActionResult PartRegistrationManager::init()
   load_part_client_ = node_->create_client<crs_msgs::srv::LoadPart>(LOAD_PART_SERVICE);
   localize_to_part_client_ = node_->create_client<crs_msgs::srv::LocalizeToPart>(LOCALIZE_TO_PART_SERVICE);
 
+  // object spawner
+  obj_spawner_ = std::make_shared<common::SimulationObjectSpawner>(node_);
+
   // wait on service
-  std::vector<rclcpp::ClientBase*> clients = { load_part_client_.get(), localize_to_part_client_.get() };
-  if (!std::all_of(clients.begin(), clients.end(), [this](rclcpp::ClientBase* c) {
-        if (!c->wait_for_service(std::chrono::duration<float>(WAIT_SERVICE_DURATION)))
+  using BoolClientT = std::pair<bool, rclcpp::ClientBase*>;
+  std::vector<BoolClientT> srv_clients = { std::make_pair(true,load_part_client_.get()),
+                                                                    std::make_pair(true,localize_to_part_client_.get()) };
+  if (!std::all_of(srv_clients.begin(), srv_clients.end(), [this](BoolClientT& bc) {
+        bool required = bc.first;
+        auto* c = bc.second;
+        if (c->wait_for_service(std::chrono::duration<float>(WAIT_SERVICE_DURATION)))
         {
-          RCLCPP_WARN(node_->get_logger(), "Failed to find service %s", c->get_service_name());
+          return true;
+        }
+
+        if(required)
+        {
+          RCLCPP_ERROR(node_->get_logger(), "Failed to find required service %s", c->get_service_name());
           return false;
+        }
+        else
+        {
+          RCLCPP_WARN(node_->get_logger(), "Failed to find optional service %s", c->get_service_name());
         }
         return true;
       }))
   {
-    RCLCPP_WARN(node_->get_logger(), "%s: One or more services were not found", MANAGER_NAME.c_str());
+    RCLCPP_WARN(node_->get_logger(), "%s: One or more required services were not found", MANAGER_NAME.c_str());
     return false;
   }
 
@@ -84,21 +111,25 @@ common::ActionResult PartRegistrationManager::init()
 
 common::ActionResult PartRegistrationManager::configure(const config::PartRegistrationConfig& config)
 {
+  using namespace std::chrono_literals;
+
   // saving config
   config_ = std::make_shared<config::PartRegistrationConfig>(config);
 
   auto load_part_request = std::make_shared<crs_msgs::srv::LoadPart::Request>();
-  load_part_request->path_to_part = config.part_file;
+  load_part_request->path_to_part = config_->part_file;
 
+  // calling load part service
   auto result_future = load_part_client_->async_send_request(load_part_request);
   std::chrono::nanoseconds dur_timeout =
       rclcpp::Duration::from_seconds(WAIT_SERVICE_COMPLETION_TIMEOUT).to_chrono<std::chrono::nanoseconds>();
-  if (rclcpp::spin_until_future_complete(node_, result_future, dur_timeout) !=
-      rclcpp::executor::FutureReturnCode::SUCCESS)
+  std::future_status status = result_future.wait_for(dur_timeout);
+  if(status != std::future_status::ready)
   {
     RCLCPP_ERROR(node_->get_logger(), "Load Part service call failed");
     return false;
   }
+
   auto result = result_future.get();
 
   if (!result->success)
@@ -106,6 +137,27 @@ common::ActionResult PartRegistrationManager::configure(const config::PartRegist
     RCLCPP_ERROR(node_->get_logger(), "Load Part service call failed");
     return false;
   }
+
+  // setting the transform
+  std::array<double,6> tvals;
+  std::copy(config_->seed_pose.begin(), config_->seed_pose.end(), tvals.begin());
+  part_transform_.transform = common::toTransformMsg(tvals);
+  part_transform_.child_frame_id = PART_FRAME_ID;
+  part_transform_.header.frame_id = config_->target_frame_id;
+
+  // optionally load part into simulator if its running
+  obj_spawner_->remove(PART_FRAME_ID);
+  obj_spawner_->spawn(PART_FRAME_ID,config_->target_frame_id,config_->part_file, tvals);
+
+  // setting up timers
+  if(publish_timer_)
+  {
+   publish_timer_->cancel();
+  }
+
+  publish_timer_ = node_->create_wall_timer(500ms,[this]() -> void {
+    tf_broadcaster_.sendTransform(part_transform_);
+  });
 
   RCLCPP_INFO(node_->get_logger(), "Load part succeeded");
   return true;
@@ -177,7 +229,8 @@ common::ActionResult PartRegistrationManager::computeTransform()
   localize_to_part_request->frame = config_->target_frame_id;
 
   auto localize_result_future = localize_to_part_client_->async_send_request(localize_to_part_request);
-  if (rclcpp::spin_until_future_complete(node_, localize_result_future) != rclcpp::executor::FutureReturnCode::SUCCESS)
+  std::future_status status = localize_result_future.wait_for(std::chrono::seconds(30));
+  if(status != std::future_status::ready)
   {
     RCLCPP_ERROR(node_->get_logger(), "Localize to Part service call failed");
     return false;

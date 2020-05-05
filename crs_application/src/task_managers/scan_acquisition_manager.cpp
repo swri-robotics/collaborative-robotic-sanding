@@ -35,6 +35,7 @@
 
 #include <boost/format.hpp>
 #include <Eigen/Core>
+#include "crs_application/common/common.h"
 #include "crs_application/task_managers/scan_acquisition_manager.h"
 
 static const double WAIT_FOR_SERVICE_PERIOD = 10.0;
@@ -119,25 +120,9 @@ common::ActionResult ScanAcquisitionManager::configure(const config::ScanAcquisi
   scan_poses_.clear();
   for (std::size_t i = 0; i < config.scan_poses.size(); i++)
   {
-    geometry_msgs::msg::Transform tf;
-    auto& t = tf.translation;
-    auto& q = tf.rotation;
-    const std::vector<double>& pose_data = config.scan_poses[i];
-    if (pose_data.size() < POSES_ARRAY_SIZE)
-    {
-      res.err_msg = boost::str(boost::format("Scan Pose has less than %lu elements") % POSES_ARRAY_SIZE);
-      res.succeeded = false;
-      RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
-      return res;
-    }
-
-    Isometry3d eigen_t = Translation3d(Vector3d(pose_data[0], pose_data[1], pose_data[2])) *
-                         AngleAxisd(pose_data[3], Vector3d::UnitX()) * AngleAxisd(pose_data[4], Vector3d::UnitY()) *
-                         AngleAxisd(pose_data[5], Vector3d::UnitZ());
-    Quaterniond eigen_q(eigen_t.linear());
-    std::tie(t.x, t.y, t.z) =
-        std::make_tuple(eigen_t.translation().x(), eigen_t.translation().y(), eigen_t.translation().z());
-    std::tie(q.x, q.y, q.z, q.w) = std::make_tuple(eigen_q.x(), eigen_q.y(), eigen_q.z(), eigen_q.w());
+    std::array<double,6> tvals;
+    std::copy(config.scan_poses[i].begin(), config.scan_poses[i].end(), tvals.begin());
+    geometry_msgs::msg::Transform tf = common::toTransformMsg(tvals);
     scan_poses_.push_back(tf);
   }
 
@@ -156,7 +141,6 @@ common::ActionResult ScanAcquisitionManager::configure(const config::ScanAcquisi
     }
     scan_poses_pub_->publish(poses);
   });
-  rclcpp::spin_some(node_);
 
   tool_frame_ = config.tool_frame;
 
@@ -186,19 +170,20 @@ common::ActionResult ScanAcquisitionManager::moveRobot()
   freespace_motion_request->execute = true;
 
   auto result_future = call_freespace_motion_client_->async_send_request(freespace_motion_request);
-  if (rclcpp::spin_until_future_complete(node_, result_future) != rclcpp::executor::FutureReturnCode::SUCCESS)
+
+  std::future_status status = result_future.wait_for(std::chrono::seconds(30));
+  if(status != std::future_status::ready)
   {
-    RCLCPP_ERROR(node_->get_logger(), "%s Call Freespace Motion service call failed", MANAGER_NAME.c_str());
+    RCLCPP_ERROR(node_->get_logger(), "%s Call Freespace Motion service call timedout", MANAGER_NAME.c_str());
     return false;
   }
   auto result = result_future.get();
 
   if (result->success)
   {
-    // todo(ayoungs): wait for robot to finish moving, for now just wait 10 seconds
-    std::chrono::duration<double> sleep_dur(10.0);
+    // todo(ayoungs): wait for robot to finish moving, for now
+    std::chrono::duration<double> sleep_dur(2.0);
     rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::seconds>(sleep_dur));
-
     return true;
   }
   else
@@ -211,20 +196,6 @@ common::ActionResult ScanAcquisitionManager::moveRobot()
 common::ActionResult ScanAcquisitionManager::capture()
 {
   // sleeping first
-  // std::chrono::duration<double> sleep_dur(WAIT_MESSAGE_TIMEOUT);
-  // rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::seconds>(sleep_dur));
-
-  // todo(ayoungs): waitForMessage seems to be broken?
-  // auto msg = common::waitForMessage<sensor_msgs::msg::PointCloud2>(node_, POINT_CLOUD_TOPIC, WAIT_MESSAGE_TIMEOUT);
-  // if (!msg)
-  //{
-  //  common::ActionResult res;
-  //  res.succeeded = false;
-  //  res.err_msg = "Failed to get point cloud message";
-  //  return res;
-  //}
-  // curr_point_cloud_ = *msg;
-
   // TODO(ayoungs): transform point cloud
 
   // TODO asses if the logic below is still needed

@@ -37,12 +37,18 @@
 #define INCLUDE_CRS_APPLICATION_TASK_MANAGERS_PART_REGISTRATION_MANAGER_H_
 
 #include <memory>
+
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/rclcpp.hpp>
+
+#include <tf2_ros/transform_broadcaster.h>
+
 #include <visualization_msgs/msg/marker_array.hpp>
+
 #include "crs_application/common/common.h"
 #include "crs_application/common/datatypes.h"
 #include "crs_application/common/config.h"
+#include "crs_application/common/simulation_object_spawner.h"
 
 #include <crs_msgs/srv/load_part.hpp>
 #include <crs_msgs/srv/localize_to_part.hpp>
@@ -86,6 +92,16 @@ protected:
   // service clients
   rclcpp::Client<crs_msgs::srv::LoadPart>::SharedPtr load_part_client_;
   rclcpp::Client<crs_msgs::srv::LocalizeToPart>::SharedPtr localize_to_part_client_;
+
+  // simulation object manager
+  std::shared_ptr<common::SimulationObjectSpawner> obj_spawner_;
+
+
+  // timers
+  rclcpp::TimerBase::SharedPtr publish_timer_;
+
+  // tf
+  tf2_ros::TransformBroadcaster tf_broadcaster_;
 };
 
 } /* namespace task_managers */
