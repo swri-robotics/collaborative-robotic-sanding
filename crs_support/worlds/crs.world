@@ -9,8 +9,15 @@
     <include>
       <uri>model://sun</uri>
     </include>
-
-    <gravity>0 0 0</gravity>
+    
+    <physics type="ode">
+      <max_step_size>0.00625</max_step_size>
+      <real_time_factor>1</real_time_factor>
+      <real_time_update_rate>160</real_time_update_rate>
+      
+    </physics>
+	<enable_physics>0</enable_physics>
+    <gravity>0 0 0.0</gravity>
     <include>
 		<plugin name="gazebo_ros_joint_pose_trajectory"
 		     filename="libgazebo_ros_joint_pose_trajectory.so">
