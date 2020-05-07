@@ -11,12 +11,23 @@
     </include>
     
     <physics type="ode">
-      <max_step_size>0.00625</max_step_size>
+      <max_step_size>0.005</max_step_size>
       <real_time_factor>1</real_time_factor>
-      <real_time_update_rate>160</real_time_update_rate>
-      
+      <real_time_update_rate>200</real_time_update_rate>      
+      <ode>
+        <solver>
+          <type>quick</type>
+          <iters>0</iters><!-- HACK ALERT: EFFECTIVELY DISABLES PHYSICS MAKING GAZEBO A PURELY KINEMATIC ENVIRONMENT -->
+        </solver>
+        <constraints>
+          <cfm>0.00001</cfm>
+          <contact_max_correcting_vel>1.0</contact_max_correcting_vel>
+          <contact_surface_layer>0.0001</contact_surface_layer>
+        </constraints>
+      </ode>
     </physics>
-	<enable_physics>0</enable_physics>
+    
+	<enable_physics>False</enable_physics>
     <gravity>0 0 0.0</gravity>
     <include>
 		<plugin name="gazebo_ros_joint_pose_trajectory"
