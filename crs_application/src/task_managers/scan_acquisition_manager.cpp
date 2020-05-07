@@ -40,6 +40,7 @@
 
 static const double WAIT_FOR_SERVICE_PERIOD = 10.0;
 static const double WAIT_MESSAGE_TIMEOUT = 2.0;
+static const double WAIT_ROBOT_STOP = 2.0;
 static const std::size_t POSES_ARRAY_SIZE = 6;
 static const std::string POINT_CLOUD_TOPIC = "custom_camera/custom_points";
 static const std::string FREESPACE_MOTION_PLAN_SERVICE = "plan_freespace_motion";
@@ -56,9 +57,10 @@ ScanAcquisitionManager::ScanAcquisitionManager(std::shared_ptr<rclcpp::Node> nod
   , scan_poses_(std::vector<geometry_msgs::msg::Transform>())
   , tool_frame_("")
   , max_time_since_last_point_cloud_(0.1)
-  , point_clouds_(std::vector<sensor_msgs::msg::PointCloud2>())
   , scan_index_(0)
   , private_node_(std::make_shared<rclcpp::Node>(MANAGER_NAME + "_private"))
+  , tf_buffer_(std::make_shared<rclcpp::Clock>(RCL_ROS_TIME))
+  , tf_listener_(tf_buffer_)
 {
 }
 
@@ -158,7 +160,8 @@ common::ActionResult ScanAcquisitionManager::verify()
 
   // resetting variables
   scan_index_ = 0;
-  point_clouds_.clear();
+  current_data_.point_clouds.clear();
+  current_data_.transforms.clear();
   return true;
 }
 
@@ -182,7 +185,7 @@ common::ActionResult ScanAcquisitionManager::moveRobot()
   if (result->success)
   {
     // todo(ayoungs): wait for robot to finish moving, for now
-    std::chrono::duration<double> sleep_dur(2.0);
+    std::chrono::duration<double> sleep_dur(WAIT_ROBOT_STOP);
     rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::seconds>(sleep_dur));
     return true;
   }
@@ -201,7 +204,22 @@ common::ActionResult ScanAcquisitionManager::capture()
   // TODO asses if the logic below is still needed
   if (node_->now() - curr_point_cloud_.header.stamp >= rclcpp::Duration(max_time_since_last_point_cloud_))
   {
-    point_clouds_.push_back(curr_point_cloud_);
+    auto captured_cloud = curr_point_cloud_;
+    geometry_msgs::msg::TransformStamped transform;
+    try
+    {
+      transform = tf_buffer_.lookupTransform(DEFAULT_WORLD_FRAME_ID, captured_cloud.header.frame_id, tf2::TimePointZero);
+    }
+    catch (tf2::TransformException ex)
+    {
+      std::string error_msg = "Failed to get transform from '" + captured_cloud.header.frame_id + "' to '" +
+          DEFAULT_WORLD_FRAME_ID + "' frame";
+
+      RCLCPP_ERROR(node_->get_logger(), "%s: ", ex.what(), error_msg.c_str());
+      return false;
+    }
+    current_data_.point_clouds.push_back(captured_cloud);
+    current_data_.transforms.push_back(transform);
     return true;
   }
   else
@@ -221,9 +239,10 @@ common::ActionResult ScanAcquisitionManager::checkQueue()
   else
   {
     // save off results and reset the point clouds
-    result_.point_clouds = point_clouds_;
+    result_ = current_data_;
     scan_index_ = 0;
-    point_clouds_.clear();
+    current_data_.point_clouds.clear();
+    current_data_.transforms.clear();
     return true;
   }
 }

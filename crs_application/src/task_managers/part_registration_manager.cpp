@@ -226,6 +226,7 @@ common::ActionResult PartRegistrationManager::computeTransform()
 
   auto localize_to_part_request = std::make_shared<crs_msgs::srv::LocalizeToPart::Request>();
   localize_to_part_request->point_clouds = input_->point_clouds;
+  localize_to_part_request->transforms = input_->transforms;
   localize_to_part_request->frame = config_->target_frame_id;
 
   auto localize_result_future = localize_to_part_client_->async_send_request(localize_to_part_request);
@@ -243,6 +244,8 @@ common::ActionResult PartRegistrationManager::computeTransform()
     return false;
   }
   part_transform_ = localize_result->transform;
+  part_transform_.child_frame_id = PART_FRAME_ID;
+  part_transform_.header.frame_id = config_->target_frame_id;
   RCLCPP_INFO_STREAM(node_->get_logger(), MANAGER_NAME << " Saved transform");
 
   return true;
