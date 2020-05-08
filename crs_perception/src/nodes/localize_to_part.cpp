@@ -4,6 +4,8 @@
 #include <pcl/registration/icp.h>
 #include <pcl/common/transforms.h>
 #include <pcl/conversions.h>
+#include <pcl/filters/crop_box.h>
+#include <pcl/filters/extract_indices.h>
 #include <pcl_conversions/pcl_conversions.h>
 #include <tf2/convert.h>
 #include <tf2_eigen/tf2_eigen.h>
@@ -73,7 +75,7 @@ visualization_msgs::msg::MarkerArray createMarkers(const std::vector<CropBoxConf
     marker.scale.z = cfg.size[2];
 
     // setting color
-    marker.color.a = 0.2;
+    marker.color.a = 0.05;
     if(cfg.reverse)
     {
       marker.color.r = 1.0;
@@ -91,6 +93,27 @@ visualization_msgs::msg::MarkerArray createMarkers(const std::vector<CropBoxConf
   }
 
   return markers;
+}
+
+pcl::PointCloud<pcl::PointXYZ>::Ptr cropBox(const CropBoxConfig& cfg, pcl::PointCloud<pcl::PointXYZ>::Ptr input )
+{
+  pcl::PointCloud<pcl::PointXYZ>::Ptr output = boost::make_shared< pcl::PointCloud<pcl::PointXYZ> >();
+
+  pcl::CropBox<pcl::PointXYZ> box_filter;
+  double x_min = cfg.xyz[0] - 0.5 * cfg.size[0];
+  double y_min = cfg.xyz[1] - 0.5 * cfg.size[1];
+  double z_min = cfg.xyz[2] - 0.5 * cfg.size[2];
+
+  double x_max = cfg.xyz[0] + 0.5 * cfg.size[0];
+  double y_max = cfg.xyz[1] + 0.5 * cfg.size[1];
+  double z_max = cfg.xyz[2] + 0.5 * cfg.size[2];
+
+  box_filter.setMin(Eigen::Vector4f(x_min, y_min, z_min, 1.0));
+  box_filter.setMax(Eigen::Vector4f(x_max, y_max, z_max, 1.0));
+  box_filter.setNegative(!cfg.reverse);
+  box_filter.setInputCloud(input);
+  box_filter.filter(*output);
+  return output;
 }
 
 namespace crs_perception
@@ -342,6 +365,12 @@ private:
       response->error = "Failed to transform point cloud from '" + src_frame_id + "' to '" +
           request->frame + "' frame";
       return;
+    }
+
+    // cropping
+    for(auto& cfg : crop_boxes_)
+    {
+      combined_point_cloud = cropBox(cfg,combined_point_cloud);
     }
 
     if (enable_debug_visualizations_)
