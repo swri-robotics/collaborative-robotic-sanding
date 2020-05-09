@@ -1,12 +1,17 @@
 #include <crs_perception/model_to_point_cloud.hpp>
+
 #include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
 #include <pcl/registration/icp.h>
 #include <pcl/common/transforms.h>
+#include <pcl/common/centroid.h>
 #include <pcl/conversions.h>
 #include <pcl/filters/crop_box.h>
 #include <pcl/filters/extract_indices.h>
 #include <pcl_conversions/pcl_conversions.h>
+#include <pcl/features/moment_of_inertia_estimation.h>
+#include <pcl/filters/voxel_grid.h>
+
 #include <tf2/convert.h>
 #include <tf2_eigen/tf2_eigen.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
@@ -75,7 +80,7 @@ visualization_msgs::msg::MarkerArray createMarkers(const std::vector<CropBoxConf
     marker.scale.z = cfg.size[2];
 
     // setting color
-    marker.color.a = 0.05;
+    marker.color.a = 0.1;
     if(cfg.reverse)
     {
       marker.color.r = 1.0;
@@ -114,6 +119,50 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr cropBox(const CropBoxConfig& cfg, pcl::Point
   box_filter.setInputCloud(input);
   box_filter.filter(*output);
   return output;
+}
+
+Eigen::Isometry3d findTransform(const pcl::PointCloud<pcl::PointXYZ>::Ptr src_cloud,
+                              const pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud,
+                              const bool pos_only = true)
+{
+  using namespace Eigen;
+  auto compute_centroid_transform = [](const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) -> Eigen::Isometry3d
+  {
+    Eigen::Vector3f center, x_axis, y_axis, z_axis;
+    pcl::MomentOfInertiaEstimation<pcl::PointXYZ> moi;
+    moi.setInputCloud(cloud);
+    moi.compute();
+    moi.getEigenVectors(x_axis, y_axis, z_axis);
+    moi.getMassCenter(center);
+
+    Eigen::Isometry3d transform;
+    transform.setIdentity();
+    transform.translation() = center.cast<double>();
+    transform.linear().col(0) = x_axis.normalized().cast<double>();
+    transform.linear().col(1) = y_axis.normalized().cast<double>();
+    transform.linear().col(2) = z_axis.normalized().cast<double>();
+    return transform;
+  };
+
+  Eigen::Isometry3d src_transform = compute_centroid_transform(src_cloud);
+  Eigen::Isometry3d target_transform = compute_centroid_transform(target_cloud);
+  Eigen::Isometry3d pose = target_transform * src_transform.inverse();
+  if(pos_only)
+  {
+    pose.linear() = Quaterniond::Identity().toRotationMatrix().matrix();
+  }
+  return pose;
+}
+
+pcl::PointCloud<pcl::PointXYZ> downsampleCloud(pcl::PointCloud<pcl::PointXYZ>::ConstPtr cloud, double leaf_size)
+{
+  using namespace pcl;
+  pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
+  voxelgrid.setInputCloud(cloud);
+  voxelgrid.setLeafSize(leaf_size, leaf_size, leaf_size);
+  pcl::PointCloud<pcl::PointXYZ> out;// = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+  voxelgrid.filter(out);
+  return out;
 }
 
 namespace crs_perception
@@ -393,14 +442,27 @@ private:
       });
     }
 
+    // downsampling
+    pcl::PointCloud<pcl::PointXYZ>::Ptr src_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+    pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+    *src_cloud = downsampleCloud(part_point_cloud_,leaf_size_);
+    *target_cloud = downsampleCloud(combined_point_cloud,leaf_size_);
+
+    // initial alignment
+    pcl::PointCloud<pcl::PointXYZ>::Ptr temp_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+    Eigen::Isometry3d init_transform = findTransform(src_cloud,target_cloud, true);
+    pcl::transformPointCloud(*src_cloud,*temp_cloud,init_transform.cast<float>());
+    *src_cloud = *temp_cloud;
+
+    // icp
     pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
     icp.setUseReciprocalCorrespondences(false);
     icp.setMaxCorrespondenceDistance(icp_config_.max_correspondence_dist);
     icp.setMaximumIterations(icp_config_.max_iter);
     icp.setTransformationEpsilon(icp_config_.transformation_eps);
     icp.setEuclideanFitnessEpsilon(icp_config_.euclidean_fitness);
-    icp.setInputSource(part_point_cloud_);
-    icp.setInputTarget(combined_point_cloud);
+    icp.setInputSource(src_cloud);
+    icp.setInputTarget(target_cloud);
     pcl::PointCloud<pcl::PointXYZ> final;
     icp.align(final);
 
@@ -411,6 +473,7 @@ private:
     // todo(ayoungs): should this generate the timestamp or use one of the point cloud stamps
     Eigen::Isometry3d transform;
     transform.matrix() = icp.getFinalTransformation().cast<double>();
+    transform = init_transform * transform;
     response->transform = tf2::eigenToTransform(transform);
     response->transform.header.stamp = this->now();
     response->transform.header.frame_id = request->frame;
@@ -421,6 +484,27 @@ private:
                 response->transform.transform.translation.x,
                 response->transform.transform.translation.y,
                 response->transform.transform.translation.z);
+
+    if (enable_debug_visualizations_)
+    {
+      publish_timer_.reset();
+
+      sensor_msgs::msg::PointCloud2 scanned_cloud;
+      pcl::toROSMsg(*combined_point_cloud, scanned_cloud);
+      scanned_cloud.header.stamp = this->now();
+      scanned_cloud.header.frame_id = world_frame_;
+
+      pcl::transformPointCloud(*part_point_cloud_,*src_cloud,transform.cast<float>());
+      sensor_msgs::msg::PointCloud2 registered_cloud;
+      pcl::toROSMsg(*src_cloud, registered_cloud);
+      registered_cloud.header.stamp = this->now();
+      registered_cloud.header.frame_id = world_frame_;
+
+      publish_timer_ = this->create_wall_timer(500ms, [this,registered_cloud, scanned_cloud]() -> void{
+        loaded_part_pc_pub_->publish(registered_cloud);
+        combined_pc_pub_->publish(scanned_cloud);
+      });
+    }
 
   }
 
