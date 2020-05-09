@@ -50,6 +50,8 @@ class CRSApplicationWidget : public QWidget
 public:
   CRSApplicationWidget(rclcpp::Node::SharedPtr node, QWidget* parent = nullptr);
   ~CRSApplicationWidget();
+
+  std::vector<rclcpp::Node::SharedPtr> getNodes();
 protected slots:
 
   void onPartSelected(const QString selected_part, const QString part_mesh);

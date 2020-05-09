@@ -34,7 +34,14 @@ const static std::string USER_CANCELS_ACTION_ID = "user_rejects";
 const static double WAIT_FOR_SERVICE_PERIOD = 2.0;
 static const double WAIT_SERVICE_COMPLETION_PERIOD = 2.0;
 
-void showMsgBox(bool succeeded, const std::string& msg)
+namespace standard_user_actions
+{
+  static const std::string APPROVES = "user_approves";
+  static const std::string CANCELS = "user_cancels";
+}
+
+// TODO: Crashes too frequently, disable popup window for now
+void showMsgBox(bool succeeded, std::string msg)
 {
   QMessageBox msg_box;
   // msg_box.setWindowModality(Qt::NonModal);
@@ -50,7 +57,7 @@ void showMsgBox(bool succeeded, const std::string& msg)
     msg_box.setText(QString::fromStdString(msg));
     msg_box.setIcon(QMessageBox::Critical);
   }
-  msg_box.exec();
+  //msg_box.show();
 }
 
 namespace crs_gui
@@ -60,14 +67,13 @@ StateMachineInterfaceWidget::StateMachineInterfaceWidget(rclcpp::Node::SharedPtr
   , current_state_("")
   , ui_(new Ui::StateMachineInterface)
   , node_(node)
-  , pnode_(std::make_shared<rclcpp::Node>("state_machine_widget"))
 
 {
   ui_->setupUi(this);
 
   // Initialize state machine interfaces
   auto current_state_cb = std::bind(&StateMachineInterfaceWidget::currentStateCB, this, std::placeholders::_1);
-  current_state_sub_ = pnode_->create_subscription<std_msgs::msg::String>(CURRENT_STATE_TOPIC, 1, current_state_cb);
+  current_state_sub_ = node_->create_subscription<std_msgs::msg::String>(CURRENT_STATE_TOPIC, 1, current_state_cb);
   get_available_actions_client_ = node_->create_client<crs_msgs::srv::GetAvailableActions>(GET_AVAILABLE_ACTIONS);
   execute_action_client_ = node_->create_client<crs_msgs::srv::ExecuteAction>(EXECUTE_ACTION);
 
@@ -76,13 +82,9 @@ StateMachineInterfaceWidget::StateMachineInterfaceWidget(rclcpp::Node::SharedPtr
   connect(ui_->push_button_sm_query, &QPushButton::clicked, this, &StateMachineInterfaceWidget::onSMQuery);
   connect(ui_->push_button_sm_cancel, &QPushButton::clicked, this, &StateMachineInterfaceWidget::onSMCancel);
   connect(ui_->push_button_sm_approve, &QPushButton::clicked, this, &StateMachineInterfaceWidget::onSMApprove);
-
-  QtConcurrent::run([this]() {
-    while(rclcpp::ok())
-    {
-      rclcpp::spin_some(pnode_);
-    }
-   });
+  connect(this, &StateMachineInterfaceWidget::show_msg,[](bool b, std::string msg){
+    showMsgBox(b,msg);
+  });
 }
 
 StateMachineInterfaceWidget::~StateMachineInterfaceWidget() = default;
@@ -93,7 +95,7 @@ void StateMachineInterfaceWidget::currentStateCB(const std_msgs::msg::String::Co
   if (current_state.get()->data != current_state_)
   {
     current_state_ = current_state.get()->data;
-    RCLCPP_INFO(pnode_->get_logger(), "State changed to '%s'", current_state_.c_str());
+    RCLCPP_INFO(node_->get_logger(), "State changed to '%s'", current_state_.c_str());
     onSMQuery();
     emit onStateChange(current_state_);
   }
@@ -112,29 +114,23 @@ void StateMachineInterfaceWidget::onSMApply()
     const std::string msg =
         boost::str(boost::format("ROS2 Service %s is not available") % execute_action_client_->get_service_name());
     RCLCPP_ERROR_STREAM(node_->get_logger(), msg);
-    showMsgBox(false, msg);
+    emit show_msg(false, msg);
     return;
   }
-  // Send request and wait for result
-  auto result = execute_action_client_->async_send_request(request);
-  std::chrono::nanoseconds dur_timeout =
-      rclcpp::Duration::from_seconds(WAIT_SERVICE_COMPLETION_PERIOD).to_chrono<std::chrono::nanoseconds>();
-  if (rclcpp::spin_until_future_complete(node_, result, dur_timeout) != rclcpp::executor::FutureReturnCode::SUCCESS)
+  // Send request
+  using ResFut = decltype(execute_action_client_)::element_type::SharedFuture;
+  execute_action_client_->async_send_request(request,[this](ResFut future)
   {
-    std::string msg = boost::str(boost::format("Call service %s timed out") % GET_AVAILABLE_ACTIONS);
-    RCLCPP_ERROR_STREAM(node_->get_logger(), msg);
-    showMsgBox(false, msg);
-    return;
-  }
-
-  if (result.get()->succeeded)
-  {
-    showMsgBox(true, "Request approved");
-  }
-  else
-  {
-    showMsgBox(false, "Request rejected");
-  }
+    auto result = future.get();
+    if (result.get()->succeeded)
+    {
+      emit show_msg(true, "Request approved");
+    }
+    else
+    {
+      emit show_msg(false, "Request rejected");
+    }
+  });
 }
 
 void StateMachineInterfaceWidget::onSMQuery()
@@ -150,38 +146,42 @@ void StateMachineInterfaceWidget::onSMQuery()
     return;
   }
   // Send request and wait for result
-  auto result = get_available_actions_client_->async_send_request(request);
-  if (rclcpp::spin_until_future_complete(node_, result) != rclcpp::executor::FutureReturnCode::SUCCESS)
+  using ResFut = decltype(get_available_actions_client_)::element_type::SharedFuture;
+  get_available_actions_client_->async_send_request(request,[this](ResFut future)
   {
-    RCLCPP_ERROR(node_->get_logger(), "Failed to call service %s", GET_AVAILABLE_ACTIONS.c_str());
-    return;
-  }
+    auto result = future.get();
+    if (!result.get()->succeeded)
+    {
+      RCLCPP_ERROR(node_->get_logger(),
+                   "Failed to get actions list in state '%s' with error msg: %s",
+                   current_state_.c_str(),
+                   result.get()->err_msg.c_str());
+      return;
+    }
 
-  if (!result.get()->succeeded)
-  {
-    RCLCPP_ERROR(node_->get_logger(),
-                 "Failed to get actions list in state '%s' with error msg: %s",
-                 current_state_.c_str(),
-                 result.get()->err_msg.c_str());
-    return;
-  }
+    const std::vector<std::string>& actions_ids = result.get()->action_ids;
+    bool buttons_enabled = !actions_ids.empty();
+    ui_->push_button_sm_apply->setEnabled(buttons_enabled);
+    ui_->combo_box_sm_available_actions->clear();
 
-  bool buttons_enabled = !result.get()->action_ids.empty();
-  ui_->push_button_sm_apply->setEnabled(buttons_enabled);
-  ui_->push_button_sm_approve->setEnabled(buttons_enabled);
-  ui_->push_button_sm_cancel->setEnabled(buttons_enabled);
-  ui_->combo_box_sm_available_actions->clear();
-  if (result.get()->action_ids.empty())
-  {
-    RCLCPP_WARN(node_->get_logger(), "No available actions in the current state");
-    return;
-  }
+    // enable/disable std action buttons
+    ui_->push_button_sm_approve->setEnabled(std::find(actions_ids.begin(), actions_ids.end(),
+                                                     standard_user_actions::APPROVES) != actions_ids.end());
+    ui_->push_button_sm_cancel->setEnabled(std::find(actions_ids.begin(), actions_ids.end(),
+                                                     standard_user_actions::CANCELS) != actions_ids.end());
 
-  // Convert ROS msg to QStringList and update combo box
-  QStringList available_actions;
-  for (std::string action : result.get()->action_ids)
-    available_actions.push_back(QString::fromUtf8(action.c_str()));
-  ui_->combo_box_sm_available_actions->addItems(available_actions);
+    if (actions_ids.empty())
+    {
+      RCLCPP_WARN(node_->get_logger(), "No available actions in the current state");
+      return;
+    }
+
+    // Convert ROS msg to QStringList and update combo box
+    QStringList available_actions;
+    for (std::string action : actions_ids)
+      available_actions.push_back(QString::fromUtf8(action.c_str()));
+    ui_->combo_box_sm_available_actions->addItems(available_actions);
+  });
 }
 
 void StateMachineInterfaceWidget::onSMCancel()
@@ -196,12 +196,11 @@ void StateMachineInterfaceWidget::onSMCancel()
     RCLCPP_ERROR(node_->get_logger(), "service not available");
     return;
   }
-  // Send request and wait for result
-  auto result = execute_action_client_->async_send_request(request);
-  if (rclcpp::spin_until_future_complete(node_, result) != rclcpp::executor::FutureReturnCode::SUCCESS)
+  // Send request
+  using ResFut = decltype(execute_action_client_)::element_type::SharedFuture;
+  execute_action_client_->async_send_request(request,[this](ResFut )
   {
-    RCLCPP_ERROR(node_->get_logger(), "Failed to call service %s", GET_AVAILABLE_ACTIONS.c_str());
-  }
+  });
 }
 
 void StateMachineInterfaceWidget::onSMApprove()
@@ -216,27 +215,23 @@ void StateMachineInterfaceWidget::onSMApprove()
     const std::string msg =
         boost::str(boost::format("ROS2 Service %s is not available") % execute_action_client_->get_service_name());
     RCLCPP_ERROR_STREAM(node_->get_logger(), msg);
-    showMsgBox(false, msg);
+    emit show_msg(false, msg);
     return;
   }
-  // Send request and wait for result
-  auto result = execute_action_client_->async_send_request(request);
-  if (rclcpp::spin_until_future_complete(node_, result) != rclcpp::executor::FutureReturnCode::SUCCESS)
+  // Send request
+  using ResFut = decltype(execute_action_client_)::element_type::SharedFuture;
+  execute_action_client_->async_send_request(request,[this](ResFut future)
   {
-    std::string msg = boost::str(boost::format("Call service %s timed out") % GET_AVAILABLE_ACTIONS);
-    RCLCPP_ERROR_STREAM(node_->get_logger(), msg);
-    showMsgBox(false, msg);
-    return;
-  }
-
-  if (result.get()->succeeded)
-  {
-    showMsgBox(true, "Request approved");
-  }
-  else
-  {
-    showMsgBox(false, "Request rejected");
-  }
+    auto result = future.get();
+    if (result.get()->succeeded)
+    {
+      emit show_msg(true, "Request approved");
+    }
+    else
+    {
+      emit show_msg(false, "Request rejected");
+    }
+  });
 }
 
 }  // namespace crs_gui

@@ -125,6 +125,9 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node, QWidget
   ui_->vertical_layout_area_selection->addWidget(area_selection_widget_.get());
   ui_->vertical_layout_sm_interface->addWidget(state_machine_interface_widget_.get());
 
+  // disable sm gui at startup
+  state_machine_interface_widget_->setEnabled(false);
+
   // Connect signals and slots
   connect(part_selector_widget_.get(),
           &PartSelectionWidget::partSelected,
@@ -208,6 +211,8 @@ void CRSApplicationWidget::onPartPathSelected(const QString qselected_part, cons
     return;
   }
 
+  state_machine_interface_widget_->setEnabled(true);
+
   // Convert to markers
   visualization_msgs::msg::MarkerArray raster_markers;
   crs_motion_planning::rasterStripsToMarkerArray(rasters, WORLD_FRAME, raster_markers);
@@ -216,6 +221,11 @@ void CRSApplicationWidget::onPartPathSelected(const QString qselected_part, cons
 
   // Clear the old toolpath
   toolpath_marker_pub_->publish(delete_all_marker_);
+}
+
+std::vector<rclcpp::Node::SharedPtr> CRSApplicationWidget::getNodes()
+{
+  return {node_, support_widgets_node_};
 }
 
 void CRSApplicationWidget::getConfigurationCb(crs_msgs::srv::GetConfiguration::Request::SharedPtr req,
