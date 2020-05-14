@@ -122,7 +122,7 @@ common::ActionResult ScanAcquisitionManager::configure(const config::ScanAcquisi
   scan_poses_.clear();
   for (std::size_t i = 0; i < config.scan_poses.size(); i++)
   {
-    std::array<double,6> tvals;
+    std::array<double, 6> tvals;
     std::copy(config.scan_poses[i].begin(), config.scan_poses[i].end(), tvals.begin());
     geometry_msgs::msg::Transform tf = common::toTransformMsg(tvals);
     scan_poses_.push_back(tf);
@@ -175,7 +175,7 @@ common::ActionResult ScanAcquisitionManager::moveRobot()
   auto result_future = call_freespace_motion_client_->async_send_request(freespace_motion_request);
 
   std::future_status status = result_future.wait_for(std::chrono::seconds(30));
-  if(status != std::future_status::ready)
+  if (status != std::future_status::ready)
   {
     RCLCPP_ERROR(node_->get_logger(), "%s Call Freespace Motion service call timedout", MANAGER_NAME.c_str());
     return false;
@@ -208,12 +208,13 @@ common::ActionResult ScanAcquisitionManager::capture()
     geometry_msgs::msg::TransformStamped transform;
     try
     {
-      transform = tf_buffer_.lookupTransform(DEFAULT_WORLD_FRAME_ID, captured_cloud.header.frame_id, tf2::TimePointZero);
+      transform =
+          tf_buffer_.lookupTransform(DEFAULT_WORLD_FRAME_ID, captured_cloud.header.frame_id, tf2::TimePointZero);
     }
     catch (tf2::TransformException ex)
     {
       std::string error_msg = "Failed to get transform from '" + captured_cloud.header.frame_id + "' to '" +
-          DEFAULT_WORLD_FRAME_ID + "' frame";
+                              DEFAULT_WORLD_FRAME_ID + "' frame";
 
       RCLCPP_ERROR(node_->get_logger(), "%s: ", ex.what(), error_msg.c_str());
       return false;

@@ -41,26 +41,29 @@
 
 #include <rclcpp/rclcpp.hpp>
 
-namespace crs_application{
-namespace common{
-
+namespace crs_application
+{
+namespace common
+{
 class SimulationObjectSpawner
 {
 public:
   SimulationObjectSpawner(rclcpp::Node::SharedPtr node);
   virtual ~SimulationObjectSpawner();
 
-  bool spawn(const std::string& obj_name, const std::string &reference_frame_id,
-             const std::string& mesh_path, const std::array<double,6>& pose);
+  bool spawn(const std::string& obj_name,
+             const std::string& reference_frame_id,
+             const std::string& mesh_path,
+             const std::array<double, 6>& pose);
   bool remove(const std::string& obj_name);
 
 protected:
-
-  rclcpp::Client<gazebo_msgs::srv::SpawnEntity>::SharedPtr spawn_client_; /** @brief used to spawn the object on gazebo when if in simulation mode*/
+  rclcpp::Client<gazebo_msgs::srv::SpawnEntity>::SharedPtr spawn_client_; /** @brief used to spawn the object on gazebo
+                                                                             when if in simulation mode*/
   rclcpp::Client<gazebo_msgs::srv::DeleteEntity>::SharedPtr delete_client_;
   rclcpp::Node::SharedPtr node_;
 };
 
-}
-}
+}  // namespace common
+}  // namespace crs_application
 #endif /* INCLUDE_CRS_APPLICATION_COMMON_SIMULATION_OBJECT_SPAWNER_H_ */

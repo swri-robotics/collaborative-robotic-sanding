@@ -514,17 +514,17 @@ bool crs_motion_planning::timeParameterizeTrajectories(const trajectory_msgs::ms
 bool crs_motion_planning::execTrajectory(
     rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SharedPtr ac,
     const rclcpp::Logger& logger,
-    const trajectory_msgs::msg::JointTrajectory& traj, rclcpp::Node::SharedPtr node)
+    const trajectory_msgs::msg::JointTrajectory& traj,
+    rclcpp::Node::SharedPtr node)
 {
   using namespace control_msgs::action;
 
-  auto print_time = [&](const trajectory_msgs::msg::JointTrajectory& traj)
-  {
-    for(std::size_t i = 0; i < traj.points.size(); i++)
+  auto print_time = [&](const trajectory_msgs::msg::JointTrajectory& traj) {
+    for (std::size_t i = 0; i < traj.points.size(); i++)
     {
-      auto& p  = traj.points[i];
+      auto& p = traj.points[i];
       rclcpp::Duration dur(p.time_from_start);
-      RCLCPP_INFO(logger,"Point %lu time: %f", i,dur.seconds());
+      RCLCPP_INFO(logger, "Point %lu time: %f", i, dur.seconds());
     }
   };
   print_time(traj);
@@ -539,8 +539,8 @@ bool crs_motion_planning::execTrajectory(
   using GoalHandle = rclcpp_action::ClientGoalHandle<FollowJointTrajectory>;
   std::promise<bool> result_promise;
   std::future<bool> result_fut = result_promise.get_future();
-  goal_options.goal_response_callback = [&](std::shared_future<GoalHandle::SharedPtr> future){
-    if(!future.get())
+  goal_options.goal_response_callback = [&](std::shared_future<GoalHandle::SharedPtr> future) {
+    if (!future.get())
     {
       std::string err_msg = "Failed to accepte goal";
       RCLCPP_ERROR(logger, err_msg.c_str());
@@ -549,7 +549,7 @@ bool crs_motion_planning::execTrajectory(
     }
   };
 
-  goal_options.result_callback = [&](const GoalHandle::WrappedResult& result){
+  goal_options.result_callback = [&](const GoalHandle::WrappedResult& result) {
     if (result.code != rclcpp_action::ResultCode::SUCCEEDED)
     {
       std::string err_msg = result.result->error_string;
@@ -567,7 +567,7 @@ bool crs_motion_planning::execTrajectory(
   std::atomic<bool> done;
   done = false;
   std::future<bool> spinner_fut;
-  if(node)
+  if (node)
   {
     spinner_fut = std::async([&]() -> bool {
       while (!done)
@@ -584,7 +584,8 @@ bool crs_motion_planning::execTrajectory(
   done = true;
   if (status != std::future_status::ready)
   {
-    std::string err_msg = boost::str(boost::format("Trajectory execution timed out with flag %i") %  static_cast<int>(status));
+    std::string err_msg =
+        boost::str(boost::format("Trajectory execution timed out with flag %i") % static_cast<int>(status));
     RCLCPP_ERROR(logger, err_msg.c_str());
     ac->async_cancel_all_goals();
     return res;

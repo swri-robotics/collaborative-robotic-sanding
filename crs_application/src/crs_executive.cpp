@@ -312,8 +312,8 @@ bool CRSExecutive::setup()
   process_exec_mngr_ = std::make_shared<task_managers::ProcessExecutionManager>(managers_node_);
   part_rework_mngr_ = std::make_shared<task_managers::PartReworkManager>(managers_node_);
 
-  std::thread managers_node_thread([this](){
-    while(rclcpp::ok())
+  std::thread managers_node_thread([this]() {
+    while (rclcpp::ok())
     {
       rclcpp::spin_some(managers_node_);
     }

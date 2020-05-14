@@ -98,7 +98,7 @@ static double compare(const sensor_msgs::msg::JointState& js1,
   return diff;
 }
 
-static Eigen::Isometry3d toEigen(std::array<double,6>& pose_data)
+static Eigen::Isometry3d toEigen(std::array<double, 6>& pose_data)
 {
   using namespace Eigen;
   Isometry3d eigen_t = Translation3d(Vector3d(pose_data[0], pose_data[1], pose_data[2])) *
@@ -114,16 +114,13 @@ static geometry_msgs::msg::Pose toPoseMsg(const Eigen::Isometry3d& eigen_t)
   auto& t = pose_msg.position;
   auto& q = pose_msg.orientation;
   Quaterniond eigen_q(eigen_t.linear());
-    std::tie(t.x, t.y, t.z) =
-        std::make_tuple(eigen_t.translation().x(), eigen_t.translation().y(), eigen_t.translation().z());
-    std::tie(q.x, q.y, q.z, q.w) = std::make_tuple(eigen_q.x(), eigen_q.y(), eigen_q.z(), eigen_q.w());
+  std::tie(t.x, t.y, t.z) =
+      std::make_tuple(eigen_t.translation().x(), eigen_t.translation().y(), eigen_t.translation().z());
+  std::tie(q.x, q.y, q.z, q.w) = std::make_tuple(eigen_q.x(), eigen_q.y(), eigen_q.z(), eigen_q.w());
   return pose_msg;
 }
 
-static geometry_msgs::msg::Pose toPoseMsg(std::array<double,6>& pose_data)
-{
-  return toPoseMsg(toEigen(pose_data));
-}
+static geometry_msgs::msg::Pose toPoseMsg(std::array<double, 6>& pose_data) { return toPoseMsg(toEigen(pose_data)); }
 
 static geometry_msgs::msg::Transform toTransformMsg(const Eigen::Isometry3d& eigen_t)
 {
@@ -132,13 +129,13 @@ static geometry_msgs::msg::Transform toTransformMsg(const Eigen::Isometry3d& eig
   auto& t = transform_msg.translation;
   auto& q = transform_msg.rotation;
   Quaterniond eigen_q(eigen_t.linear());
-    std::tie(t.x, t.y, t.z) =
-        std::make_tuple(eigen_t.translation().x(), eigen_t.translation().y(), eigen_t.translation().z());
-    std::tie(q.x, q.y, q.z, q.w) = std::make_tuple(eigen_q.x(), eigen_q.y(), eigen_q.z(), eigen_q.w());
+  std::tie(t.x, t.y, t.z) =
+      std::make_tuple(eigen_t.translation().x(), eigen_t.translation().y(), eigen_t.translation().z());
+  std::tie(q.x, q.y, q.z, q.w) = std::make_tuple(eigen_q.x(), eigen_q.y(), eigen_q.z(), eigen_q.w());
   return transform_msg;
 }
 
-static geometry_msgs::msg::Transform toTransformMsg(std::array<double,6>& pose_data)
+static geometry_msgs::msg::Transform toTransformMsg(std::array<double, 6>& pose_data)
 {
   return toTransformMsg(toEigen(pose_data));
 }

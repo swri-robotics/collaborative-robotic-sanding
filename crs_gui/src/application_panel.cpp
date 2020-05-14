@@ -26,7 +26,7 @@ ApplicationPanel::ApplicationPanel(QWidget* parent)
 {
   application_widget_.reset(new CRSApplicationWidget(node_, this));
   auto nodes = application_widget_->getNodes();
-  for(auto& n : nodes)
+  for (auto& n : nodes)
   {
     executor_.add_node(n);
   }

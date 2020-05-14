@@ -121,13 +121,13 @@ public:
     traj_exec_node_ = std::make_shared<rclcpp::Node>("trajectory_exec");
     trajectory_exec_client_cbgroup_ =
         traj_exec_node_->create_callback_group(rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
-    trajectory_exec_client_ =
-        rclcpp_action::create_client<control_msgs::action::FollowJointTrajectory>(traj_exec_node_->get_node_base_interface(),
-                                                                                  traj_exec_node_->get_node_graph_interface(),
-                                                                                  traj_exec_node_->get_node_logging_interface(),
-                                                                                  traj_exec_node_->get_node_waitables_interface(),
-                                                                                  FOLLOW_JOINT_TRAJECTORY_ACTION,
-                                                                                  trajectory_exec_client_cbgroup_);
+    trajectory_exec_client_ = rclcpp_action::create_client<control_msgs::action::FollowJointTrajectory>(
+        traj_exec_node_->get_node_base_interface(),
+        traj_exec_node_->get_node_graph_interface(),
+        traj_exec_node_->get_node_logging_interface(),
+        traj_exec_node_->get_node_waitables_interface(),
+        FOLLOW_JOINT_TRAJECTORY_ACTION,
+        trajectory_exec_client_cbgroup_);
 
     load_part_service_ = this->create_service<crs_msgs::srv::LoadPart>(
         LOAD_PART_SERVICE,

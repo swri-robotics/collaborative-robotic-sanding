@@ -30,7 +30,7 @@
 
 namespace crs_perception
 {
-  class LocalizeToPart;
+class LocalizeToPart;
 }
 #include <rclcpp_components/register_node_macro.hpp>
 RCLCPP_COMPONENTS_REGISTER_NODE(crs_perception::LocalizeToPart)
@@ -40,8 +40,8 @@ static const std::string CROP_BOXES_MARKER_NS = "crop_boxes";
 
 struct IcpConfig
 {
-  double max_correspondence_dist= 0.01;
-  int max_iter= 200;
+  double max_correspondence_dist = 0.01;
+  int max_iter = 200;
   double transformation_eps = 1e-2;
   double euclidean_fitness = 1.0;
 };
@@ -54,13 +54,15 @@ struct CropBoxConfig
 };
 
 visualization_msgs::msg::MarkerArray createMarkers(const std::vector<CropBoxConfig>& configs,
-                                                   const std::string& frame_id, const std::string& ns)
+                                                   const std::string& frame_id,
+                                                   const std::string& ns)
 {
   visualization_msgs::msg::MarkerArray markers;
-  for(std::size_t i = 0; i < configs.size(); i++)
+  for (std::size_t i = 0; i < configs.size(); i++)
   {
     auto& cfg = configs[i];
-    Eigen::Isometry3d pose = Eigen::Translation3d(Eigen::Vector3d(cfg.xyz[0], cfg.xyz[1], cfg.xyz[2])) * Eigen::Isometry3d::Identity();
+    Eigen::Isometry3d pose =
+        Eigen::Translation3d(Eigen::Vector3d(cfg.xyz[0], cfg.xyz[1], cfg.xyz[2])) * Eigen::Isometry3d::Identity();
 
     visualization_msgs::msg::Marker marker;
     marker.header.frame_id = frame_id;
@@ -81,7 +83,7 @@ visualization_msgs::msg::MarkerArray createMarkers(const std::vector<CropBoxConf
 
     // setting color
     marker.color.a = 0.1;
-    if(cfg.reverse)
+    if (cfg.reverse)
     {
       marker.color.r = 1.0;
       marker.color.g = 1.0;
@@ -100,9 +102,9 @@ visualization_msgs::msg::MarkerArray createMarkers(const std::vector<CropBoxConf
   return markers;
 }
 
-pcl::PointCloud<pcl::PointXYZ>::Ptr cropBox(const CropBoxConfig& cfg, pcl::PointCloud<pcl::PointXYZ>::Ptr input )
+pcl::PointCloud<pcl::PointXYZ>::Ptr cropBox(const CropBoxConfig& cfg, pcl::PointCloud<pcl::PointXYZ>::Ptr input)
 {
-  pcl::PointCloud<pcl::PointXYZ>::Ptr output = boost::make_shared< pcl::PointCloud<pcl::PointXYZ> >();
+  pcl::PointCloud<pcl::PointXYZ>::Ptr output = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
 
   pcl::CropBox<pcl::PointXYZ> box_filter;
   double x_min = cfg.xyz[0] - 0.5 * cfg.size[0];
@@ -122,12 +124,11 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr cropBox(const CropBoxConfig& cfg, pcl::Point
 }
 
 Eigen::Isometry3d findTransform(const pcl::PointCloud<pcl::PointXYZ>::Ptr src_cloud,
-                              const pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud,
-                              const bool pos_only = true)
+                                const pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud,
+                                const bool pos_only = true)
 {
   using namespace Eigen;
-  auto compute_centroid_transform = [](const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) -> Eigen::Isometry3d
-  {
+  auto compute_centroid_transform = [](const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) -> Eigen::Isometry3d {
     Eigen::Vector3f center, x_axis, y_axis, z_axis;
     pcl::MomentOfInertiaEstimation<pcl::PointXYZ> moi;
     moi.setInputCloud(cloud);
@@ -147,7 +148,7 @@ Eigen::Isometry3d findTransform(const pcl::PointCloud<pcl::PointXYZ>::Ptr src_cl
   Eigen::Isometry3d src_transform = compute_centroid_transform(src_cloud);
   Eigen::Isometry3d target_transform = compute_centroid_transform(target_cloud);
   Eigen::Isometry3d pose = target_transform * src_transform.inverse();
-  if(pos_only)
+  if (pos_only)
   {
     pose.linear() = Quaterniond::Identity().toRotationMatrix().matrix();
   }
@@ -160,7 +161,7 @@ pcl::PointCloud<pcl::PointXYZ> downsampleCloud(pcl::PointCloud<pcl::PointXYZ>::C
   pcl::VoxelGrid<pcl::PointXYZ> voxelgrid;
   voxelgrid.setInputCloud(cloud);
   voxelgrid.setLeafSize(leaf_size, leaf_size, leaf_size);
-  pcl::PointCloud<pcl::PointXYZ> out;// = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+  pcl::PointCloud<pcl::PointXYZ> out;  // = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
   voxelgrid.filter(out);
   return out;
 }
@@ -180,9 +181,9 @@ public:
   {
     using namespace std::chrono_literals;
 
-    part_point_cloud_ = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
+    part_point_cloud_ = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
 
-    if(!loadParameters())
+    if (!loadParameters())
     {
       throw std::runtime_error("Failed to load parameters");
     }
@@ -190,10 +191,9 @@ public:
     // parameter updates subscription
     static const std::string PARAMETER_EVENTS_TOPIC = "parameter_events";
     parameter_event_subs_ = this->create_subscription<rcl_interfaces::msg::ParameterEvent>(
-        PARAMETER_EVENTS_TOPIC,rclcpp::QoS(1),[this ](
-        const rcl_interfaces::msg::ParameterEvent::SharedPtr){
-      loadParameters();
-    });
+        PARAMETER_EVENTS_TOPIC, rclcpp::QoS(1), [this](const rcl_interfaces::msg::ParameterEvent::SharedPtr) {
+          loadParameters();
+        });
 
     // services
     load_part_service_ = this->create_service<crs_msgs::srv::LoadPart>("load_part",
@@ -221,17 +221,12 @@ public:
       combined_pc_pub_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("combined_scanned_point_clouds",
                                                                                rclcpp::QoS(1).transient_local());
 
-      markers_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(CROP_BOXES_MARKER_NS,1);
-      markers_timer_ = this->create_wall_timer(500ms, [this]() -> void{
-        markers_pub_->publish(cropbox_markers_);
-      });
-
+      markers_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>(CROP_BOXES_MARKER_NS, 1);
+      markers_timer_ = this->create_wall_timer(500ms, [this]() -> void { markers_pub_->publish(cropbox_markers_); });
     }
-
   }
 
 private:
-
   bool loadParameters()
   {
     // general parameters
@@ -242,13 +237,13 @@ private:
 
     // icp parameters
     std::map<std::string, rclcpp::Parameter> icp_params;
-    if(this->get_parameters("icp",icp_params))
+    if (this->get_parameters("icp", icp_params))
     {
       icp_config_.euclidean_fitness = icp_params["euclidean_fitness"].as_double();
       icp_config_.max_correspondence_dist = icp_params["max_correspondence_dist"].as_double();
       icp_config_.max_iter = icp_params["max_iter"].as_int();
       icp_config_.transformation_eps = icp_params["euclidean_fitness"].as_double();
-      RCLCPP_INFO_STREAM(this->get_logger(),"Loaded icp parameters");
+      RCLCPP_INFO_STREAM(this->get_logger(), "Loaded icp parameters");
     }
     else
     {
@@ -261,26 +256,27 @@ private:
     std::size_t box_counter = 1;
     std::map<std::string, rclcpp::Parameter> crop_box_params;
     std::string cropbox_param_ns = CROP_BOXES_PARAM_PREFIX + std::to_string(box_counter);
-    while(this->get_parameters(cropbox_param_ns,crop_box_params))
+    while (this->get_parameters(cropbox_param_ns, crop_box_params))
     {
       CropBoxConfig cb_config;
       cb_config.xyz = crop_box_params["xyz"].as_double_array();
       cb_config.size = crop_box_params["size"].as_double_array();
       cb_config.reverse = crop_box_params["reverse"].as_bool();
       crop_boxes_.push_back(cb_config);
-      RCLCPP_INFO(this->get_logger(),"Added cropbox %i",box_counter++);
+      RCLCPP_INFO(this->get_logger(), "Added cropbox %i", box_counter++);
       cropbox_param_ns = CROP_BOXES_PARAM_PREFIX + std::to_string(box_counter);
       crop_box_params.clear();
     }
 
-    if(crop_boxes_.empty())
+    if (crop_boxes_.empty())
     {
-      std::string err_msg = boost::str(boost::format("Failed to find crop boxes under namespace %s") % CROP_BOXES_PARAM_PREFIX);
+      std::string err_msg =
+          boost::str(boost::format("Failed to find crop boxes under namespace %s") % CROP_BOXES_PARAM_PREFIX);
       RCLCPP_ERROR_STREAM(this->get_logger(), err_msg);
       return false;
     }
 
-    cropbox_markers_ = createMarkers(crop_boxes_,world_frame_,CROP_BOXES_MARKER_NS);
+    cropbox_markers_ = createMarkers(crop_boxes_, world_frame_, CROP_BOXES_MARKER_NS);
 
     return true;
   }
@@ -328,11 +324,10 @@ private:
       empty_cloud.header.stamp = this->now();
       empty_cloud.header.frame_id = world_frame_;
 
-      publish_timer_ = this->create_wall_timer(500ms, [this,point_cloud, empty_cloud]() -> void{
+      publish_timer_ = this->create_wall_timer(500ms, [this, point_cloud, empty_cloud]() -> void {
         loaded_part_pc_pub_->publish(point_cloud);
         combined_pc_pub_->publish(empty_cloud);
       });
-
     }
   }
 
@@ -357,7 +352,7 @@ private:
       empty_cloud.header.stamp = this->now();
       empty_cloud.header.frame_id = world_frame_;
 
-      publish_timer_ = this->create_wall_timer(500ms, [this,loaded_cloud, empty_cloud]() -> void{
+      publish_timer_ = this->create_wall_timer(500ms, [this, loaded_cloud, empty_cloud]() -> void {
         loaded_part_pc_pub_->publish(loaded_cloud);
         combined_pc_pub_->publish(empty_cloud);
       });
@@ -372,7 +367,7 @@ private:
     }
 
     // TODO: better input verification
-    if(request->point_clouds.empty() && request->transforms.size() != request->point_clouds.size())
+    if (request->point_clouds.empty() && request->transforms.size() != request->point_clouds.size())
     {
       response->success = false;
       response->error = "Request has invalid data";
@@ -381,14 +376,14 @@ private:
     }
 
     // combining all clouds
-    pcl::PointCloud<pcl::PointXYZ>::Ptr combined_point_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
+    pcl::PointCloud<pcl::PointXYZ>::Ptr combined_point_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
     for (std::size_t i = 0; i < request->point_clouds.size(); i++)
     {
       auto& point_cloud_msg = request->point_clouds[i];
       geometry_msgs::msg::TransformStamped& transform = request->transforms[i];
 
-      pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
-      pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();
+      pcl::PointCloud<pcl::PointXYZ>::Ptr point_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+      pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
 
       pcl::fromROSMsg(point_cloud_msg, *point_cloud);
       pcl::transformPointCloud(*point_cloud, *transformed_cloud, tf2::transformToEigen(transform).matrix());
@@ -400,10 +395,10 @@ private:
     std::string src_frame_id = request->transforms.front().header.frame_id;
     try
     {
-      geometry_msgs::msg::TransformStamped transform = tf_buffer_.lookupTransform(request->frame,
-                                                                                  src_frame_id,
-                                                                                  tf2::TimePointZero);
-      pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ> >();;
+      geometry_msgs::msg::TransformStamped transform =
+          tf_buffer_.lookupTransform(request->frame, src_frame_id, tf2::TimePointZero);
+      pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+      ;
       pcl::transformPointCloud(*combined_point_cloud, *transformed_cloud, tf2::transformToEigen(transform).matrix());
       *combined_point_cloud = *transformed_cloud;
     }
@@ -411,15 +406,14 @@ private:
     {
       RCLCPP_ERROR(this->get_logger(), "%s", ex.what());
       response->success = false;
-      response->error = "Failed to transform point cloud from '" + src_frame_id + "' to '" +
-          request->frame + "' frame";
+      response->error = "Failed to transform point cloud from '" + src_frame_id + "' to '" + request->frame + "' frame";
       return;
     }
 
     // cropping
-    for(auto& cfg : crop_boxes_)
+    for (auto& cfg : crop_boxes_)
     {
-      combined_point_cloud = cropBox(cfg,combined_point_cloud);
+      combined_point_cloud = cropBox(cfg, combined_point_cloud);
     }
 
     if (enable_debug_visualizations_)
@@ -436,7 +430,7 @@ private:
       loaded_cloud.header.stamp = this->now();
       loaded_cloud.header.frame_id = world_frame_;
 
-      publish_timer_ = this->create_wall_timer(500ms, [this,loaded_cloud, scanned_cloud]() -> void{
+      publish_timer_ = this->create_wall_timer(500ms, [this, loaded_cloud, scanned_cloud]() -> void {
         loaded_part_pc_pub_->publish(loaded_cloud);
         combined_pc_pub_->publish(scanned_cloud);
       });
@@ -445,13 +439,13 @@ private:
     // downsampling
     pcl::PointCloud<pcl::PointXYZ>::Ptr src_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
     pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
-    *src_cloud = downsampleCloud(part_point_cloud_,leaf_size_);
-    *target_cloud = downsampleCloud(combined_point_cloud,leaf_size_);
+    *src_cloud = downsampleCloud(part_point_cloud_, leaf_size_);
+    *target_cloud = downsampleCloud(combined_point_cloud, leaf_size_);
 
     // initial alignment
     pcl::PointCloud<pcl::PointXYZ>::Ptr temp_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
-    Eigen::Isometry3d init_transform = findTransform(src_cloud,target_cloud, true);
-    pcl::transformPointCloud(*src_cloud,*temp_cloud,init_transform.cast<float>());
+    Eigen::Isometry3d init_transform = findTransform(src_cloud, target_cloud, true);
+    pcl::transformPointCloud(*src_cloud, *temp_cloud, init_transform.cast<float>());
     *src_cloud = *temp_cloud;
 
     // icp
@@ -467,8 +461,8 @@ private:
     icp.align(final);
 
     response->success = icp.hasConverged();
-    RCLCPP_INFO_EXPRESSION(this->get_logger(),response->success,"ICP converged");
-    RCLCPP_ERROR_EXPRESSION(this->get_logger(),!response->success,"ICP failed to converge");
+    RCLCPP_INFO_EXPRESSION(this->get_logger(), response->success, "ICP converged");
+    RCLCPP_ERROR_EXPRESSION(this->get_logger(), !response->success, "ICP failed to converge");
 
     // todo(ayoungs): should this generate the timestamp or use one of the point cloud stamps
     Eigen::Isometry3d transform;
@@ -494,18 +488,17 @@ private:
       scanned_cloud.header.stamp = this->now();
       scanned_cloud.header.frame_id = world_frame_;
 
-      pcl::transformPointCloud(*part_point_cloud_,*src_cloud,transform.cast<float>());
+      pcl::transformPointCloud(*part_point_cloud_, *src_cloud, transform.cast<float>());
       sensor_msgs::msg::PointCloud2 registered_cloud;
       pcl::toROSMsg(*src_cloud, registered_cloud);
       registered_cloud.header.stamp = this->now();
       registered_cloud.header.frame_id = world_frame_;
 
-      publish_timer_ = this->create_wall_timer(500ms, [this,registered_cloud, scanned_cloud]() -> void{
+      publish_timer_ = this->create_wall_timer(500ms, [this, registered_cloud, scanned_cloud]() -> void {
         loaded_part_pc_pub_->publish(registered_cloud);
         combined_pc_pub_->publish(scanned_cloud);
       });
     }
-
   }
 
   // parameters
@@ -525,7 +518,6 @@ private:
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr combined_pc_pub_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr markers_pub_;
 
-
   // services
   rclcpp::Service<crs_msgs::srv::LoadPart>::SharedPtr load_part_service_;
   rclcpp::Service<crs_msgs::srv::LocalizeToPart>::SharedPtr localize_to_part_service_;
@@ -544,7 +536,6 @@ private:
   rclcpp::Clock::SharedPtr clock_;
   tf2_ros::Buffer tf_buffer_;
   tf2_ros::TransformListener tf_listener_;
-
 };
 
 }  // namespace crs_perception

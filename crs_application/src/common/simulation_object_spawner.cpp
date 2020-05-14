@@ -50,9 +50,9 @@ static const std::string DELETE_ENTITY_SERVICE = "/delete_entity";
  * @return
  */
 static std::string createObjectURDF(const std::string& object_name,
-                             const std::string& mesh_path,
-                             const std::array<double,6>& pose_vals,
-                             const double mass = 0.1 )
+                                    const std::string& mesh_path,
+                                    const std::array<double, 6>& pose_vals,
+                                    const double mass = 0.1)
 {
   std::string joint_xml_template = R"(
     <joint name="world_to_part" type="fixed">
@@ -62,13 +62,8 @@ static std::string createObjectURDF(const std::string& object_name,
     </joint>
   )";
 
-  std::string joint_xml = boost::str(boost::format(joint_xml_template) % object_name %
-                                     pose_vals[0] %
-                                     pose_vals[1] %
-                                     pose_vals[2] %
-                                     pose_vals[3] %
-                                     pose_vals[4] %
-                                     pose_vals[5]);
+  std::string joint_xml = boost::str(boost::format(joint_xml_template) % object_name % pose_vals[0] % pose_vals[1] %
+                                     pose_vals[2] % pose_vals[3] % pose_vals[4] % pose_vals[5]);
 
   std::string robot_xml_template = R"(
     <robot name="%s">
@@ -102,93 +97,89 @@ static std::string createObjectURDF(const std::string& object_name,
     </gazebo>
     </robot>)";
 
-  return boost::str(boost::format(robot_xml_template) %
-                    object_name %
-                    object_name %
-                    mesh_path %
-                    mesh_path %
-                    mass %
-                    joint_xml );
+  return boost::str(boost::format(robot_xml_template) % object_name % object_name % mesh_path % mesh_path % mass %
+                    joint_xml);
 }
 
-namespace crs_application{
-namespace common{
-
-SimulationObjectSpawner::SimulationObjectSpawner(rclcpp::Node::SharedPtr node):
-    node_(node)
+namespace crs_application
+{
+namespace common
+{
+SimulationObjectSpawner::SimulationObjectSpawner(rclcpp::Node::SharedPtr node) : node_(node)
 {
   spawn_client_ = node_->create_client<gazebo_msgs::srv::SpawnEntity>(SPAWN_ENTITY_SERVICE);
   delete_client_ = node_->create_client<gazebo_msgs::srv::DeleteEntity>(DELETE_ENTITY_SERVICE);
 }
 
-SimulationObjectSpawner::~SimulationObjectSpawner()
-{
+SimulationObjectSpawner::~SimulationObjectSpawner() {}
 
-}
-
-bool SimulationObjectSpawner::spawn(const std::string &obj_name, const std::string &reference_frame_id,
-                                    const std::string& mesh_path, const std::array<double,6>& pose)
+bool SimulationObjectSpawner::spawn(const std::string& obj_name,
+                                    const std::string& reference_frame_id,
+                                    const std::string& mesh_path,
+                                    const std::array<double, 6>& pose)
 {
   using namespace std::chrono_literals;
 
   // load part into simulator if its running
-  if(spawn_client_->wait_for_service(1s))
+  if (spawn_client_->wait_for_service(1s))
   {
-     gazebo_msgs::srv::SpawnEntity::Request::SharedPtr spawn_req = std::make_shared<gazebo_msgs::srv::SpawnEntity::Request>();
-     spawn_req->initial_pose = tf2::toMsg(Eigen::Isometry3d::Identity());
-     spawn_req->xml = createObjectURDF(obj_name,mesh_path, pose);
-     spawn_req->name = obj_name;
-     spawn_req->reference_frame = reference_frame_id;
-     using ResponseFutT = decltype(spawn_client_)::element_type::SharedFuture;
-     RCLCPP_INFO_STREAM(node_->get_logger()," Spawning gazebo object:\n" << spawn_req->xml);
-     spawn_client_->async_send_request(spawn_req,[this, xml = spawn_req->xml](ResponseFutT fut){
-       if(fut.valid() && fut.get()->success)
-       {
-         RCLCPP_INFO(node_->get_logger(),"Spawned object in gazebo");
-       }
-       else
-       {
-         RCLCPP_ERROR(node_->get_logger(),"Spawn request in gazebo failed");
-       }
-     });
+    gazebo_msgs::srv::SpawnEntity::Request::SharedPtr spawn_req =
+        std::make_shared<gazebo_msgs::srv::SpawnEntity::Request>();
+    spawn_req->initial_pose = tf2::toMsg(Eigen::Isometry3d::Identity());
+    spawn_req->xml = createObjectURDF(obj_name, mesh_path, pose);
+    spawn_req->name = obj_name;
+    spawn_req->reference_frame = reference_frame_id;
+    using ResponseFutT = decltype(spawn_client_)::element_type::SharedFuture;
+    RCLCPP_INFO_STREAM(node_->get_logger(), " Spawning gazebo object:\n" << spawn_req->xml);
+    spawn_client_->async_send_request(spawn_req, [this, xml = spawn_req->xml](ResponseFutT fut) {
+      if (fut.valid() && fut.get()->success)
+      {
+        RCLCPP_INFO(node_->get_logger(), "Spawned object in gazebo");
+      }
+      else
+      {
+        RCLCPP_ERROR(node_->get_logger(), "Spawn request in gazebo failed");
+      }
+    });
   }
   else
   {
-    RCLCPP_INFO(node_->get_logger(),"Did not find service \"%s\", skipping", spawn_client_->get_service_name());
+    RCLCPP_INFO(node_->get_logger(), "Did not find service \"%s\", skipping", spawn_client_->get_service_name());
     return false;
   }
   return true;
 }
 
-bool SimulationObjectSpawner::remove(const std::string &obj_name)
+bool SimulationObjectSpawner::remove(const std::string& obj_name)
 {
   using namespace std::chrono_literals;
 
   // load part into simulator if its running
-  if(delete_client_->wait_for_service(1s))
+  if (delete_client_->wait_for_service(1s))
   {
-     gazebo_msgs::srv::DeleteEntity::Request::SharedPtr delete_req = std::make_shared<gazebo_msgs::srv::DeleteEntity::Request>();
-     delete_req->name = obj_name;
-     RCLCPP_INFO_STREAM(node_->get_logger()," Deleting gazebo object:\n" << obj_name);
-     using ResponseFutT = decltype(delete_client_)::element_type::SharedFuture;
-     delete_client_->async_send_request(delete_req,[this](ResponseFutT fut){
-       if(fut.valid() && fut.get()->success)
-       {
-         RCLCPP_INFO(node_->get_logger(),"Deleted object from gazebo");
-       }
-       else
-       {
-         RCLCPP_ERROR(node_->get_logger(),"Deletion request in gazebo failed");
-       }
-     });
+    gazebo_msgs::srv::DeleteEntity::Request::SharedPtr delete_req =
+        std::make_shared<gazebo_msgs::srv::DeleteEntity::Request>();
+    delete_req->name = obj_name;
+    RCLCPP_INFO_STREAM(node_->get_logger(), " Deleting gazebo object:\n" << obj_name);
+    using ResponseFutT = decltype(delete_client_)::element_type::SharedFuture;
+    delete_client_->async_send_request(delete_req, [this](ResponseFutT fut) {
+      if (fut.valid() && fut.get()->success)
+      {
+        RCLCPP_INFO(node_->get_logger(), "Deleted object from gazebo");
+      }
+      else
+      {
+        RCLCPP_ERROR(node_->get_logger(), "Deletion request in gazebo failed");
+      }
+    });
   }
   else
   {
-    RCLCPP_INFO(node_->get_logger(),"Did not find service \"%s\", skipping", delete_client_->get_service_name());
+    RCLCPP_INFO(node_->get_logger(), "Did not find service \"%s\", skipping", delete_client_->get_service_name());
     return false;
   }
   return true;
 }
 
-}
-}
+}  // namespace common
+}  // namespace crs_application

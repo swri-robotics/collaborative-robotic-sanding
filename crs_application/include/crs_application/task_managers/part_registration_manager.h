@@ -96,7 +96,6 @@ protected:
   // simulation object manager
   std::shared_ptr<common::SimulationObjectSpawner> obj_spawner_;
 
-
   // timers
   rclcpp::TimerBase::SharedPtr publish_timer_;
 

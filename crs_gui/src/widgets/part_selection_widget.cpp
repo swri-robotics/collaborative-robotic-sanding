@@ -30,7 +30,7 @@
 
 #include "ui_part_selection.h"
 
-static const std::vector<std::string> MESH_EXTENSIONS = {"stl", "obj", "dae"};
+static const std::vector<std::string> MESH_EXTENSIONS = { "stl", "obj", "dae" };
 
 namespace crs_gui
 {
@@ -63,9 +63,9 @@ void PartSelectionWidget::refreshPartsList()
 
     // check for mesh existence
     std::string part_name = itr->path().stem().string();
-    if(!std::any_of(MESH_EXTENSIONS.begin(), MESH_EXTENSIONS.end(),[&](const std::string& ext) -> bool{
-      return exists(itr->path()/ path(part_name + "." + ext));
-    }))
+    if (!std::any_of(MESH_EXTENSIONS.begin(), MESH_EXTENSIONS.end(), [&](const std::string& ext) -> bool {
+          return exists(itr->path() / path(part_name + "." + ext));
+        }))
     {
       continue;
     }
@@ -134,9 +134,10 @@ void PartSelectionWidget::onPartSelected()
     std::string current_part =
         ui_->list_widget_parts->currentItem()->data(Qt::ItemDataRole::UserRole).toString().toUtf8().constData();
     std::string part_mesh;
-    std::for_each(MESH_EXTENSIONS.begin(),MESH_EXTENSIONS.end(),[&](const std::string& ext){
-      fs::path mesh_full_path = fs::path(database_directory_) / fs::path(current_part) / fs::path(current_part + "." + ext);
-      if(fs::exists(mesh_full_path))
+    std::for_each(MESH_EXTENSIONS.begin(), MESH_EXTENSIONS.end(), [&](const std::string& ext) {
+      fs::path mesh_full_path =
+          fs::path(database_directory_) / fs::path(current_part) / fs::path(current_part + "." + ext);
+      if (fs::exists(mesh_full_path))
       {
         part_mesh = mesh_full_path.filename().string();
       }

@@ -149,8 +149,7 @@ void CRSApplicationWidget::onPartSelected(const QString selected_part, const QSt
   visualization_msgs::msg::Marker marker;
   marker.header.frame_id = WORLD_FRAME;
 
-  cad_part_file_ =
-      database_directory_ + "/" + selected_part.toStdString() + "/" + part_mesh.toStdString() ;
+  cad_part_file_ = database_directory_ + "/" + selected_part.toStdString() + "/" + part_mesh.toStdString();
   marker.mesh_resource = "file://" + cad_part_file_;
   marker.mesh_use_embedded_materials = true;
   marker.scale.x = 1.0;
@@ -223,10 +222,7 @@ void CRSApplicationWidget::onPartPathSelected(const QString qselected_part, cons
   toolpath_marker_pub_->publish(delete_all_marker_);
 }
 
-std::vector<rclcpp::Node::SharedPtr> CRSApplicationWidget::getNodes()
-{
-  return {node_, support_widgets_node_};
-}
+std::vector<rclcpp::Node::SharedPtr> CRSApplicationWidget::getNodes() { return { node_, support_widgets_node_ }; }
 
 void CRSApplicationWidget::getConfigurationCb(crs_msgs::srv::GetConfiguration::Request::SharedPtr req,
                                               crs_msgs::srv::GetConfiguration::Response::SharedPtr res)

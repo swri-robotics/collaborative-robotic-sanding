@@ -201,10 +201,10 @@ void JointPoseTrajectoryPrivate::OnUpdate(const gazebo::common::UpdateInfo& info
     if (trajectory_index_ < points_.size())
     {
       RCLCPP_INFO(ros_node_->get_logger(),
-                   "time [%f] updating configuration [%d/%lu]",
-                   current_time.Double(),
-                   trajectory_index_ + 1,
-                   points_.size());
+                  "time [%f] updating configuration [%d/%lu]",
+                  current_time.Double(),
+                  trajectory_index_ + 1,
+                  points_.size());
 
       // get reference link pose before updates
       auto reference_pose = model_->WorldPose();

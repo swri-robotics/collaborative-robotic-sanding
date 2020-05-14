@@ -36,9 +36,9 @@ static const double WAIT_SERVICE_COMPLETION_PERIOD = 2.0;
 
 namespace standard_user_actions
 {
-  static const std::string APPROVES = "user_approves";
-  static const std::string CANCELS = "user_cancels";
-}
+static const std::string APPROVES = "user_approves";
+static const std::string CANCELS = "user_cancels";
+}  // namespace standard_user_actions
 
 // TODO: Crashes too frequently, disable popup window for now
 void showMsgBox(bool succeeded, std::string msg)
@@ -57,16 +57,13 @@ void showMsgBox(bool succeeded, std::string msg)
     msg_box.setText(QString::fromStdString(msg));
     msg_box.setIcon(QMessageBox::Critical);
   }
-  //msg_box.show();
+  // msg_box.show();
 }
 
 namespace crs_gui
 {
 StateMachineInterfaceWidget::StateMachineInterfaceWidget(rclcpp::Node::SharedPtr node, QWidget* parent)
-  : QWidget(parent)
-  , current_state_("")
-  , ui_(new Ui::StateMachineInterface)
-  , node_(node)
+  : QWidget(parent), current_state_(""), ui_(new Ui::StateMachineInterface), node_(node)
 
 {
   ui_->setupUi(this);
@@ -82,9 +79,7 @@ StateMachineInterfaceWidget::StateMachineInterfaceWidget(rclcpp::Node::SharedPtr
   connect(ui_->push_button_sm_query, &QPushButton::clicked, this, &StateMachineInterfaceWidget::onSMQuery);
   connect(ui_->push_button_sm_cancel, &QPushButton::clicked, this, &StateMachineInterfaceWidget::onSMCancel);
   connect(ui_->push_button_sm_approve, &QPushButton::clicked, this, &StateMachineInterfaceWidget::onSMApprove);
-  connect(this, &StateMachineInterfaceWidget::show_msg,[](bool b, std::string msg){
-    showMsgBox(b,msg);
-  });
+  connect(this, &StateMachineInterfaceWidget::show_msg, [](bool b, std::string msg) { showMsgBox(b, msg); });
 }
 
 StateMachineInterfaceWidget::~StateMachineInterfaceWidget() = default;
@@ -119,8 +114,7 @@ void StateMachineInterfaceWidget::onSMApply()
   }
   // Send request
   using ResFut = decltype(execute_action_client_)::element_type::SharedFuture;
-  execute_action_client_->async_send_request(request,[this](ResFut future)
-  {
+  execute_action_client_->async_send_request(request, [this](ResFut future) {
     auto result = future.get();
     if (result.get()->succeeded)
     {
@@ -147,8 +141,7 @@ void StateMachineInterfaceWidget::onSMQuery()
   }
   // Send request and wait for result
   using ResFut = decltype(get_available_actions_client_)::element_type::SharedFuture;
-  get_available_actions_client_->async_send_request(request,[this](ResFut future)
-  {
+  get_available_actions_client_->async_send_request(request, [this](ResFut future) {
     auto result = future.get();
     if (!result.get()->succeeded)
     {
@@ -165,10 +158,10 @@ void StateMachineInterfaceWidget::onSMQuery()
     ui_->combo_box_sm_available_actions->clear();
 
     // enable/disable std action buttons
-    ui_->push_button_sm_approve->setEnabled(std::find(actions_ids.begin(), actions_ids.end(),
-                                                     standard_user_actions::APPROVES) != actions_ids.end());
-    ui_->push_button_sm_cancel->setEnabled(std::find(actions_ids.begin(), actions_ids.end(),
-                                                     standard_user_actions::CANCELS) != actions_ids.end());
+    ui_->push_button_sm_approve->setEnabled(
+        std::find(actions_ids.begin(), actions_ids.end(), standard_user_actions::APPROVES) != actions_ids.end());
+    ui_->push_button_sm_cancel->setEnabled(
+        std::find(actions_ids.begin(), actions_ids.end(), standard_user_actions::CANCELS) != actions_ids.end());
 
     if (actions_ids.empty())
     {
@@ -198,9 +191,7 @@ void StateMachineInterfaceWidget::onSMCancel()
   }
   // Send request
   using ResFut = decltype(execute_action_client_)::element_type::SharedFuture;
-  execute_action_client_->async_send_request(request,[this](ResFut )
-  {
-  });
+  execute_action_client_->async_send_request(request, [this](ResFut) {});
 }
 
 void StateMachineInterfaceWidget::onSMApprove()
@@ -220,8 +211,7 @@ void StateMachineInterfaceWidget::onSMApprove()
   }
   // Send request
   using ResFut = decltype(execute_action_client_)::element_type::SharedFuture;
-  execute_action_client_->async_send_request(request,[this](ResFut future)
-  {
+  execute_action_client_->async_send_request(request, [this](ResFut future) {
     auto result = future.get();
     if (result.get()->succeeded)
     {
