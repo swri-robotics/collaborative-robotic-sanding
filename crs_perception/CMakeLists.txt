@@ -28,6 +28,7 @@ find_package(rclcpp_components REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(visualization_msgs REQUIRED)
 find_package(PCL REQUIRED)
 find_package(VTK REQUIRED NO_MODULE)
 
@@ -41,13 +42,21 @@ add_library(${PROJECT_NAME} SHARED
 )
 target_link_libraries(${PROJECT_NAME} ${PCL_LIBRARIES} ${VTK_LIBRARIES})
   
-
+# node as component plugin
 add_library(${PROJECT_NAME}_nodes SHARED
   src/nodes/localize_to_part.cpp)
 rclcpp_components_register_nodes(${PROJECT_NAME}_nodes "crs_perception::LocalizeToPart")
 target_link_libraries(${PROJECT_NAME}_nodes ${PROJECT_NAME} ${PCL_LIBRARIES})
-ament_target_dependencies(${PROJECT_NAME}_nodes rclcpp rclcpp_components crs_msgs tf2_ros)
+ament_target_dependencies(${PROJECT_NAME}_nodes rclcpp rclcpp_components crs_msgs tf2_ros visualization_msgs)
 
+# node as executable, component plugin can't load parameters
+add_executable(localize_to_part src/nodes/localize_to_part.cpp)
+target_link_libraries(localize_to_part ${PROJECT_NAME} ${PCL_LIBRARIES})
+ament_target_dependencies(localize_to_part rclcpp rclcpp_components crs_msgs tf2_ros std_msgs visualization_msgs)
+install(TARGETS localize_to_part
+DESTINATION lib/${PROJECT_NAME})
+
+# test executable
 add_executable(test_localize_to_part src/nodes/test_localize_to_part.cpp)
 target_link_libraries(test_localize_to_part ${PROJECT_NAME} ${PCL_LIBRARIES})
 ament_target_dependencies(test_localize_to_part rclcpp crs_msgs std_msgs)

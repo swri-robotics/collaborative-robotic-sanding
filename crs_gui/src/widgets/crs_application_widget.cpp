@@ -55,7 +55,6 @@ static const std::string TOOLPATH_FILE_EXT = ".yaml";
 static const std::string CONFIG_FILES_DIR = "configs";
 static const std::string CONFIG_FILE_SUFFIX = "_config.yaml";
 static const std::string WORLD_FRAME = "world";
-static const std::string CAD_EXT = ".ply";
 
 // configuration variables
 static const std::string CONFIG_ROOT_ITEM = "crs";
@@ -126,6 +125,9 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node, QWidget
   ui_->vertical_layout_area_selection->addWidget(area_selection_widget_.get());
   ui_->vertical_layout_sm_interface->addWidget(state_machine_interface_widget_.get());
 
+  // disable sm gui at startup
+  state_machine_interface_widget_->setEnabled(false);
+
   // Connect signals and slots
   connect(part_selector_widget_.get(),
           &PartSelectionWidget::partSelected,
@@ -141,14 +143,13 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node, QWidget
 
 CRSApplicationWidget::~CRSApplicationWidget() = default;
 
-void CRSApplicationWidget::onPartSelected(const QString selected_part)
+void CRSApplicationWidget::onPartSelected(const QString selected_part, const QString part_mesh)
 {
   RCLCPP_INFO(node_->get_logger(), "Selected Part: %s", selected_part.toStdString().c_str());
   visualization_msgs::msg::Marker marker;
   marker.header.frame_id = WORLD_FRAME;
 
-  cad_part_file_ =
-      database_directory_ + "/" + selected_part.toStdString() + "/" + selected_part.toStdString() + CAD_EXT;
+  cad_part_file_ = database_directory_ + "/" + selected_part.toStdString() + "/" + part_mesh.toStdString();
   marker.mesh_resource = "file://" + cad_part_file_;
   marker.mesh_use_embedded_materials = true;
   marker.scale.x = 1.0;
@@ -209,6 +210,8 @@ void CRSApplicationWidget::onPartPathSelected(const QString qselected_part, cons
     return;
   }
 
+  state_machine_interface_widget_->setEnabled(true);
+
   // Convert to markers
   visualization_msgs::msg::MarkerArray raster_markers;
   crs_motion_planning::rasterStripsToMarkerArray(rasters, WORLD_FRAME, raster_markers);
@@ -218,6 +221,8 @@ void CRSApplicationWidget::onPartPathSelected(const QString qselected_part, cons
   // Clear the old toolpath
   toolpath_marker_pub_->publish(delete_all_marker_);
 }
+
+std::vector<rclcpp::Node::SharedPtr> CRSApplicationWidget::getNodes() { return { node_, support_widgets_node_ }; }
 
 void CRSApplicationWidget::getConfigurationCb(crs_msgs::srv::GetConfiguration::Request::SharedPtr req,
                                               crs_msgs::srv::GetConfiguration::Response::SharedPtr res)

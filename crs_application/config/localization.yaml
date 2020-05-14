@@ -1,0 +1,19 @@
+general:
+  mesh_num_samples: 100000
+  leaf_size: 0.01
+  part_frame: "part"
+  enable_debug_visualizations: True
+icp:
+  max_correspondence_dist: 0.02
+  max_iter: 200
+  transformation_eps: 1e-2
+  euclidean_fitness: 1.0
+crop_boxes:
+  box1:
+    xyz: [-0.6, 0.0, 1.0]
+    size: [1.4, 2.0, 0.6]
+    reverse: True
+  box2:
+    xyz: [-0.6, 0.0, 0.56]
+    size: [0.7, 3.0, 0.8]
+    reverse: False # deletes what's inside the box

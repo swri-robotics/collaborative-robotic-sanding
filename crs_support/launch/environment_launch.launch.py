@@ -69,7 +69,7 @@ def generate_launch_description():
         package='crs_motion_planning',
         node_name='motion_planning_server',
         #node_namespace = [launch.substitutions.LaunchConfiguration('global_ns')],
-        output='screen',
+        output='log',
         parameters=[{'urdf_path': urdf,
         'srdf_path': srdf,
         'process_planner_service': "plan_process_motion",

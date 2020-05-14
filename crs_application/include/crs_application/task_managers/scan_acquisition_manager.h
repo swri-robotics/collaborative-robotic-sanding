@@ -37,7 +37,12 @@
 #define INCLUDE_CRS_APPLICATION_TASK_MANAGERS_SCAN_ACQUISITION_MANAGER_H_
 
 #include <vector>
+
 #include <rclcpp/rclcpp.hpp>
+
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
+
 #include "crs_application/common/common.h"
 #include "crs_application/common/datatypes.h"
 #include "crs_application/common/config.h"
@@ -103,11 +108,15 @@ protected:
   // service clients
   rclcpp::Client<crs_msgs::srv::CallFreespaceMotion>::SharedPtr call_freespace_motion_client_;
 
+  // tf
+  tf2_ros::Buffer tf_buffer_;
+  tf2_ros::TransformListener tf_listener_;
+
   // timers
   rclcpp::TimerBase::SharedPtr scan_poses_pub_timer_;
 
   sensor_msgs::msg::PointCloud2 curr_point_cloud_;
-  std::vector<sensor_msgs::msg::PointCloud2> point_clouds_;
+  datatypes::ScanAcquisitionResult current_data_;
   uint scan_index_;
 
   void handlePointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr msg);

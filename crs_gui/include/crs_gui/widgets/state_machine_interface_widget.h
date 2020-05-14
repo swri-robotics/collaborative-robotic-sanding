@@ -41,6 +41,7 @@ public:
 Q_SIGNALS:
   /** @brief emitted inside currentStateCB when the state changes with the name of new state as the argument*/
   void onStateChange(std::string);
+  void show_msg(bool, std::string);
 
 protected Q_SLOTS:
 
@@ -62,7 +63,6 @@ protected:
 
   /** @brief Node that is used for service calls and subscriber*/
   rclcpp::Node::SharedPtr node_;
-  rclcpp::Node::SharedPtr pnode_;
   /** @brief Subscriber to topic publishing the current sm state*/
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr current_state_sub_;
   /** @brief Current state subscriber callback*/

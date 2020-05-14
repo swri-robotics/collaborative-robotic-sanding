@@ -118,15 +118,16 @@ public:
     joint_state_listener_ = this->create_subscription<sensor_msgs::msg::JointState>(
         JOINT_STATES_TOPIC, 1, std::bind(&MotionPlanningServer::jointCallback, this, std::placeholders::_1));
 
+    traj_exec_node_ = std::make_shared<rclcpp::Node>("trajectory_exec");
     trajectory_exec_client_cbgroup_ =
-        this->create_callback_group(rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
-    trajectory_exec_client_ =
-        rclcpp_action::create_client<control_msgs::action::FollowJointTrajectory>(this->get_node_base_interface(),
-                                                                                  this->get_node_graph_interface(),
-                                                                                  this->get_node_logging_interface(),
-                                                                                  this->get_node_waitables_interface(),
-                                                                                  FOLLOW_JOINT_TRAJECTORY_ACTION,
-                                                                                  trajectory_exec_client_cbgroup_);
+        traj_exec_node_->create_callback_group(rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
+    trajectory_exec_client_ = rclcpp_action::create_client<control_msgs::action::FollowJointTrajectory>(
+        traj_exec_node_->get_node_base_interface(),
+        traj_exec_node_->get_node_graph_interface(),
+        traj_exec_node_->get_node_logging_interface(),
+        traj_exec_node_->get_node_waitables_interface(),
+        FOLLOW_JOINT_TRAJECTORY_ACTION,
+        trajectory_exec_client_cbgroup_);
 
     load_part_service_ = this->create_service<crs_msgs::srv::LoadPart>(
         LOAD_PART_SERVICE,
@@ -449,7 +450,7 @@ private:
       // Publish trajectory if desired
       std::cout << "EXECUTING TRAJECTORY" << std::endl;
       // traj_publisher_->publish(response->output_trajectory);
-      if (!execTrajectory(trajectory_exec_client_, this->get_logger(), response->output_trajectory))
+      if (!execTrajectory(trajectory_exec_client_, this->get_logger(), response->output_trajectory, traj_exec_node_))
       {
         return;
       }
@@ -628,6 +629,7 @@ private:
   rclcpp::Client<tesseract_msgs::srv::ModifyEnvironment>::SharedPtr modify_env_client_;
   rclcpp::Subscription<tesseract_msgs::msg::TesseractState>::SharedPtr env_state_sub_;
 
+  rclcpp::Node::SharedPtr traj_exec_node_;
   rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SharedPtr trajectory_exec_client_;
   rclcpp::callback_group::CallbackGroup::SharedPtr trajectory_exec_client_cbgroup_;
 

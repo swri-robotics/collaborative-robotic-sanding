@@ -10,8 +10,8 @@
 		<include file="$(find-pkg-share crs_application)/launch/load_preview_robot_model.launch.xml">
 		</include>		
 
-    <include file="$(find-pkg-share crs_application)/launch/load_robot_model.launch.xml">
-    </include>
+	    <include file="$(find-pkg-share crs_application)/launch/load_robot_model.launch.xml">
+	    </include>
 		
 		<include file="$(find-pkg-share crs_support)/launch/environment_launch.launch.py">
 		</include>
@@ -21,9 +21,12 @@
 		</node>		
 				
 		<!-- ros2 component standalone crs_perception crs_perception::LocalizeToPart  -->
-		<let name="node_ns" value="/$(var group_ns)"/>
-	    <executable cmd="ros2 component standalone crs_perception crs_perception::LocalizeToPart --node-namespace $(var node_ns)" 
-	    	name="$(var group_ns)/localization_node" output="screen" shell="true"/>
+		<!--<let name="node_ns" value="/$(var group_ns)"/>
+	    <executable cmd="ros2 component standalone crs_perception crs_perception::LocalizeToPart - -node-namespace $(var node_ns)" 
+	    	name="$(var group_ns)/localization_node" output="screen" shell="true"/>-->
+	    	
+	    <!-- This launch file does not honor the ns pushed to it-->
+	    <include file="$(find-pkg-share crs_application)/launch/perception.launch.py"/>	    
 	    	
 		<!-- rviz -->
 		<let name="rviz_config" value="$(find-pkg-share crs_application)/resources/crs.rviz"/>

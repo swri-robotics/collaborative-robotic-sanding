@@ -1,7 +1,7 @@
 /*
  * @author Jorge Nicho
- * @file datatypes.h
- * @date Jan 16, 2020
+ * @file simulation_object_spawner.h
+ * @date May 4, 2020
  * @copyright Copyright (c) 2020, Southwest Research Institute
  * Software License Agreement (BSD License)
  *
@@ -33,56 +33,37 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef INCLUDE_CRS_APPLICATION_COMMON_DATATYPES_H_
-#define INCLUDE_CRS_APPLICATION_COMMON_DATATYPES_H_
+#ifndef INCLUDE_CRS_APPLICATION_COMMON_SIMULATION_OBJECT_SPAWNER_H_
+#define INCLUDE_CRS_APPLICATION_COMMON_SIMULATION_OBJECT_SPAWNER_H_
 
-#include <vector>
-#include <Eigen/Geometry>
-#include <geometry_msgs/msg/transform_stamped.hpp>
-#include <crs_msgs/msg/process_motion_plan.hpp>
-#include <geometry_msgs/msg/pose_array.hpp>
-#include <sensor_msgs/msg/point_cloud2.hpp>
+#include <gazebo_msgs/srv/spawn_entity.hpp>
+#include <gazebo_msgs/srv/delete_entity.hpp>
+
+#include <rclcpp/rclcpp.hpp>
 
 namespace crs_application
 {
-namespace datatypes
+namespace common
 {
-struct ScanAcquisitionResult
+class SimulationObjectSpawner
 {
-  std::vector<sensor_msgs::msg::PointCloud2> point_clouds;
-  std::vector<geometry_msgs::msg::TransformStamped> transforms;
+public:
+  SimulationObjectSpawner(rclcpp::Node::SharedPtr node);
+  virtual ~SimulationObjectSpawner();
+
+  bool spawn(const std::string& obj_name,
+             const std::string& reference_frame_id,
+             const std::string& mesh_path,
+             const std::array<double, 6>& pose);
+  bool remove(const std::string& obj_name);
+
+protected:
+  rclcpp::Client<gazebo_msgs::srv::SpawnEntity>::SharedPtr spawn_client_; /** @brief used to spawn the object on gazebo
+                                                                             when if in simulation mode*/
+  rclcpp::Client<gazebo_msgs::srv::DeleteEntity>::SharedPtr delete_client_;
+  rclcpp::Node::SharedPtr node_;
 };
 
-struct ProcessToolpathData
-{
-  std::vector<geometry_msgs::msg::PoseArray> rasters;
-};
-
-struct MediaChangeMotionPlan
-{
-  trajectory_msgs::msg::JointTrajectory start_traj;
-  trajectory_msgs::msg::JointTrajectory return_traj;
-};
-
-enum class ProcessExecActions : int
-{
-  EXEC_PROCESS = 1,
-  EXEC_MEDIA_CHANGE,
-  DONE
-};
-
-struct ProcessExecutionData
-{
-  trajectory_msgs::msg::JointTrajectory move_to_start;
-  std::vector<crs_msgs::msg::ProcessMotionPlan> process_plans;
-  std::vector<MediaChangeMotionPlan> media_change_plans;
-};
-
-struct PartInspectionResult
-{
-};
-
-}  // namespace datatypes
+}  // namespace common
 }  // namespace crs_application
-
-#endif /* INCLUDE_CRS_APPLICATION_COMMON_DATATYPES_H_ */
+#endif /* INCLUDE_CRS_APPLICATION_COMMON_SIMULATION_OBJECT_SPAWNER_H_ */

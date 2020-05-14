@@ -312,6 +312,15 @@ bool CRSExecutive::setup()
   process_exec_mngr_ = std::make_shared<task_managers::ProcessExecutionManager>(managers_node_);
   part_rework_mngr_ = std::make_shared<task_managers::PartReworkManager>(managers_node_);
 
+  std::thread managers_node_thread([this]() {
+    while (rclcpp::ok())
+    {
+      rclcpp::spin_some(managers_node_);
+    }
+  });
+
+  managers_node_thread.detach();
+
   // create state machine
   std::string state_machine_file = std::get<1>(parameters[0]).get<std::string>();
   sm_ = std::make_shared<scxml_core::StateMachine>();
@@ -403,7 +412,7 @@ bool CRSExecutive::setupPartRegistrationStates()
 
   st_callbacks_map[part_reg::COMPUTE_TRANSFORM] = StateCallbackInfo{
     entry_cb : std::bind(&task_managers::PartRegistrationManager::computeTransform, part_regt_mngr_.get()),
-    async : false
+    async : true
   };
 
   st_callbacks_map[part_reg::APPLY_TRANSFORM] = StateCallbackInfo{
@@ -515,7 +524,7 @@ bool CRSExecutive::setupScanAcquisitionStates()
 
   st_callbacks_map[scan::MOVE_ROBOT] = StateCallbackInfo{
     entry_cb : std::bind(&task_managers::ScanAcquisitionManager::moveRobot, scan_acqt_mngr_.get()),
-    async : false
+    async : true
   };
 
   st_callbacks_map[scan::VERIFICATION] = StateCallbackInfo{

@@ -87,6 +87,7 @@ struct PartRegistrationConfig
   std::string target_frame_id;
   std::string part_file;
   std::string toolpath_file;
+  std::array<double, 6> seed_pose;
 };
 
 struct PartReworkConfig
