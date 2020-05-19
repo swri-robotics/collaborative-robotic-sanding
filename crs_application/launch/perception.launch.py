@@ -52,6 +52,7 @@ def generate_launch_description():
         node_name='part_localization',
         node_namespace = GLOBAL_NS ,
         output='screen',
+        #prefix= 'xterm -e gdb --args',
         parameters=[general_params,
                     icp_params,
                     crop_boxes_params

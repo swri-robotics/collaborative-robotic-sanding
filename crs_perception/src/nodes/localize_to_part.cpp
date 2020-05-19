@@ -391,29 +391,46 @@ private:
       *combined_point_cloud += *transformed_cloud;
     }
 
+    RCLCPP_INFO(this->get_logger(),"Combined point cloud has %lu points", combined_point_cloud->size());
+
     // transforming to requested frame
     std::string src_frame_id = request->transforms.front().header.frame_id;
-    try
+    if(src_frame_id != request->frame)
     {
-      geometry_msgs::msg::TransformStamped transform =
-          tf_buffer_.lookupTransform(request->frame, src_frame_id, tf2::TimePointZero);
-      pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
-      ;
-      pcl::transformPointCloud(*combined_point_cloud, *transformed_cloud, tf2::transformToEigen(transform).matrix());
-      *combined_point_cloud = *transformed_cloud;
-    }
-    catch (tf2::TransformException ex)
-    {
-      RCLCPP_ERROR(this->get_logger(), "%s", ex.what());
-      response->success = false;
-      response->error = "Failed to transform point cloud from '" + src_frame_id + "' to '" + request->frame + "' frame";
-      return;
+      try
+      {
+        RCLCPP_INFO(this->get_logger(), "Transforming cloud from frame %s to %s", src_frame_id.c_str(),
+                    request->frame.c_str());
+        geometry_msgs::msg::TransformStamped transform =
+            tf_buffer_.lookupTransform(request->frame, src_frame_id, tf2::TimePointZero);
+        pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+        ;
+        pcl::transformPointCloud(*combined_point_cloud, *transformed_cloud, tf2::transformToEigen(transform).matrix());
+        *combined_point_cloud = *transformed_cloud;
+      }
+      catch (tf2::TransformException ex)
+      {
+        RCLCPP_ERROR(this->get_logger(), "%s", ex.what());
+        response->success = false;
+        response->error = "Failed to transform point cloud from '" + src_frame_id + "' to '" + request->frame + "' frame";
+        return;
+      }
     }
 
     // cropping
     for (auto& cfg : crop_boxes_)
     {
       combined_point_cloud = cropBox(cfg, combined_point_cloud);
+    }
+    RCLCPP_INFO(this->get_logger(),"Combined point cloud has %lu points after cropping", combined_point_cloud->size());
+
+
+    if(combined_point_cloud->empty())
+    {
+      response->success = false;
+      response->error ="No point remains after cropping";
+      RCLCPP_ERROR_STREAM(this->get_logger(),response->error);
+      return;
     }
 
     if (enable_debug_visualizations_)
@@ -441,6 +458,7 @@ private:
     pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
     *src_cloud = downsampleCloud(part_point_cloud_, leaf_size_);
     *target_cloud = downsampleCloud(combined_point_cloud, leaf_size_);
+    RCLCPP_INFO(this->get_logger(),"Combined point cloud has %lu points after downsampling", target_cloud->size());
 
     // initial alignment
     pcl::PointCloud<pcl::PointXYZ>::Ptr temp_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
