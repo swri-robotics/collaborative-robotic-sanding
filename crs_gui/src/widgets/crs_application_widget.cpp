@@ -54,6 +54,7 @@ const static double WAIT_FOR_SERVICE_PERIOD = 1.0;
 static const std::string TOOLPATH_FILE_EXT = ".yaml";
 static const std::string CONFIG_FILES_DIR = "configs";
 static const std::string CONFIG_FILE_SUFFIX = "_config.yaml";
+static const std::string DEFAULT_CONFIG_FILE = "crs.yaml";  // in part directory
 static const std::string WORLD_FRAME = "world";
 
 // configuration variables
@@ -180,18 +181,32 @@ void CRSApplicationWidget::onPartPathSelected(const QString qselected_part, cons
   // check existence of config file
   if (!fs::exists(fs::path(config_file)))
   {
-    if (!fs::exists(fs::path(default_config_path_)))
+    std::vector<fs::path> default_config_files = {fs::path(database_directory_) / fs::path(selected_part) / fs::path(DEFAULT_CONFIG_FILE),
+                                                  fs::path(default_config_path_)};
+    bool default_config_found = false;
+    for(fs::path& df : default_config_files)
     {
-      RCLCPP_ERROR(node_->get_logger(), "Default config file '%s' was not found", default_config_path_.c_str());
-      return;
+      if (!fs::exists(df))
+      {
+        RCLCPP_WARN(node_->get_logger(), "Default config file '%s' was not found", df.c_str());
+        continue;
+      }
+
+      RCLCPP_WARN(node_->get_logger(),
+                  "config file '%s' not found, copying default '%s'",
+                  config_file.c_str(),
+                  df.c_str());
+      fs::create_directories(fs::path(config_file).parent_path());
+      fs::copy_file(df, fs::path(config_file));
+      default_config_found = true;
+      break;
     }
 
-    RCLCPP_WARN(node_->get_logger(),
-                "config file '%s' not found, copying default '%s'",
-                config_file.c_str(),
-                default_config_path_.c_str());
-    fs::create_directories(fs::path(config_file).parent_path());
-    fs::copy_file(fs::path(default_config_path_), fs::path(config_file));
+    if(!default_config_found)
+    {
+      RCLCPP_ERROR(node_->get_logger(), "No default config file was not found");
+      return;
+    }
   }
 
   if (!fs::exists(fs::path(toolpath_file_)))
