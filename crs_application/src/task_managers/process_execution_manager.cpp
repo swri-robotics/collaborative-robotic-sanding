@@ -34,6 +34,7 @@
  */
 
 #include <boost/format.hpp>
+#include <crs_motion_planning/path_processing_utils.h>
 #include "crs_application/task_managers/process_execution_manager.h"
 
 static const double WAIT_SERVER_TIMEOUT = 10.0;  // seconds
@@ -254,8 +255,16 @@ common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_ms
   using namespace control_msgs::action;
   static const double GOAL_ACCEPT_TIMEOUT_PERIOD = 1.0;
 
-  rclcpp::Duration traj_dur(traj.points.back().time_from_start);
+  //rclcpp::Duration traj_dur(traj.points.back().time_from_start);
   common::ActionResult res = false;
+
+
+  res.succeeded = crs_motion_planning::execTrajectory(trajectory_exec_client_, node_->get_logger(),traj);
+  if(!res)
+  {
+    return res;
+  }
+/*
 
   FollowJointTrajectory::Goal goal;
   goal.trajectory = traj;
@@ -307,7 +316,7 @@ common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_ms
 
   // reset future
   trajectory_exec_fut_ = std::shared_future<GoalHandleT::SharedPtr>();
-  RCLCPP_INFO(node_->get_logger(), "%s Trajectory completed", MANAGER_NAME.c_str());
+  RCLCPP_INFO(node_->get_logger(), "%s Trajectory completed", MANAGER_NAME.c_str());*/
   return true;
 }
 

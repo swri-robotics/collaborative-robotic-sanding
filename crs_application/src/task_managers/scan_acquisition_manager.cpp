@@ -216,7 +216,7 @@ common::ActionResult ScanAcquisitionManager::capture()
       std::string error_msg = "Failed to get transform from '" + captured_cloud.header.frame_id + "' to '" +
                               DEFAULT_WORLD_FRAME_ID + "' frame";
 
-      RCLCPP_ERROR(node_->get_logger(), "%s: ", ex.what(), error_msg.c_str());
+      RCLCPP_ERROR(node_->get_logger(), "Cloud Frame error: %s: ", ex.what(), error_msg.c_str());
       return false;
     }
     current_data_.point_clouds.push_back(captured_cloud);
