@@ -144,6 +144,12 @@ common::ActionResult ProcessExecutionManager::execProcess()
 
 common::ActionResult ProcessExecutionManager::execMediaChange()
 {
+  if(input_->media_change_plans.empty())
+  {
+    RCLCPP_WARN(node_->get_logger(),"No media change moves to execute, skipping");
+    return true;
+  }
+
   datatypes::MediaChangeMotionPlan& mc_motion_plan = input_->media_change_plans[current_media_change_idx_];
   RCLCPP_INFO(node_->get_logger(), "%s Executing media change %i", MANAGER_NAME.c_str(), current_media_change_idx_);
   if (!execTrajectory(mc_motion_plan.start_traj))
@@ -160,7 +166,6 @@ common::ActionResult ProcessExecutionManager::execMediaChange()
 
 common::ActionResult ProcessExecutionManager::checkQueue()
 {
-  RCLCPP_WARN(node_->get_logger(), "%s not implemented yet", __PRETTY_FUNCTION__);
   common::ActionResult res;
   if (current_process_idx_ >= input_->process_plans.size() - 1)
   {

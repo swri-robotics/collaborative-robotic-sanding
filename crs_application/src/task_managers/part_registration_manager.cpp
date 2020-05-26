@@ -109,7 +109,6 @@ common::ActionResult PartRegistrationManager::init()
 
 common::ActionResult PartRegistrationManager::configure(const config::PartRegistrationConfig& config)
 {
-  using namespace std::chrono_literals;
 
   // saving config
   config_ = std::make_shared<config::PartRegistrationConfig>(config);
@@ -147,14 +146,8 @@ common::ActionResult PartRegistrationManager::configure(const config::PartRegist
   obj_spawner_->remove(PART_FRAME_ID);
   obj_spawner_->spawn(PART_FRAME_ID, config_->target_frame_id, config_->part_file, tvals);
 
-  // setting up timers
-  if (publish_timer_)
-  {
-    publish_timer_->cancel();
-  }
-
-  publish_timer_ =
-      node_->create_wall_timer(500ms, [this]() -> void { tf_broadcaster_.sendTransform(part_transform_); });
+  applyTransform();
+  showPreview();
 
   RCLCPP_INFO(node_->get_logger(), "Load part succeeded");
   return true;
@@ -175,6 +168,7 @@ common::ActionResult PartRegistrationManager::hidePreview()
 
 common::ActionResult PartRegistrationManager::showPreview()
 {
+  using namespace std::chrono_literals;
   using namespace visualization_msgs;
 
   common::ActionResult res;
@@ -199,6 +193,18 @@ common::ActionResult PartRegistrationManager::showPreview()
 
   // publishing now
   preview_markers_pub_->publish(markers);
+
+  // setting up timers
+  if (publish_timer_)
+  {
+    publish_timer_->cancel();
+  }
+
+  publish_timer_ =
+      node_->create_wall_timer(500ms, [this, markers]() -> void {
+    tf_broadcaster_.sendTransform(part_transform_);
+    preview_markers_pub_->publish(markers);
+  });
 
   return true;
 }

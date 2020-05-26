@@ -40,7 +40,7 @@
 #include "crs_application/task_managers/motion_planning_manager.h"
 
 static const double WAIT_SERVICE_DURATION = 2.0;            // secs
-static const double WAIT_MOTION_PLANNING_PERIOD = 180.0;  // secs
+static const double WAIT_MOTION_PLANNING_PERIOD = 300.0;  // secs
 static const double WAIT_JOINT_STATE_TIMEOUT = 2.0;
 static const double MAX_JOINT_TOLERANCE = (M_PI / 180.0) * 1.0;
 static const std::string CURRENT_JOINT_STATE_TOPIC = "joint_states";
