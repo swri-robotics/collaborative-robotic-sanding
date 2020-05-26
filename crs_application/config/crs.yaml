@@ -18,8 +18,10 @@ crs:
   scan_acquisition: 
     scan_poses:
       - pose: [0.0, -0.50, 1.7, 0.0, -2.35619, 1.57]
-      - pose: [0.0, -0.43, 1.7, 0.0, -2.35619, 1.57]
+      - pose: [0.0, -0.25, 1.7, 0.0, -2.35619, 1.57]
+      - pose: [0.0, -0.10, 1.7, 0.5, -2.35619, 1.57]
       - pose: [0.0, 0.0, 1.7, 0.0, -2.35619, 1.57]
+      - pose: [0.0, 0.1, 1.7, -0.8, -2.35619, 1.57]
     tool_frame: "camera_link_optical" 
     skip_on_failure: true
   process_execution:
