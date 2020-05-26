@@ -1,16 +1,21 @@
 #include <crs_perception/model_to_point_cloud.hpp>
 
-#include <pcl/io/pcd_io.h>
 #include <pcl/point_types.h>
-#include <pcl/registration/icp.h>
 #include <pcl/common/transforms.h>
 #include <pcl/common/centroid.h>
+#include <pcl/common/time.h>
+#include <pcl/registration/icp.h>
+#include <pcl/registration/sample_consensus_prerejective.h>
 #include <pcl/conversions.h>
 #include <pcl/filters/crop_box.h>
 #include <pcl/filters/extract_indices.h>
-#include <pcl_conversions/pcl_conversions.h>
-#include <pcl/features/moment_of_inertia_estimation.h>
 #include <pcl/filters/voxel_grid.h>
+#include <pcl/features/moment_of_inertia_estimation.h>
+#include <pcl/features/normal_3d_omp.h>
+#include <pcl/features/fpfh_omp.h>
+#include <pcl/segmentation/sac_segmentation.h>
+
+#include <pcl_conversions/pcl_conversions.h>
 
 #include <tf2/convert.h>
 #include <tf2_eigen/tf2_eigen.h>
@@ -35,6 +40,7 @@ class LocalizeToPart;
 #include <rclcpp_components/register_node_macro.hpp>
 RCLCPP_COMPONENTS_REGISTER_NODE(crs_perception::LocalizeToPart)
 
+static const double VIEW_POINT_Z = 1000.0;
 static const std::string CROP_BOXES_PARAM_PREFIX = "crop_boxes.box";
 static const std::string CROP_BOXES_MARKER_NS = "crop_boxes";
 
@@ -43,7 +49,22 @@ struct IcpConfig
   double max_correspondence_dist = 0.01;
   int max_iter = 200;
   double transformation_eps = 1e-2;
+  double rotation_eps = 1e-6;
   double euclidean_fitness = 1.0;
+  double ransac_threshold = 0.008;
+};
+
+
+struct SACAlignConfig
+{
+  double normal_est_rad = 0.01;
+  double feature_est_rad = 0.025;
+  double max_iters = 50000;
+  int num_samples = 3;
+  int correspondence_rand = 5;
+  double similarity_threshold = 0.9;
+  double max_correspondence_dist = 0.5;
+  double inlier_fraction = 0.25;
 };
 
 struct CropBoxConfig
@@ -52,6 +73,9 @@ struct CropBoxConfig
   std::vector<double> size;
   bool reverse;
 };
+
+using Cloud = pcl::PointCloud<pcl::PointXYZ>;
+
 
 visualization_msgs::msg::MarkerArray createMarkers(const std::vector<CropBoxConfig>& configs,
                                                    const std::string& frame_id,
@@ -121,38 +145,6 @@ pcl::PointCloud<pcl::PointXYZ>::Ptr cropBox(const CropBoxConfig& cfg, pcl::Point
   box_filter.setInputCloud(input);
   box_filter.filter(*output);
   return output;
-}
-
-Eigen::Isometry3d findTransform(const pcl::PointCloud<pcl::PointXYZ>::Ptr src_cloud,
-                                const pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud,
-                                const bool pos_only = true)
-{
-  using namespace Eigen;
-  auto compute_centroid_transform = [](const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) -> Eigen::Isometry3d {
-    Eigen::Vector3f center, x_axis, y_axis, z_axis;
-    pcl::MomentOfInertiaEstimation<pcl::PointXYZ> moi;
-    moi.setInputCloud(cloud);
-    moi.compute();
-    moi.getEigenVectors(x_axis, y_axis, z_axis);
-    moi.getMassCenter(center);
-
-    Eigen::Isometry3d transform;
-    transform.setIdentity();
-    transform.translation() = center.cast<double>();
-    transform.linear().col(0) = x_axis.normalized().cast<double>();
-    transform.linear().col(1) = y_axis.normalized().cast<double>();
-    transform.linear().col(2) = z_axis.normalized().cast<double>();
-    return transform;
-  };
-
-  Eigen::Isometry3d src_transform = compute_centroid_transform(src_cloud);
-  Eigen::Isometry3d target_transform = compute_centroid_transform(target_cloud);
-  Eigen::Isometry3d pose = target_transform * src_transform.inverse();
-  if (pos_only)
-  {
-    pose.linear() = Quaterniond::Identity().toRotationMatrix().matrix();
-  }
-  return pose;
 }
 
 pcl::PointCloud<pcl::PointXYZ> downsampleCloud(pcl::PointCloud<pcl::PointXYZ>::ConstPtr cloud, double leaf_size)
@@ -236,13 +228,15 @@ private:
     enable_debug_visualizations_ = this->get_parameter("general.enable_debug_visualizations").as_bool();
 
     // icp parameters
-    std::map<std::string, rclcpp::Parameter> icp_params;
-    if (this->get_parameters("icp", icp_params))
+    std::map<std::string, rclcpp::Parameter> params;
+    if (this->get_parameters("icp", params))
     {
-      icp_config_.euclidean_fitness = icp_params["euclidean_fitness"].as_double();
-      icp_config_.max_correspondence_dist = icp_params["max_correspondence_dist"].as_double();
-      icp_config_.max_iter = icp_params["max_iter"].as_int();
-      icp_config_.transformation_eps = icp_params["euclidean_fitness"].as_double();
+      icp_config_.euclidean_fitness = params["euclidean_fitness"].as_double();
+      icp_config_.max_correspondence_dist = params["max_correspondence_dist"].as_double();
+      icp_config_.max_iter = params["max_iter"].as_int();
+      icp_config_.transformation_eps = params["euclidean_fitness"].as_double();
+      icp_config_.rotation_eps = params["rotation_eps"].as_double();
+      icp_config_.ransac_threshold = params["ransac_threshold"].as_double();
       RCLCPP_INFO_STREAM(this->get_logger(), "Loaded icp parameters");
     }
     else
@@ -251,6 +245,28 @@ private:
       RCLCPP_ERROR_STREAM(this->get_logger(), err_msg);
       return false;
     }
+
+    // sac parameters
+    params.clear();
+    if(this->get_parameters("sac",params))
+    {
+      sac_align_config_.normal_est_rad = params["normal_est_rad"].as_double();
+      sac_align_config_.feature_est_rad = params["feature_est_rad"].as_double();
+      sac_align_config_.max_iters = params["max_iters"].as_int();
+      sac_align_config_.num_samples = params["num_samples"].as_int();
+      sac_align_config_.correspondence_rand = params["correspondence_rand"].as_int();
+      sac_align_config_.similarity_threshold = params["similarity_threshold"].as_double();
+      sac_align_config_.max_correspondence_dist = params["max_correspondence_dist"].as_double();
+      sac_align_config_.inlier_fraction = params["inlier_fraction"].as_double();
+      RCLCPP_INFO_STREAM(this->get_logger(), "Loaded sac parameters");
+    }
+    else
+    {
+      std::string err_msg = "Failed to find sac parameters";
+      RCLCPP_ERROR_STREAM(this->get_logger(), err_msg);
+      return false;
+    }
+
 
     // crop boxes
     std::size_t box_counter = 1;
@@ -329,6 +345,207 @@ private:
         combined_pc_pub_->publish(empty_cloud);
       });
     }
+  }
+
+  Eigen::Isometry3d findTransform(const pcl::PointCloud<pcl::PointXYZ>::Ptr src_cloud,
+                                  const pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud,
+                                  const bool pos_only = true)
+  {
+    using namespace Eigen;
+    auto compute_centroid_transform = [](const pcl::PointCloud<pcl::PointXYZ>::Ptr cloud) -> Eigen::Isometry3d {
+      Eigen::Vector3f center, x_axis, y_axis, z_axis;
+      pcl::MomentOfInertiaEstimation<pcl::PointXYZ> moi;
+      moi.setInputCloud(cloud);
+      moi.compute();
+      moi.getEigenVectors(x_axis, y_axis, z_axis);
+      moi.getMassCenter(center);
+
+      Eigen::Isometry3d transform;
+      transform.setIdentity();
+      transform.translation() = center.cast<double>();
+      transform.linear().col(0) = x_axis.normalized().cast<double>();
+      transform.linear().col(1) = y_axis.normalized().cast<double>();
+      transform.linear().col(2) = z_axis.normalized().cast<double>();
+      return transform;
+    };
+
+    Eigen::Isometry3d src_transform = compute_centroid_transform(src_cloud);
+    Eigen::Isometry3d target_transform = compute_centroid_transform(target_cloud);
+    Eigen::Isometry3d pose = target_transform * src_transform.inverse();
+    if (pos_only)
+    {
+      pose.linear() = Quaterniond::Identity().toRotationMatrix().matrix();
+    }
+
+    Eigen::Vector3d angles = pose.linear().eulerAngles(0,1,2);
+    RCLCPP_INFO_STREAM(this->get_logger(), "Euler angles: "<< angles.transpose());
+    return pose;
+  }
+
+  bool alignIcpNormals(Cloud::Ptr target_cloud, Cloud::Ptr src_cloud, Eigen::Isometry3d& transform)
+  {
+    using PointNT = pcl::PointNormal;
+    using CloudN = pcl::PointCloud<PointNT>;
+
+    // initial alignment
+    pcl::PointCloud<pcl::PointXYZ>::Ptr temp_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+    Eigen::Isometry3d init_transform = findTransform(src_cloud, target_cloud, false);
+    pcl::transformPointCloud(*src_cloud, *temp_cloud, init_transform.cast<float>());
+    *src_cloud = *temp_cloud;
+
+
+    CloudN::Ptr src_normals = boost::make_shared<CloudN>();
+    CloudN::Ptr target_normals = boost::make_shared<CloudN>();
+
+    // copy cloud data
+    pcl::copyPointCloud(*src_cloud, *src_normals);
+    pcl::copyPointCloud(*target_cloud, *target_normals);
+
+    // Estimate normals
+    pcl::console::print_highlight ("Estimating scene normals...\n");
+    pcl::NormalEstimationOMP<PointNT,PointNT> nest;
+    nest.setViewPoint(0.0, 0.0, VIEW_POINT_Z);
+    nest.setRadiusSearch (sac_align_config_.normal_est_rad);
+    nest.setInputCloud (src_normals);
+    nest.compute (*src_normals);
+    nest.setInputCloud (target_normals);
+    nest.compute (*target_normals);
+
+    // icp
+    pcl::IterativeClosestPointWithNormals<PointNT, PointNT> icp;
+    icp.setUseReciprocalCorrespondences(false);
+    icp.setMaxCorrespondenceDistance(icp_config_.max_correspondence_dist);
+    icp.setMaximumIterations(icp_config_.max_iter);
+    icp.setTransformationEpsilon(icp_config_.transformation_eps);
+    icp.setTransformationRotationEpsilon(icp_config_.rotation_eps);
+    icp.setEuclideanFitnessEpsilon(icp_config_.euclidean_fitness);
+    icp.setRANSACOutlierRejectionThreshold (icp_config_.ransac_threshold);
+    icp.setInputSource(src_normals);
+    icp.setInputTarget(target_normals);
+    pcl::PointCloud<PointNT> final;
+    icp.align(final);
+
+    if(!icp.hasConverged())
+    {
+      return false;
+    }
+
+    transform.matrix() = icp.getFinalTransformation().cast<double>();
+    transform = init_transform * transform;
+    return true;
+  }
+
+  bool alignIcp(Cloud::Ptr target_cloud, Cloud::Ptr src_cloud, Eigen::Isometry3d& transform)
+  {
+    // initial alignment
+    pcl::PointCloud<pcl::PointXYZ>::Ptr temp_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+    Eigen::Isometry3d init_transform = findTransform(src_cloud, target_cloud, false);
+    pcl::transformPointCloud(*src_cloud, *temp_cloud, init_transform.cast<float>());
+    *src_cloud = *temp_cloud;
+
+    // icp
+    pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
+    icp.setUseReciprocalCorrespondences(false);
+    icp.setMaxCorrespondenceDistance(icp_config_.max_correspondence_dist);
+    icp.setMaximumIterations(icp_config_.max_iter);
+    icp.setTransformationEpsilon(icp_config_.transformation_eps);
+    icp.setTransformationRotationEpsilon(icp_config_.rotation_eps);
+    icp.setEuclideanFitnessEpsilon(icp_config_.euclidean_fitness);
+    icp.setRANSACOutlierRejectionThreshold (icp_config_.ransac_threshold);
+    icp.setInputSource(src_cloud);
+    icp.setInputTarget(target_cloud);
+    pcl::PointCloud<pcl::PointXYZ> final;
+    icp.align(final);
+
+    if(!icp.hasConverged())
+    {
+      return false;
+    }
+
+    transform.matrix() = icp.getFinalTransformation().cast<double>();
+    transform = init_transform * transform;
+    return true;
+  }
+
+ /**
+  * @brief aligs a point cloud using the SampleConsensusPrerejective algorithm, see
+  * https://pcl-tutorials.readthedocs.io/en/latest/alignment_prerejective.html#alignment-prerejective
+  */
+  bool alignSac(Cloud::Ptr target_cloud, Cloud::Ptr src_cloud, Eigen::Isometry3d& transform)
+  {
+    using PointNT = pcl::PointNormal;
+    using CloudN = pcl::PointCloud<PointNT>;
+    using FeatureT = pcl::FPFHSignature33;
+    using FeatureCloudT = pcl::PointCloud<FeatureT>;
+    using FeatureEstimationT = pcl::FPFHEstimationOMP<PointNT,PointNT,FeatureT>;
+
+    CloudN::Ptr object = boost::make_shared<CloudN>();
+    CloudN::Ptr object_aligned = boost::make_shared<CloudN>();
+    CloudN::Ptr scene = boost::make_shared<CloudN>();
+    FeatureCloudT::Ptr object_features = boost::make_shared<FeatureCloudT>();
+    FeatureCloudT::Ptr scene_features = boost::make_shared<FeatureCloudT>();
+
+    // initial alignment
+    pcl::PointCloud<pcl::PointXYZ>::Ptr temp_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+    Eigen::Isometry3d init_transform = findTransform(src_cloud, target_cloud, true);
+    pcl::transformPointCloud(*src_cloud, *temp_cloud, init_transform.cast<float>());
+    *src_cloud = *temp_cloud;
+
+    // copy cloud data
+    pcl::copyPointCloud(*src_cloud, *object);
+    pcl::copyPointCloud(*target_cloud, *scene);
+
+    // Estimate normals for scene
+    pcl::console::print_highlight ("Estimating scene normals...\n");
+    pcl::NormalEstimationOMP<PointNT,PointNT> nest;
+    nest.setViewPoint(0.0, 0.0, VIEW_POINT_Z);
+    nest.setRadiusSearch (sac_align_config_.normal_est_rad);
+    nest.setInputCloud (scene);
+    nest.compute (*scene);
+
+    // Estimate normals for object
+    pcl::console::print_highlight ("Estimating object normals...\n");
+    nest.setInputCloud (object);
+    nest.compute (*object);
+
+    // Estimate features
+    pcl::console::print_highlight ("Estimating features...\n");
+    FeatureEstimationT fest;
+    fest.setRadiusSearch (sac_align_config_.feature_est_rad);
+    fest.setInputCloud (object);
+    fest.setInputNormals (object);
+    fest.compute (*object_features);
+    fest.setInputCloud (scene);
+    fest.setInputNormals (scene);
+    fest.compute (*scene_features);
+
+    // Perform alignment
+    pcl::console::print_highlight ("Starting alignment...\n");
+    pcl::SampleConsensusPrerejective<PointNT,PointNT,FeatureT> align;
+    align.setInputSource (object);
+    align.setSourceFeatures (object_features);
+    align.setInputTarget (scene);
+    align.setTargetFeatures (scene_features);
+    align.setMaximumIterations (sac_align_config_.max_iters); // Number of RANSAC iterations
+    align.setNumberOfSamples (sac_align_config_.num_samples); // Number of points to sample for generating/prerejecting a pose
+    align.setCorrespondenceRandomness (sac_align_config_.correspondence_rand); // Number of nearest features to use
+    align.setSimilarityThreshold (sac_align_config_.similarity_threshold); // Polygonal edge length similarity threshold
+    align.setMaxCorrespondenceDistance (sac_align_config_.max_correspondence_dist); // Inlier threshold
+    align.setInlierFraction (sac_align_config_.inlier_fraction); // Required inlier fraction for accepting a pose hypothesis
+    {
+      pcl::ScopeTime t("Alignment");
+      align.align (*object_aligned);
+    }
+
+    if(!align.hasConverged())
+    {
+      return false;
+    }
+
+    transform.setIdentity();
+    transform.matrix() = align.getFinalTransformation().cast<double>();
+    transform = transform * init_transform;
+    return true;
   }
 
   void handleLocalizeToPart(const std::shared_ptr<rmw_request_id_t> request_header,
@@ -460,42 +677,25 @@ private:
     *target_cloud = downsampleCloud(combined_point_cloud, leaf_size_);
     RCLCPP_INFO(this->get_logger(),"Combined point cloud has %lu points after downsampling", target_cloud->size());
 
-    // initial alignment
-    pcl::PointCloud<pcl::PointXYZ>::Ptr temp_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
-    Eigen::Isometry3d init_transform = findTransform(src_cloud, target_cloud, true);
-    pcl::transformPointCloud(*src_cloud, *temp_cloud, init_transform.cast<float>());
-    *src_cloud = *temp_cloud;
-
-    // icp
-    pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
-    icp.setUseReciprocalCorrespondences(false);
-    icp.setMaxCorrespondenceDistance(icp_config_.max_correspondence_dist);
-    icp.setMaximumIterations(icp_config_.max_iter);
-    icp.setTransformationEpsilon(icp_config_.transformation_eps);
-    icp.setEuclideanFitnessEpsilon(icp_config_.euclidean_fitness);
-    icp.setInputSource(src_cloud);
-    icp.setInputTarget(target_cloud);
-    pcl::PointCloud<pcl::PointXYZ> final;
-    icp.align(final);
-
-    response->success = icp.hasConverged();
-    RCLCPP_INFO_EXPRESSION(this->get_logger(), response->success, "ICP converged");
-    RCLCPP_ERROR_EXPRESSION(this->get_logger(), !response->success, "ICP failed to converge");
-
-    // todo(ayoungs): should this generate the timestamp or use one of the point cloud stamps
+    // aligning
     Eigen::Isometry3d transform;
-    transform.matrix() = icp.getFinalTransformation().cast<double>();
-    transform = init_transform * transform;
+    response->success = alignIcp(target_cloud, src_cloud, transform);
     response->transform = tf2::eigenToTransform(transform);
     response->transform.header.stamp = this->now();
     response->transform.header.frame_id = request->frame;
     response->transform.child_frame_id = part_frame_;
 
+    RCLCPP_INFO_EXPRESSION(this->get_logger(), response->success, "ICP converged");
+    RCLCPP_ERROR_EXPRESSION(this->get_logger(), !response->success, "ICP failed to converge");
+
+    // printing transform
+    Eigen::Vector3d angles = transform.linear().eulerAngles(0,1,2);
     RCLCPP_INFO(this->get_logger(),
-                "Transform : (%f, %f, %f)",
+                "Transform : p(%f, %f, %f), r(%f, %f, %f)",
                 response->transform.transform.translation.x,
                 response->transform.transform.translation.y,
-                response->transform.transform.translation.z);
+                response->transform.transform.translation.z,
+                angles(0), angles(1), angles(2));
 
     if (enable_debug_visualizations_)
     {
@@ -525,6 +725,7 @@ private:
   bool enable_debug_visualizations_;
   std::string part_frame_;
   IcpConfig icp_config_;
+  SACAlignConfig sac_align_config_;
   std::vector<CropBoxConfig> crop_boxes_;
 
   // subscriber parameters
