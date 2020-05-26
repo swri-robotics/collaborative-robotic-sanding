@@ -39,7 +39,7 @@
 #include <trajectory_msgs/msg/joint_trajectory.hpp>
 #include "crs_application/task_managers/motion_planning_manager.h"
 
-static const double WAIT_SERVICE_DURATION = 2.0;            // secs
+static const double WAIT_SERVICE_DURATION = 2.0;          // secs
 static const double WAIT_MOTION_PLANNING_PERIOD = 300.0;  // secs
 static const double WAIT_JOINT_STATE_TIMEOUT = 2.0;
 static const double MAX_JOINT_TOLERANCE = (M_PI / 180.0) * 1.0;
@@ -71,8 +71,8 @@ common::ActionResult MotionPlanningManager::init()
   std::vector<rclcpp::ClientBase*> clients = { call_freespace_planning_client_.get(),
                                                process_motion_planning_client_.get() };
   if (!std::all_of(clients.begin(), clients.end(), [this](rclcpp::ClientBase* c) {
-    bool found = c->wait_for_service(std::chrono::duration<float>(WAIT_SERVICE_DURATION));
-    RCLCPP_ERROR_EXPRESSION(node_->get_logger(),!found, "Service %s not found", c->get_service_name());
+        bool found = c->wait_for_service(std::chrono::duration<float>(WAIT_SERVICE_DURATION));
+        RCLCPP_ERROR_EXPRESSION(node_->get_logger(), !found, "Service %s not found", c->get_service_name());
         return found;
       }))
   {
@@ -253,7 +253,7 @@ common::ActionResult MotionPlanningManager::planProcessPaths()
     free_motion_req->start_position = *current_st;
     free_motion_req->execute = true;
 
-    RCLCPP_INFO(node_->get_logger(),"Planning and moving to home position");
+    RCLCPP_INFO(node_->get_logger(), "Planning and moving to home position");
     boost::optional<trajectory_msgs::msg::JointTrajectory> opt = planFreeSpace("CURRENT TO HOME", free_motion_req);
     if (!opt.is_initialized())
     {
@@ -285,12 +285,10 @@ common::ActionResult MotionPlanningManager::planProcessPaths()
   std::shared_future<srv::PlanProcessMotions::Response::SharedPtr> result_future =
       process_motion_planning_client_->async_send_request(req);
 
-  if(result_future.wait_for(
-      std::chrono::duration<double>(WAIT_MOTION_PLANNING_PERIOD)) != std::future_status::ready)
+  if (result_future.wait_for(std::chrono::duration<double>(WAIT_MOTION_PLANNING_PERIOD)) != std::future_status::ready)
   {
     res.succeeded = false;
-    res.err_msg = boost::str(boost::format("%s process planning service error or timeout")
-      % MANAGER_NAME);
+    res.err_msg = boost::str(boost::format("%s process planning service error or timeout") % MANAGER_NAME);
     RCLCPP_ERROR_STREAM(node_->get_logger(), res.err_msg);
     return res;
   }
@@ -304,7 +302,7 @@ common::ActionResult MotionPlanningManager::planProcessPaths()
   }
 
   // saving process plans
-  RCLCPP_INFO(node_->get_logger(),"Successfully planned all process toolpaths");
+  RCLCPP_INFO(node_->get_logger(), "Successfully planned all process toolpaths");
   result_.process_plans = result_future.get()->plans;
   return true;
 }
@@ -317,8 +315,7 @@ MotionPlanningManager::planFreeSpace(const std::string& plan_name,
   std::shared_future<CallFreespaceMotion::Response::SharedPtr> result_future =
       call_freespace_planning_client_->async_send_request(req);
 
-  if(result_future.wait_for(
-      std::chrono::duration<double>(WAIT_MOTION_PLANNING_PERIOD)) != std::future_status::ready)
+  if (result_future.wait_for(std::chrono::duration<double>(WAIT_MOTION_PLANNING_PERIOD)) != std::future_status::ready)
   {
     RCLCPP_ERROR(node_->get_logger(),
                  "%s freespace planning service for '%s' error or timeout",
@@ -337,8 +334,7 @@ MotionPlanningManager::planFreeSpace(const std::string& plan_name,
     return boost::none;
   }
 
-  RCLCPP_INFO(node_->get_logger(), "%s freespace planning for '%s' succeeded", MANAGER_NAME.c_str(),
-              plan_name.c_str());
+  RCLCPP_INFO(node_->get_logger(), "%s freespace planning for '%s' succeeded", MANAGER_NAME.c_str(), plan_name.c_str());
   return result_future.get()->output_trajectory;
 }
 

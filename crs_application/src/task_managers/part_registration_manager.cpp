@@ -109,7 +109,6 @@ common::ActionResult PartRegistrationManager::init()
 
 common::ActionResult PartRegistrationManager::configure(const config::PartRegistrationConfig& config)
 {
-
   // saving config
   config_ = std::make_shared<config::PartRegistrationConfig>(config);
 
@@ -200,8 +199,7 @@ common::ActionResult PartRegistrationManager::showPreview()
     publish_timer_->cancel();
   }
 
-  publish_timer_ =
-      node_->create_wall_timer(500ms, [this, markers]() -> void {
+  publish_timer_ = node_->create_wall_timer(500ms, [this, markers]() -> void {
     tf_broadcaster_.sendTransform(part_transform_);
     preview_markers_pub_->publish(markers);
   });

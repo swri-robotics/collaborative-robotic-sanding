@@ -58,7 +58,7 @@ static const std::string DEFAULT_CONFIG_FILE = "crs.yaml";  // in part directory
 static const std::string WORLD_FRAME = "world";
 
 // configuration variables
-static const std::vector<std::string> PART_SELECTION_STATES = {"Ready::Wait_Config", "Ready::Wait_User_Cmd"};
+static const std::vector<std::string> PART_SELECTION_STATES = { "Ready::Wait_Config", "Ready::Wait_User_Cmd" };
 static const std::string CONFIG_ROOT_ITEM = "crs";
 static const std::vector<std::string> CONFIG_REQUIRED_FIELDS = { "general",
                                                                  "motion_planning",
@@ -141,10 +141,9 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node, QWidget
           this,
           &CRSApplicationWidget::onPartPathSelected,
           Qt::QueuedConnection);
-  connect(state_machine_interface_widget_.get(),
-          &StateMachineInterfaceWidget::onStateChange,[this](std::string st){
+  connect(state_machine_interface_widget_.get(), &StateMachineInterfaceWidget::onStateChange, [this](std::string st) {
     bool enable_part_select_wd = false;
-    if(std::find(PART_SELECTION_STATES.begin(), PART_SELECTION_STATES.end(), st) != PART_SELECTION_STATES.end())
+    if (std::find(PART_SELECTION_STATES.begin(), PART_SELECTION_STATES.end(), st) != PART_SELECTION_STATES.end())
     {
       enable_part_select_wd = true;
     }
@@ -192,10 +191,11 @@ void CRSApplicationWidget::onPartPathSelected(const QString qselected_part, cons
   // check existence of config file
   if (!fs::exists(fs::path(config_file)))
   {
-    std::vector<fs::path> default_config_files = {fs::path(database_directory_) / fs::path(selected_part) / fs::path(DEFAULT_CONFIG_FILE),
-                                                  fs::path(default_config_path_)};
+    std::vector<fs::path> default_config_files = { fs::path(database_directory_) / fs::path(selected_part) /
+                                                       fs::path(DEFAULT_CONFIG_FILE),
+                                                   fs::path(default_config_path_) };
     bool default_config_found = false;
-    for(fs::path& df : default_config_files)
+    for (fs::path& df : default_config_files)
     {
       if (!fs::exists(df))
       {
@@ -203,17 +203,15 @@ void CRSApplicationWidget::onPartPathSelected(const QString qselected_part, cons
         continue;
       }
 
-      RCLCPP_WARN(node_->get_logger(),
-                  "config file '%s' not found, copying default '%s'",
-                  config_file.c_str(),
-                  df.c_str());
+      RCLCPP_WARN(
+          node_->get_logger(), "config file '%s' not found, copying default '%s'", config_file.c_str(), df.c_str());
       fs::create_directories(fs::path(config_file).parent_path());
       fs::copy_file(df, fs::path(config_file));
       default_config_found = true;
       break;
     }
 
-    if(!default_config_found)
+    if (!default_config_found)
     {
       RCLCPP_ERROR(node_->get_logger(), "No default config file was not found");
       return;

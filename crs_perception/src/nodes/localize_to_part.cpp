@@ -54,7 +54,6 @@ struct IcpConfig
   double ransac_threshold = 0.008;
 };
 
-
 struct SACAlignConfig
 {
   double normal_est_rad = 0.01;
@@ -75,7 +74,6 @@ struct CropBoxConfig
 };
 
 using Cloud = pcl::PointCloud<pcl::PointXYZ>;
-
 
 visualization_msgs::msg::MarkerArray createMarkers(const std::vector<CropBoxConfig>& configs,
                                                    const std::string& frame_id,
@@ -248,7 +246,7 @@ private:
 
     // sac parameters
     params.clear();
-    if(this->get_parameters("sac",params))
+    if (this->get_parameters("sac", params))
     {
       sac_align_config_.normal_est_rad = params["normal_est_rad"].as_double();
       sac_align_config_.feature_est_rad = params["feature_est_rad"].as_double();
@@ -266,7 +264,6 @@ private:
       RCLCPP_ERROR_STREAM(this->get_logger(), err_msg);
       return false;
     }
-
 
     // crop boxes
     std::size_t box_counter = 1;
@@ -377,8 +374,8 @@ private:
       pose.linear() = Quaterniond::Identity().toRotationMatrix().matrix();
     }
 
-    Eigen::Vector3d angles = pose.linear().eulerAngles(0,1,2);
-    RCLCPP_INFO_STREAM(this->get_logger(), "Euler angles: "<< angles.transpose());
+    Eigen::Vector3d angles = pose.linear().eulerAngles(0, 1, 2);
+    RCLCPP_INFO_STREAM(this->get_logger(), "Euler angles: " << angles.transpose());
     return pose;
   }
 
@@ -393,7 +390,6 @@ private:
     pcl::transformPointCloud(*src_cloud, *temp_cloud, init_transform.cast<float>());
     *src_cloud = *temp_cloud;
 
-
     CloudN::Ptr src_normals = boost::make_shared<CloudN>();
     CloudN::Ptr target_normals = boost::make_shared<CloudN>();
 
@@ -402,14 +398,14 @@ private:
     pcl::copyPointCloud(*target_cloud, *target_normals);
 
     // Estimate normals
-    pcl::console::print_highlight ("Estimating scene normals...\n");
-    pcl::NormalEstimationOMP<PointNT,PointNT> nest;
+    pcl::console::print_highlight("Estimating scene normals...\n");
+    pcl::NormalEstimationOMP<PointNT, PointNT> nest;
     nest.setViewPoint(0.0, 0.0, VIEW_POINT_Z);
-    nest.setRadiusSearch (sac_align_config_.normal_est_rad);
-    nest.setInputCloud (src_normals);
-    nest.compute (*src_normals);
-    nest.setInputCloud (target_normals);
-    nest.compute (*target_normals);
+    nest.setRadiusSearch(sac_align_config_.normal_est_rad);
+    nest.setInputCloud(src_normals);
+    nest.compute(*src_normals);
+    nest.setInputCloud(target_normals);
+    nest.compute(*target_normals);
 
     // icp
     pcl::IterativeClosestPointWithNormals<PointNT, PointNT> icp;
@@ -419,13 +415,13 @@ private:
     icp.setTransformationEpsilon(icp_config_.transformation_eps);
     icp.setTransformationRotationEpsilon(icp_config_.rotation_eps);
     icp.setEuclideanFitnessEpsilon(icp_config_.euclidean_fitness);
-    icp.setRANSACOutlierRejectionThreshold (icp_config_.ransac_threshold);
+    icp.setRANSACOutlierRejectionThreshold(icp_config_.ransac_threshold);
     icp.setInputSource(src_normals);
     icp.setInputTarget(target_normals);
     pcl::PointCloud<PointNT> final;
     icp.align(final);
 
-    if(!icp.hasConverged())
+    if (!icp.hasConverged())
     {
       return false;
     }
@@ -451,13 +447,13 @@ private:
     icp.setTransformationEpsilon(icp_config_.transformation_eps);
     icp.setTransformationRotationEpsilon(icp_config_.rotation_eps);
     icp.setEuclideanFitnessEpsilon(icp_config_.euclidean_fitness);
-    icp.setRANSACOutlierRejectionThreshold (icp_config_.ransac_threshold);
+    icp.setRANSACOutlierRejectionThreshold(icp_config_.ransac_threshold);
     icp.setInputSource(src_cloud);
     icp.setInputTarget(target_cloud);
     pcl::PointCloud<pcl::PointXYZ> final;
     icp.align(final);
 
-    if(!icp.hasConverged())
+    if (!icp.hasConverged())
     {
       return false;
     }
@@ -467,17 +463,17 @@ private:
     return true;
   }
 
- /**
-  * @brief aligs a point cloud using the SampleConsensusPrerejective algorithm, see
-  * https://pcl-tutorials.readthedocs.io/en/latest/alignment_prerejective.html#alignment-prerejective
-  */
+  /**
+   * @brief aligs a point cloud using the SampleConsensusPrerejective algorithm, see
+   * https://pcl-tutorials.readthedocs.io/en/latest/alignment_prerejective.html#alignment-prerejective
+   */
   bool alignSac(Cloud::Ptr target_cloud, Cloud::Ptr src_cloud, Eigen::Isometry3d& transform)
   {
     using PointNT = pcl::PointNormal;
     using CloudN = pcl::PointCloud<PointNT>;
     using FeatureT = pcl::FPFHSignature33;
     using FeatureCloudT = pcl::PointCloud<FeatureT>;
-    using FeatureEstimationT = pcl::FPFHEstimationOMP<PointNT,PointNT,FeatureT>;
+    using FeatureEstimationT = pcl::FPFHEstimationOMP<PointNT, PointNT, FeatureT>;
 
     CloudN::Ptr object = boost::make_shared<CloudN>();
     CloudN::Ptr object_aligned = boost::make_shared<CloudN>();
@@ -496,48 +492,50 @@ private:
     pcl::copyPointCloud(*target_cloud, *scene);
 
     // Estimate normals for scene
-    pcl::console::print_highlight ("Estimating scene normals...\n");
-    pcl::NormalEstimationOMP<PointNT,PointNT> nest;
+    pcl::console::print_highlight("Estimating scene normals...\n");
+    pcl::NormalEstimationOMP<PointNT, PointNT> nest;
     nest.setViewPoint(0.0, 0.0, VIEW_POINT_Z);
-    nest.setRadiusSearch (sac_align_config_.normal_est_rad);
-    nest.setInputCloud (scene);
-    nest.compute (*scene);
+    nest.setRadiusSearch(sac_align_config_.normal_est_rad);
+    nest.setInputCloud(scene);
+    nest.compute(*scene);
 
     // Estimate normals for object
-    pcl::console::print_highlight ("Estimating object normals...\n");
-    nest.setInputCloud (object);
-    nest.compute (*object);
+    pcl::console::print_highlight("Estimating object normals...\n");
+    nest.setInputCloud(object);
+    nest.compute(*object);
 
     // Estimate features
-    pcl::console::print_highlight ("Estimating features...\n");
+    pcl::console::print_highlight("Estimating features...\n");
     FeatureEstimationT fest;
-    fest.setRadiusSearch (sac_align_config_.feature_est_rad);
-    fest.setInputCloud (object);
-    fest.setInputNormals (object);
-    fest.compute (*object_features);
-    fest.setInputCloud (scene);
-    fest.setInputNormals (scene);
-    fest.compute (*scene_features);
+    fest.setRadiusSearch(sac_align_config_.feature_est_rad);
+    fest.setInputCloud(object);
+    fest.setInputNormals(object);
+    fest.compute(*object_features);
+    fest.setInputCloud(scene);
+    fest.setInputNormals(scene);
+    fest.compute(*scene_features);
 
     // Perform alignment
-    pcl::console::print_highlight ("Starting alignment...\n");
-    pcl::SampleConsensusPrerejective<PointNT,PointNT,FeatureT> align;
-    align.setInputSource (object);
-    align.setSourceFeatures (object_features);
-    align.setInputTarget (scene);
-    align.setTargetFeatures (scene_features);
-    align.setMaximumIterations (sac_align_config_.max_iters); // Number of RANSAC iterations
-    align.setNumberOfSamples (sac_align_config_.num_samples); // Number of points to sample for generating/prerejecting a pose
-    align.setCorrespondenceRandomness (sac_align_config_.correspondence_rand); // Number of nearest features to use
-    align.setSimilarityThreshold (sac_align_config_.similarity_threshold); // Polygonal edge length similarity threshold
-    align.setMaxCorrespondenceDistance (sac_align_config_.max_correspondence_dist); // Inlier threshold
-    align.setInlierFraction (sac_align_config_.inlier_fraction); // Required inlier fraction for accepting a pose hypothesis
+    pcl::console::print_highlight("Starting alignment...\n");
+    pcl::SampleConsensusPrerejective<PointNT, PointNT, FeatureT> align;
+    align.setInputSource(object);
+    align.setSourceFeatures(object_features);
+    align.setInputTarget(scene);
+    align.setTargetFeatures(scene_features);
+    align.setMaximumIterations(sac_align_config_.max_iters);  // Number of RANSAC iterations
+    align.setNumberOfSamples(sac_align_config_.num_samples);  // Number of points to sample for generating/prerejecting
+                                                              // a pose
+    align.setCorrespondenceRandomness(sac_align_config_.correspondence_rand);  // Number of nearest features to use
+    align.setSimilarityThreshold(sac_align_config_.similarity_threshold);  // Polygonal edge length similarity threshold
+    align.setMaxCorrespondenceDistance(sac_align_config_.max_correspondence_dist);  // Inlier threshold
+    align.setInlierFraction(sac_align_config_.inlier_fraction);  // Required inlier fraction for accepting a pose
+                                                                 // hypothesis
     {
       pcl::ScopeTime t("Alignment");
-      align.align (*object_aligned);
+      align.align(*object_aligned);
     }
 
-    if(!align.hasConverged())
+    if (!align.hasConverged())
     {
       return false;
     }
@@ -608,16 +606,16 @@ private:
       *combined_point_cloud += *transformed_cloud;
     }
 
-    RCLCPP_INFO(this->get_logger(),"Combined point cloud has %lu points", combined_point_cloud->size());
+    RCLCPP_INFO(this->get_logger(), "Combined point cloud has %lu points", combined_point_cloud->size());
 
     // transforming to requested frame
     std::string src_frame_id = request->transforms.front().header.frame_id;
-    if(src_frame_id != request->frame)
+    if (src_frame_id != request->frame)
     {
       try
       {
-        RCLCPP_INFO(this->get_logger(), "Transforming cloud from frame %s to %s", src_frame_id.c_str(),
-                    request->frame.c_str());
+        RCLCPP_INFO(
+            this->get_logger(), "Transforming cloud from frame %s to %s", src_frame_id.c_str(), request->frame.c_str());
         geometry_msgs::msg::TransformStamped transform =
             tf_buffer_.lookupTransform(request->frame, src_frame_id, tf2::TimePointZero);
         pcl::PointCloud<pcl::PointXYZ>::Ptr transformed_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
@@ -629,7 +627,8 @@ private:
       {
         RCLCPP_ERROR(this->get_logger(), "%s", ex.what());
         response->success = false;
-        response->error = "Failed to transform point cloud from '" + src_frame_id + "' to '" + request->frame + "' frame";
+        response->error =
+            "Failed to transform point cloud from '" + src_frame_id + "' to '" + request->frame + "' frame";
         return;
       }
     }
@@ -639,14 +638,13 @@ private:
     {
       combined_point_cloud = cropBox(cfg, combined_point_cloud);
     }
-    RCLCPP_INFO(this->get_logger(),"Combined point cloud has %lu points after cropping", combined_point_cloud->size());
+    RCLCPP_INFO(this->get_logger(), "Combined point cloud has %lu points after cropping", combined_point_cloud->size());
 
-
-    if(combined_point_cloud->empty())
+    if (combined_point_cloud->empty())
     {
       response->success = false;
-      response->error ="No point remains after cropping";
-      RCLCPP_ERROR_STREAM(this->get_logger(),response->error);
+      response->error = "No point remains after cropping";
+      RCLCPP_ERROR_STREAM(this->get_logger(), response->error);
       return;
     }
 
@@ -675,7 +673,7 @@ private:
     pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
     *src_cloud = downsampleCloud(part_point_cloud_, leaf_size_);
     *target_cloud = downsampleCloud(combined_point_cloud, leaf_size_);
-    RCLCPP_INFO(this->get_logger(),"Combined point cloud has %lu points after downsampling", target_cloud->size());
+    RCLCPP_INFO(this->get_logger(), "Combined point cloud has %lu points after downsampling", target_cloud->size());
 
     // aligning
     Eigen::Isometry3d transform;
@@ -689,13 +687,15 @@ private:
     RCLCPP_ERROR_EXPRESSION(this->get_logger(), !response->success, "ICP failed to converge");
 
     // printing transform
-    Eigen::Vector3d angles = transform.linear().eulerAngles(0,1,2);
+    Eigen::Vector3d angles = transform.linear().eulerAngles(0, 1, 2);
     RCLCPP_INFO(this->get_logger(),
                 "Transform : p(%f, %f, %f), r(%f, %f, %f)",
                 response->transform.transform.translation.x,
                 response->transform.transform.translation.y,
                 response->transform.transform.translation.z,
-                angles(0), angles(1), angles(2));
+                angles(0),
+                angles(1),
+                angles(2));
 
     if (enable_debug_visualizations_)
     {
