@@ -58,6 +58,7 @@ static const std::string DEFAULT_CONFIG_FILE = "crs.yaml";  // in part directory
 static const std::string WORLD_FRAME = "world";
 
 // configuration variables
+static const std::vector<std::string> PART_SELECTION_STATES = {"Ready::Wait_Config", "Ready::Wait_User_Cmd"};
 static const std::string CONFIG_ROOT_ITEM = "crs";
 static const std::vector<std::string> CONFIG_REQUIRED_FIELDS = { "general",
                                                                  "motion_planning",
@@ -140,6 +141,16 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node, QWidget
           this,
           &CRSApplicationWidget::onPartPathSelected,
           Qt::QueuedConnection);
+  connect(state_machine_interface_widget_.get(),
+          &StateMachineInterfaceWidget::onStateChange,[this](std::string st){
+    bool enable_part_select_wd = false;
+    if(std::find(PART_SELECTION_STATES.begin(), PART_SELECTION_STATES.end(), st) != PART_SELECTION_STATES.end())
+    {
+      enable_part_select_wd = true;
+    }
+
+    part_selector_widget_->setEnabled(enable_part_select_wd);
+  });
 }
 
 CRSApplicationWidget::~CRSApplicationWidget() = default;
