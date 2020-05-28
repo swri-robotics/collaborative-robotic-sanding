@@ -413,7 +413,8 @@ private:
     icp.setMaxCorrespondenceDistance(icp_config_.max_correspondence_dist);
     icp.setMaximumIterations(icp_config_.max_iter);
     icp.setTransformationEpsilon(icp_config_.transformation_eps);
-    icp.setTransformationRotationEpsilon(icp_config_.rotation_eps);
+    // TODO: Uncomment this after migrating to pcl 1.9.1
+    // //icp.setTransformationRotationEpsilon(icp_config_.rotation_eps);
     icp.setEuclideanFitnessEpsilon(icp_config_.euclidean_fitness);
     icp.setRANSACOutlierRejectionThreshold(icp_config_.ransac_threshold);
     icp.setInputSource(src_normals);
@@ -445,7 +446,8 @@ private:
     icp.setMaxCorrespondenceDistance(icp_config_.max_correspondence_dist);
     icp.setMaximumIterations(icp_config_.max_iter);
     icp.setTransformationEpsilon(icp_config_.transformation_eps);
-    icp.setTransformationRotationEpsilon(icp_config_.rotation_eps);
+    // TODO: Uncomment this after migrating to pcl 1.9.1
+    // //icp.setTransformationRotationEpsilon(icp_config_.rotation_eps);
     icp.setEuclideanFitnessEpsilon(icp_config_.euclidean_fitness);
     icp.setRANSACOutlierRejectionThreshold(icp_config_.ransac_threshold);
     icp.setInputSource(src_cloud);
