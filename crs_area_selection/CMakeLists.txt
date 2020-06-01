@@ -41,7 +41,12 @@ target_include_directories(${PROJECT_NAME}_area_selection PUBLIC ${PCL_INCLUDE_D
        endif()
     endif()
   endforeach()
-
+target_include_directories(${PROJECT_NAME}_area_selection PUBLIC
+  ${crs_msgs_INCLUDE_DIRS}
+  )
+target_link_libraries(${PROJECT_NAME}_area_selection
+  ${crs_msgs_LIBRARIES}
+  )
 ament_target_dependencies(${PROJECT_NAME}_area_selection
   ament_index_cpp
   rclcpp

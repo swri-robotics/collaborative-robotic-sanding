@@ -330,7 +330,7 @@ void SelectionArtist::collectROIPointsCb(crs_msgs::srv::GetROISelection::Request
 bool SelectionArtist::transformPoint(const geometry_msgs::msg::PointStamped::ConstSharedPtr pt_stamped,
                                      geometry_msgs::msg::Point& transformed_pt)
 {
-  RCLCPP_INFO_STREAM(node_->get_logger(), pt_stamped->header.frame_id);
+  RCLCPP_INFO(node_->get_logger(), pt_stamped->header.frame_id);
 
   // Get the current transform from the world frame to the frame of the sensor data
   geometry_msgs::msg::TransformStamped frame;
