@@ -219,8 +219,7 @@ install(TARGETS
   EXPORT ${PACKAGE_NAME}-targets
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
-  RUNTIME DESTINATION lib/${PROJECT_NAME}
-)
+  RUNTIME DESTINATION lib/${PROJECT_NAME})
 
 ament_export_interfaces(${PACKAGE_NAME}-targets)
 ament_export_dependencies(

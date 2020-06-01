@@ -19,7 +19,7 @@ bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray
   const double collision_safety_margin = config_->descartes_config.collision_safety_margin;
   tesseract::Tesseract::Ptr tesseract_local = config_->tesseract_local;
   const std::shared_ptr<const tesseract_environment::Environment> env = tesseract_local->getEnvironmentConst();
-  tesseract_common::TransformMap curr_transforms = env->getCurrentState()->transforms;
+  tesseract_common::TransformMap curr_transforms = env->getCurrentState()->link_transforms;
 
   tesseract_kinematics::ForwardKinematics::ConstPtr kin =
       tesseract_local->getFwdKinematicsManagerConst()->getFwdKinematicSolver(config_->manipulator);
@@ -968,7 +968,7 @@ bool crsMotionPlanner::findClosestJointOrientation(const tesseract_motion_planne
   const double collision_safety_margin = config_->ompl_config.collision_safety_margin;
   tesseract::Tesseract::Ptr tesseract_local = config_->tesseract_local;
   const std::shared_ptr<const tesseract_environment::Environment> env = tesseract_local->getEnvironmentConst();
-  tesseract_common::TransformMap curr_transforms = env->getCurrentState()->transforms;
+  tesseract_common::TransformMap curr_transforms = env->getCurrentState()->link_transforms;
 
   tesseract_kinematics::ForwardKinematics::ConstPtr kin =
       tesseract_local->getFwdKinematicsManagerConst()->getFwdKinematicSolver(config_->manipulator);
