@@ -11,13 +11,13 @@ setup(
     # Packages to export
     packages=find_packages(),
     # Files we want to install, specifically launch files
-#     data_files=[
-#         ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
-#         # Include our package.xml file
-#         (os.path.join('share', package_name), ['package.xml']),
-#         # Include all launch files.
-#         (os.path.join('share', package_name, 'crs_utils_py'), glob('*.py'))
-#     ],
+    data_files=[
+        ('share/ament_index/resource_index/packages', ['resource/' + package_name]),
+        # Include our package.xml file
+        (os.path.join('share', package_name), ['package.xml']),
+        # Include all launch files.
+        (os.path.join('share', package_name, 'crs_utils_py'), glob('*.py'))
+    ],
     # This is important as well
     install_requires=['setuptools'],
     zip_safe=True,

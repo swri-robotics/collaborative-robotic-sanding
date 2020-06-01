@@ -10,6 +10,8 @@ import launch_ros.actions
 from launch import some_substitutions_type
 from rosidl_generator_cpp import default_value_from_type
 
+GAZEBO_HEADLESS = True
+
 def generate_launch_description():
 
     if not "tesseract_collision" in os.environ["AMENT_PREFIX_PATH"]:
@@ -28,7 +30,7 @@ def generate_launch_description():
     # create urdfs from xacro file
     cmd2 = 'xacro %s prefix:=preview/ > %s'%(xacro, urdf_preview)
     cmd3 = 'xacro %s > %s'%(xacro, urdf)        
-    cmd4 = 'killall -9 gazebo & killall -9 gzserver & killall -9 gzclient'
+    cmd4 = 'killall -9 gzserver & killall -9 gzclient & killall -9 gazebo'
     cmd_dict = {cmd2 : True, cmd3: True, cmd4 : False}
     
     # check if soft link exists
@@ -48,13 +50,13 @@ def generate_launch_description():
             if req_:
                 return None       
     
-    
+    gazebo_cmd = 'gzserver' if GAZEBO_HEADLESS else 'gazebo'
     gzserver = launch.actions.ExecuteProcess(
-        cmd=['xterm', '-e', 'gazebo', '--verbose', '-s', 'libgazebo_ros_factory.so', '--world', gzworld],
+        cmd=['xterm', '-e', gazebo_cmd, '--verbose', '-s', 'libgazebo_ros_factory.so', '--world', gzworld],
         output='screen',   
         condition = launch.conditions.IfCondition(launch.substitutions.LaunchConfiguration('sim_robot'))
     )
-
+    
     spawner1 = launch_ros.actions.Node(
         node_name='spawn_node',
         #node_namespace = [launch.substitutions.LaunchConfiguration('global_ns')],
@@ -69,7 +71,8 @@ def generate_launch_description():
         package='crs_motion_planning',
         node_name='motion_planning_server',
         #node_namespace = [launch.substitutions.LaunchConfiguration('global_ns')],
-        output='log',
+        prefix= 'xterm -e',
+        output='screen',
         parameters=[{'urdf_path': urdf,
         'srdf_path': srdf,
         'process_planner_service': "plan_process_motion",
@@ -99,6 +102,7 @@ def generate_launch_description():
         # arguments
         #launch.actions.DeclareLaunchArgument('global_ns', default_value = ['crs']),
         launch.actions.DeclareLaunchArgument('sim_robot',default_value = ['True']),
+        launch.actions.DeclareLaunchArgument('gazebo_gui',default_value = ['False']),
         
         # environment
         launch_ros.actions.Node(

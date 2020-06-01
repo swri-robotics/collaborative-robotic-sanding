@@ -542,7 +542,7 @@ bool crs_motion_planning::execTrajectory(
   goal_options.goal_response_callback = [&](std::shared_future<GoalHandle::SharedPtr> future) {
     if (!future.get())
     {
-      std::string err_msg = "Failed to accepte goal";
+      std::string err_msg = "Failed to accept goal";
       RCLCPP_ERROR(logger, err_msg.c_str());
       ac->async_cancel_all_goals();
       result_promise.set_value(false);
@@ -590,6 +590,7 @@ bool crs_motion_planning::execTrajectory(
     ac->async_cancel_all_goals();
     return res;
   }
+  RCLCPP_INFO(logger, "Finished trajectory");
   return true;
 }
 

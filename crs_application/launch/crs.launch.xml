@@ -26,7 +26,7 @@
 	    	name="$(var group_ns)/localization_node" output="screen" shell="true"/>-->
 	    	
 	    <!-- This launch file does not honor the ns pushed to it-->
-	    <include file="$(find-pkg-share crs_application)/launch/perception.launch.py"/>	    
+	    <include file="$(find-pkg-share crs_application)/launch/perception.launch.py"/>    
 	    	
 		<!-- rviz -->
 		<let name="rviz_config" value="$(find-pkg-share crs_application)/resources/crs.rviz"/>

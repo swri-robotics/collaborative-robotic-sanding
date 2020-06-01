@@ -27,7 +27,6 @@
       </ode>
     </physics>
     
-	<enable_physics>False</enable_physics>
     <gravity>0 0 0.0</gravity>
     <include>
 		<plugin name="gazebo_ros_joint_pose_trajectory"
