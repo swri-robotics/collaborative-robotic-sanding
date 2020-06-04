@@ -13,14 +13,14 @@
 - Query the current state
     Open a new terminal and run the following:
     ```
-    ros2 topic echo /current_state
+    ros2 topic echo /crs/current_state
     ```
     You should see the current state id printed on the terminal repeateadly 
     
 - Query available actions in the current state
     From another terminal run the following
     ```
-    ros2 service call /get_available_actions crs_msgs/srv/GetAvailableActions 'search_pattern: "user"'
+    ros2 service call /crs/get_available_actions crs_msgs/srv/GetAvailableActions 'search_pattern: "user"'
     ```
     The response may look as follows:
     ```
@@ -30,6 +30,6 @@
 - Execute an action
     In a new terminal run the following:
     ```
-    ros2 service call /execute_action crs_msgs/srv/ExecuteAction 'action_id: user_approves'
+    ros2 service call /crs/execute_action crs_msgs/srv/ExecuteAction 'action_id: user_approves'
     ```
     If the current state allows that action then you should see the SM transition to another state
