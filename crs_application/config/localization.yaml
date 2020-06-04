@@ -10,6 +10,7 @@ icp:
   rotation_eps: 1e-16  # transformation rotation epsilon in order for an optimization to be considered as having converged to the final solution (epsilon is the cos(angle) 
   euclidean_fitness: 1.0
   ransac_threshold: 0.05
+  use_correspondences: False
 sac:
   normal_est_rad: 0.1
   feature_est_rad: 0.04
