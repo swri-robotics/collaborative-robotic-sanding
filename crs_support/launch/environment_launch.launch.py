@@ -83,7 +83,7 @@ def generate_launch_description():
         'tool0_frame': "tool0",
         'manipulator_group': "manipulator",
         'num_steps': 20,
-        'max_joint_velocity': 0.18,
+        'max_joint_velocity': 0.25,
         'max_joint_acceleration': 0.5,
         'min_raster_length': 2,
         'use_gazebo_simulation_time': False,
@@ -128,5 +128,5 @@ def generate_launch_description():
 
         # planning
         motion_planning_server,
-        test_process_planner,
+        #test_process_planner,
 ])
