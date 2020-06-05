@@ -155,6 +155,7 @@ common::ActionResult CRSExecutive::configure()
 
     // parsing
     YAML::Node config = YAML::LoadFile(process_config_.yaml_config);
+    RCLCPP_INFO(node_->get_logger(), "YAML_CONFIG %s", process_config_.yaml_config.c_str());
     if (!config)
     {
       common::ActionResult result;
@@ -193,6 +194,7 @@ common::ActionResult CRSExecutive::configure()
     return result;
   }
 
+  std::cout << "HI: " << res.get()->config.yaml_config << std::endl;
   return call_config(res.get()->config);
 }
 

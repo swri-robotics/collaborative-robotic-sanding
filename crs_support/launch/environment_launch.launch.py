@@ -83,9 +83,9 @@ def generate_launch_description():
         'tool0_frame': "tool0",
         'manipulator_group': "manipulator",
         'num_steps': 20,
-        'max_joint_velocity': 1.5,
-        'max_joint_acceleration': 3.0,
-        'min_raster_length': 4,
+        'max_joint_velocity': 0.18,
+        'max_joint_acceleration': 0.5,
+        'min_raster_length': 2,
         'use_gazebo_simulation_time': False,
         'set_trajopt_verbose': False}])
     

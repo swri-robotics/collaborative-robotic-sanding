@@ -269,6 +269,7 @@ common::ActionResult MotionPlanningManager::planProcessPaths()
   req->retreat_dist = config_->retreat_dist;
   req->tool_speed = config_->tool_speed;
   req->tool_offset = tf2::toMsg(config_->offset_pose);
+  std::cout << "TYLER offset:\n" << config_->offset_pose.matrix() << std::endl;
   req->start_position = *home_js_;
   req->end_position = *home_js_;
 

@@ -139,6 +139,8 @@ boost::optional<MotionPlanningConfig> parse(YAML::Node& config, std::string& err
       cfg.retreat_dist = process_path_node[PROCESS_PATH_ITEMS[2]].as<double>();
       cfg.approac_dist = process_path_node[PROCESS_PATH_ITEMS[3]].as<double>();
       cfg.tool_frame = process_path_node[PROCESS_PATH_ITEMS[4]].as<std::string>();
+      RCLCPP_INFO(CONFIG_LOGGER, "TYLER xyzrpy: (%f, %f, %f, %f, %f, %f) ", xyzrpy[0], xyzrpy[1], xyzrpy[2], xyzrpy[3], xyzrpy[4], xyzrpy[5]);
+      RCLCPP_INFO(CONFIG_LOGGER, "TYLER tool speed: %f ", cfg.tool_speed );
 
       cfg.offset_pose = Eigen::Translation3d(Eigen::Vector3d(xyzrpy[0], xyzrpy[1], xyzrpy[2])) *
                         Eigen::AngleAxisd(xyzrpy[3], Eigen::Vector3d::UnitX()) *

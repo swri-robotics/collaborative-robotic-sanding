@@ -47,6 +47,8 @@ static const double WAIT_SERVICE_COMPLETION_TIMEOUT = 2.0;  // secs
 
 static const std::string PREVIEW_TOPIC = "part_registration_preview";
 static const std::string LOAD_PART_SERVICE = "load_part";
+static const std::string LOAD_PART_TESSERACT_SERVICE = "load_part_tesseract_env";
+static const std::string REMOVE_PART_SERVICE = "remove_part_tesseract_env";
 static const std::string LOCALIZE_TO_PART_SERVICE = "localize_to_part";
 
 static const std::string MANAGER_NAME = "PartRegistrationManager";
@@ -71,6 +73,8 @@ common::ActionResult PartRegistrationManager::init()
 
   // setting up service clients
   load_part_client_ = node_->create_client<crs_msgs::srv::LoadPart>(LOAD_PART_SERVICE);
+  load_part_tesseract_client_ = node_->create_client<crs_msgs::srv::LoadPart>(LOAD_PART_TESSERACT_SERVICE);
+  remove_part_tesseract_client_ = node_->create_client<std_srvs::srv::Trigger>(REMOVE_PART_SERVICE);
   localize_to_part_client_ = node_->create_client<crs_msgs::srv::LocalizeToPart>(LOCALIZE_TO_PART_SERVICE);
 
   // object spawner
@@ -216,6 +220,9 @@ common::ActionResult PartRegistrationManager::setInput(const datatypes::ScanAcqu
 
 common::ActionResult PartRegistrationManager::computeTransform()
 {
+  auto remove_part_request = std::make_shared<std_srvs::srv::Trigger::Request>();
+  auto remove_result_future = remove_part_tesseract_client_->async_send_request(remove_part_request);
+
   common::ActionResult res;
   if (!config_)
   {
@@ -274,6 +281,18 @@ common::ActionResult PartRegistrationManager::applyTransform()
   }
   result_.rasters = raster_strips;
   RCLCPP_INFO_STREAM(node_->get_logger(), MANAGER_NAME << " Transformed raster strips and saved them");
+
+  auto load_part_request = std::make_shared<crs_msgs::srv::LoadPart::Request>();
+  load_part_request->path_to_part = config_->part_file;
+  geometry_msgs::msg::Pose part_origin;
+  part_origin.position.x = part_transform_.transform.translation.x;
+  part_origin.position.y = part_transform_.transform.translation.y;
+  part_origin.position.z = part_transform_.transform.translation.z;
+  part_origin.orientation = part_transform_.transform.rotation;
+  load_part_request->part_origin = part_origin;
+
+  // calling load part service
+  auto result_future = load_part_tesseract_client_->async_send_request(load_part_request);
 
   return true;
 }

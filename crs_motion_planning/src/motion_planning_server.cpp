@@ -46,7 +46,7 @@ static const std::string MODIFY_ENVIRONMENT_SERVICE_NAME = "modify_tesseract";
 static const std::string ENVIRONMENT_UPDATE_TOPIC_NAME = "monitored_tesseract";
 static const std::string ENVIRONMENT_ID = "crs";
 
-static const std::string LOADED_PART_LINK_NAME = "part";
+static const std::string LOADED_PART_LINK_NAME = "part_link";
 static const std::string LOADED_PART_JOINT_NAME = "world_to_part_joint";
 static const std::string ROBOT_BASE_JOINT_NAME = "robot_base_joint";
 
@@ -272,6 +272,7 @@ private:
           request->end_position.position, request->end_position.name);
     }
     tesseract_rosutils::fromMsg(motion_planner_config_->tool_offset, request->tool_offset);
+    std::cout << "TOOL OFFSET:\n" << motion_planner_config_->tool_offset.matrix() << std::endl;
 
     std::vector<crs_msgs::msg::ProcessMotionPlan> returned_plans;
     bool success;
