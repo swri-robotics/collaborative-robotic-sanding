@@ -189,7 +189,7 @@ public:
     trajopt_surface_config.surface_coeffs = surface_coeffs;
     trajopt_surface_config.waypoints_critical = true;
     trajopt_surface_config.longest_valid_segment_fraction = 0.001;
-    trajopt_surface_config.special_collision_constraint.push_back({"eoat_link", LOADED_PART_LINK_NAME, -0.025, 15.0});
+    trajopt_surface_config.special_collision_constraint.push_back({ "eoat_link", LOADED_PART_LINK_NAME, -0.025, 15.0 });
 
     crs_motion_planning::omplConfig ompl_config;
     ompl_config.collision_safety_margin = 0.0175;
@@ -215,8 +215,8 @@ public:
     trajopt_freespace_config.smooth_velocities = true;
     trajopt_freespace_config.smooth_accelerations = true;
     trajopt_freespace_config.smooth_jerks = true;
-    trajopt_freespace_config.special_collision_cost.push_back({"eoat_link", LOADED_PART_LINK_NAME, 0.03, 20.0});
-    trajopt_freespace_config.special_collision_cost.push_back({"eoat_link", "robot_frame", 0.05, 15.0});
+    trajopt_freespace_config.special_collision_cost.push_back({ "eoat_link", LOADED_PART_LINK_NAME, 0.03, 20.0 });
+    trajopt_freespace_config.special_collision_cost.push_back({ "eoat_link", "robot_frame", 0.05, 15.0 });
 
     motion_planner_config_ = std::make_shared<crs_motion_planning::pathPlanningConfig>();
     motion_planner_config_->tesseract_local = tesseract_local_;
