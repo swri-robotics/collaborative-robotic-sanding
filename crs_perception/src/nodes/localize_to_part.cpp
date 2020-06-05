@@ -46,6 +46,7 @@ static const std::string CROP_BOXES_MARKER_NS = "crop_boxes";
 
 struct IcpConfig
 {
+  bool use_correspondences = false;
   double max_correspondence_dist = 0.01;
   int max_iter = 200;
   double transformation_eps = 1e-2;
@@ -235,6 +236,7 @@ private:
       icp_config_.transformation_eps = params["euclidean_fitness"].as_double();
       icp_config_.rotation_eps = params["rotation_eps"].as_double();
       icp_config_.ransac_threshold = params["ransac_threshold"].as_double();
+      icp_config_.use_correspondences = params["use_correspondences"].as_bool();
       RCLCPP_INFO_STREAM(this->get_logger(), "Loaded icp parameters");
     }
     else
@@ -409,7 +411,7 @@ private:
 
     // icp
     pcl::IterativeClosestPointWithNormals<PointNT, PointNT> icp;
-    icp.setUseReciprocalCorrespondences(false);
+    icp.setUseReciprocalCorrespondences(icp_config_.use_correspondences);
     icp.setMaxCorrespondenceDistance(icp_config_.max_correspondence_dist);
     icp.setMaximumIterations(icp_config_.max_iter);
     icp.setTransformationEpsilon(icp_config_.transformation_eps);
@@ -442,7 +444,7 @@ private:
 
     // icp
     pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
-    icp.setUseReciprocalCorrespondences(false);
+    icp.setUseReciprocalCorrespondences(icp_config_.use_correspondences);
     icp.setMaxCorrespondenceDistance(icp_config_.max_correspondence_dist);
     icp.setMaximumIterations(icp_config_.max_iter);
     icp.setTransformationEpsilon(icp_config_.transformation_eps);
