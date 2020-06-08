@@ -83,9 +83,9 @@ def generate_launch_description():
         'tool0_frame': "tool0",
         'manipulator_group': "manipulator",
         'num_steps': 20,
-        'max_joint_velocity': 1.5,
-        'max_joint_acceleration': 3.0,
-        'min_raster_length': 4,
+        'max_joint_velocity': 0.25,
+        'max_joint_acceleration': 0.5,
+        'min_raster_length': 2,
         'use_gazebo_simulation_time': False,
         'set_trajopt_verbose': False}])
     
@@ -97,6 +97,12 @@ def generate_launch_description():
                                  ])
         ])
     '''
+
+    test_process_planner = launch_ros.actions.Node(
+        node_executable='crs_motion_planning_process_planner_test',
+        package='crs_motion_planning',
+        node_name='process_planner_test',
+        output='screen')
         
     return launch.LaunchDescription([
         # arguments
@@ -122,4 +128,5 @@ def generate_launch_description():
 
         # planning
         motion_planning_server,
+        #test_process_planner,
 ])

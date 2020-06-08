@@ -19,7 +19,7 @@ bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray
   const double collision_safety_margin = config_->descartes_config.collision_safety_margin;
   tesseract::Tesseract::Ptr tesseract_local = config_->tesseract_local;
   const std::shared_ptr<const tesseract_environment::Environment> env = tesseract_local->getEnvironmentConst();
-  tesseract_common::TransformMap curr_transforms = env->getCurrentState()->transforms;
+  tesseract_common::TransformMap curr_transforms = env->getCurrentState()->link_transforms;
 
   tesseract_kinematics::ForwardKinematics::ConstPtr kin =
       tesseract_local->getFwdKinematicsManagerConst()->getFwdKinematicSolver(config_->manipulator);
@@ -37,7 +37,7 @@ bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray
   world_to_sander = curr_transforms.find(config_->tcp_frame)->second;
   world_to_tool0 = curr_transforms.find(config_->tool0_frame)->second;
   tool0_to_sander = world_to_tool0.inverse() * world_to_sander;
-  tool0_to_sander = tool0_to_sander * config_->tool_offset;
+  tool0_to_sander = tool0_to_sander * config_->descartes_config.tool_offset;
   descartes_light::KinematicsInterfaceD::Ptr kin_interface =
       std::make_shared<ur_ikfast_kinematics::UR10eKinematicsD>(world_to_base_link, tool0_to_sander, nullptr, nullptr);
 
@@ -419,6 +419,25 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
     traj_pc->smooth_accelerations = config_->trajopt_surface_config.smooth_accelerations;
     traj_pc->smooth_jerks = config_->trajopt_surface_config.smooth_accelerations;
     traj_pc->target_waypoints = curr_raster;
+    trajopt::SafetyMarginData::Ptr traj_smd_cost =
+        std::make_shared<trajopt::SafetyMarginData>(config_->trajopt_surface_config.coll_cst_cfg.buffer_margin, 20);
+    for (auto& spec_cost : config_->trajopt_surface_config.special_collision_cost)
+    {
+      traj_smd_cost->setPairSafetyMarginData(
+          std::get<0>(spec_cost), std::get<1>(spec_cost), std::get<2>(spec_cost), std::get<3>(spec_cost));
+    }
+    trajopt::SafetyMarginData::Ptr traj_smd_cnt =
+        std::make_shared<trajopt::SafetyMarginData>(config_->trajopt_surface_config.coll_cnt_cfg.safety_margin, 20);
+    for (auto& spec_cnt : config_->trajopt_surface_config.special_collision_constraint)
+    {
+      traj_smd_cnt->setPairSafetyMarginData(
+          std::get<0>(spec_cnt), std::get<1>(spec_cnt), std::get<2>(spec_cnt), std::get<3>(spec_cnt));
+    }
+
+    if (config_->trajopt_surface_config.special_collision_cost.size() > 0)
+      traj_pc->special_collision_cost = traj_smd_cost;
+    if (config_->trajopt_surface_config.special_collision_constraint.size() > 0)
+      traj_pc->special_collision_constraint = traj_smd_cnt;
 
     Eigen::MatrixXd joint_eigen_from_jt;
     joint_eigen_from_jt = tesseract_rosutils::toEigen(results->descartes_trajectory_results[i],
@@ -597,19 +616,35 @@ bool crsMotionPlanner::trajoptFreespaceFromOMPL(const tesseract_motion_planners:
   RCLCPP_INFO(logger_, "SETTING UP TRAJOPT CONFIG");
   auto traj_pc = std::make_shared<tesseract_motion_planners::TrajOptPlannerFreespaceConfig>(
       config_->tesseract_local, config_->manipulator, config_->tcp_frame, config_->tool_offset);
-  if (config_->use_trajopt_freespace)
+  traj_pc->optimizer = sco::ModelType::BPMPD;
+  traj_pc->smooth_velocities = config_->trajopt_freespace_config.smooth_velocities;
+  traj_pc->smooth_accelerations = config_->trajopt_freespace_config.smooth_accelerations;
+  traj_pc->smooth_jerks = config_->trajopt_freespace_config.smooth_jerks;
+  traj_pc->collision_cost_config = config_->trajopt_freespace_config.coll_cst_cfg;
+  traj_pc->collision_constraint_config = config_->trajopt_freespace_config.coll_cnt_cfg;
+  traj_pc->init_type = config_->trajopt_freespace_config.init_type;
+  traj_pc->contact_test_type = config_->trajopt_freespace_config.contact_test_type;
+  traj_pc->longest_valid_segment_fraction = config_->trajopt_freespace_config.longest_valid_segment_fraction;
+  traj_pc->longest_valid_segment_length = config_->trajopt_freespace_config.longest_valid_segment_length;
+  trajopt::SafetyMarginData::Ptr traj_smd_cost =
+      std::make_shared<trajopt::SafetyMarginData>(config_->trajopt_freespace_config.coll_cst_cfg.buffer_margin, 20);
+  for (auto& spec_cost : config_->trajopt_freespace_config.special_collision_cost)
   {
-    traj_pc->optimizer = sco::ModelType::BPMPD;
-    traj_pc->smooth_velocities = config_->trajopt_freespace_config.smooth_velocities;
-    traj_pc->smooth_accelerations = config_->trajopt_freespace_config.smooth_accelerations;
-    traj_pc->smooth_jerks = config_->trajopt_freespace_config.smooth_jerks;
-    traj_pc->collision_cost_config = config_->trajopt_freespace_config.coll_cst_cfg;
-    traj_pc->collision_constraint_config = config_->trajopt_freespace_config.coll_cnt_cfg;
-    traj_pc->init_type = config_->trajopt_freespace_config.init_type;
-    traj_pc->contact_test_type = config_->trajopt_freespace_config.contact_test_type;
-    traj_pc->longest_valid_segment_fraction = config_->trajopt_freespace_config.longest_valid_segment_fraction;
-    traj_pc->longest_valid_segment_length = config_->trajopt_freespace_config.longest_valid_segment_length;
+    traj_smd_cost->setPairSafetyMarginData(
+        std::get<0>(spec_cost), std::get<1>(spec_cost), std::get<2>(spec_cost), std::get<3>(spec_cost));
   }
+  trajopt::SafetyMarginData::Ptr traj_smd_cnt =
+      std::make_shared<trajopt::SafetyMarginData>(config_->trajopt_freespace_config.coll_cnt_cfg.safety_margin, 20);
+  for (auto& spec_cnt : config_->trajopt_freespace_config.special_collision_constraint)
+  {
+    traj_smd_cnt->setPairSafetyMarginData(
+        std::get<0>(spec_cnt), std::get<1>(spec_cnt), std::get<2>(spec_cnt), std::get<3>(spec_cnt));
+  }
+
+  if (config_->trajopt_freespace_config.special_collision_cost.size() > 0)
+    traj_pc->special_collision_cost = traj_smd_cost;
+  if (config_->trajopt_freespace_config.special_collision_constraint.size() > 0)
+    traj_pc->special_collision_constraint = traj_smd_cnt;
   RCLCPP_INFO(logger_, "OPTIMIZING WITH TRAJOPT");
   std::vector<tesseract_motion_planners::Waypoint::Ptr> trgt_wypts;
   trgt_wypts.push_back(start_pose);
@@ -921,7 +956,7 @@ bool crsMotionPlanner::findClosestJointOrientation(const tesseract_motion_planne
   const double collision_safety_margin = config_->ompl_config.collision_safety_margin;
   tesseract::Tesseract::Ptr tesseract_local = config_->tesseract_local;
   const std::shared_ptr<const tesseract_environment::Environment> env = tesseract_local->getEnvironmentConst();
-  tesseract_common::TransformMap curr_transforms = env->getCurrentState()->transforms;
+  tesseract_common::TransformMap curr_transforms = env->getCurrentState()->link_transforms;
 
   tesseract_kinematics::ForwardKinematics::ConstPtr kin =
       tesseract_local->getFwdKinematicsManagerConst()->getFwdKinematicSolver(config_->manipulator);
@@ -937,7 +972,7 @@ bool crsMotionPlanner::findClosestJointOrientation(const tesseract_motion_planne
   world_to_sander = curr_transforms.find(config_->tcp_frame)->second;
   world_to_tool0 = curr_transforms.find(config_->tool0_frame)->second;
   tool0_to_sander = world_to_tool0.inverse() * world_to_sander;
-  tool0_to_sander = tool0_to_sander * config_->tool_offset;
+  tool0_to_sander = tool0_to_sander * config_->descartes_config.tool_offset;
   descartes_light::KinematicsInterfaceD::Ptr kin_interface =
       std::make_shared<ur_ikfast_kinematics::UR10eKinematicsD>(world_to_base_link, tool0_to_sander, nullptr, nullptr);
 

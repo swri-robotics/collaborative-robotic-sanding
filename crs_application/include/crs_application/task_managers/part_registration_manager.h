@@ -52,6 +52,7 @@
 
 #include <crs_msgs/srv/load_part.hpp>
 #include <crs_msgs/srv/localize_to_part.hpp>
+#include <std_srvs/srv/trigger.hpp>
 
 namespace crs_application
 {
@@ -90,7 +91,8 @@ protected:
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr preview_markers_pub_;
 
   // service clients
-  rclcpp::Client<crs_msgs::srv::LoadPart>::SharedPtr load_part_client_;
+  rclcpp::Client<crs_msgs::srv::LoadPart>::SharedPtr load_part_client_, load_part_tesseract_client_;
+  rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr remove_part_tesseract_client_;
   rclcpp::Client<crs_msgs::srv::LocalizeToPart>::SharedPtr localize_to_part_client_;
 
   // simulation object manager
