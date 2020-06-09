@@ -122,7 +122,7 @@ boost::optional<MotionPlanningConfig> parse(YAML::Node& config, std::string& err
     }
 
     Node pre_move_home = root_node[PRE_MOVE_HOME];
-    if(pre_move_home)
+    if (pre_move_home)
     {
       cfg.pre_move_home = pre_move_home.as<bool>();
     }

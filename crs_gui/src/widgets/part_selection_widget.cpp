@@ -119,7 +119,7 @@ void PartSelectionWidget::onPartSelectionChanged(QListWidgetItem* current, QList
     ui_->list_widget_part_paths->clear();
     for (auto& paths : part_paths)
     {
-      if(CONFIG_FILE_NAME == paths.filename().string())
+      if (CONFIG_FILE_NAME == paths.filename().string())
       {
         // do not add config file
         continue;

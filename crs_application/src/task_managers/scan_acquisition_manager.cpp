@@ -169,7 +169,7 @@ common::ActionResult ScanAcquisitionManager::verify()
 common::ActionResult ScanAcquisitionManager::moveRobot()
 {
   // check service
-  if(!call_freespace_motion_client_->service_is_ready())
+  if (!call_freespace_motion_client_->service_is_ready())
   {
     RCLCPP_ERROR(node_->get_logger(), "%s Freespace Motion is not ready`", MANAGER_NAME.c_str());
     return false;

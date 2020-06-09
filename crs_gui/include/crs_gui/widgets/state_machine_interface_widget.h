@@ -58,8 +58,6 @@ protected Q_SLOTS:
   /** @brief Applies user_cancels action via ROS service*/
   void onSMCancel();
 
-
-
 public:
   /** @brief Current state machine state */
   std::string current_state_;
