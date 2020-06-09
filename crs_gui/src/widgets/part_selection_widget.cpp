@@ -20,6 +20,7 @@
 #include <map>
 #include <regex>
 #include <string>
+#include <iostream>
 
 #include <QFileDialog>
 #include <QMessageBox>
@@ -30,6 +31,7 @@
 
 #include "ui_part_selection.h"
 
+static const std::string CONFIG_FILE_NAME = "crs.yaml";
 static const std::vector<std::string> MESH_EXTENSIONS = { "stl", "obj", "dae" };
 
 namespace crs_gui
@@ -117,6 +119,12 @@ void PartSelectionWidget::onPartSelectionChanged(QListWidgetItem* current, QList
     ui_->list_widget_part_paths->clear();
     for (auto& paths : part_paths)
     {
+      if(CONFIG_FILE_NAME == paths.filename().string())
+      {
+        // do not add config file
+        continue;
+      }
+
       // Gui display listing parts to user
       QListWidgetItem* item = new QListWidgetItem(QString::fromStdString(paths.stem().string()));
       item->setData(Qt::ItemDataRole::UserRole, QVariant(QString::fromStdString(paths.stem().string())));

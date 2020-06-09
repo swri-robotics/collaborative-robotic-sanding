@@ -18,6 +18,7 @@
 #define CRS_GUI_WIDGETS_STATE_MACHINE_INTERFACE_WIDGET_H
 
 #include <QWidget>
+#include <QString>
 
 #include <rclcpp/rclcpp.hpp>
 #include <crs_msgs/srv/get_available_actions.hpp>
@@ -38,6 +39,9 @@ class StateMachineInterfaceWidget : public QWidget
 public:
   StateMachineInterfaceWidget(rclcpp::Node::SharedPtr node, QWidget* parent = nullptr);
   ~StateMachineInterfaceWidget();
+
+  void requestConfiguration();
+
 Q_SIGNALS:
   /** @brief emitted inside currentStateCB when the state changes with the name of new state as the argument*/
   void onStateChange(std::string);
@@ -53,6 +57,8 @@ protected Q_SLOTS:
   void onSMApprove();
   /** @brief Applies user_cancels action via ROS service*/
   void onSMCancel();
+
+
 
 public:
   /** @brief Current state machine state */
