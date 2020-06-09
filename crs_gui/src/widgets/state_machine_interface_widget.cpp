@@ -30,9 +30,9 @@ const static std::string CURRENT_STATE_TOPIC = "current_state";
 const static std::string EXECUTE_ACTION = "execute_action";
 const static std::string GET_AVAILABLE_ACTIONS = "get_available_actions";
 const static std::string USER_APPROVES_ACTION_ID = "user_approves";
+const static std::string USER_CONFIGURES_ACTION_ID = "user_configs";
 const static std::string USER_CANCELS_ACTION_ID = "user_rejects";
 const static double WAIT_FOR_SERVICE_PERIOD = 2.0;
-static const double WAIT_SERVICE_COMPLETION_PERIOD = 2.0;
 
 namespace standard_user_actions
 {
@@ -220,6 +220,37 @@ void StateMachineInterfaceWidget::onSMApprove()
     else
     {
       emit show_msg(false, "Request rejected");
+    }
+  });
+}
+
+void StateMachineInterfaceWidget::requestConfiguration()
+{
+  // Specify service request to get all user actions in current state
+  auto request = std::make_shared<crs_msgs::srv::ExecuteAction::Request>();
+  request->action_id = USER_CONFIGURES_ACTION_ID;
+
+  // Wait if service is not available
+  if (!execute_action_client_->wait_for_service(std::chrono::duration<double>(WAIT_FOR_SERVICE_PERIOD)))
+  {
+    const std::string msg =
+        boost::str(boost::format("ROS2 Service %s is not available") % execute_action_client_->get_service_name());
+    RCLCPP_ERROR_STREAM(node_->get_logger(), msg);
+    emit show_msg(false, msg);
+    return;
+  }
+
+  // Send request
+  using ResFut = decltype(execute_action_client_)::element_type::SharedFuture;
+  execute_action_client_->async_send_request(request, [this](ResFut future) {
+    auto result = future.get();
+    if (result.get()->succeeded)
+    {
+      emit show_msg(true, "Configuration Request approved");
+    }
+    else
+    {
+      emit show_msg(false, "Configuration Request rejected");
     }
   });
 }

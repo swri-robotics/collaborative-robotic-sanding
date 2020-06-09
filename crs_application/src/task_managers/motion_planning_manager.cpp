@@ -242,7 +242,9 @@ common::ActionResult MotionPlanningManager::planProcessPaths()
     return res;
   }
 
-  if (diff > MAX_JOINT_TOLERANCE)
+  sensor_msgs::msg::JointState start_position = *current_st;
+
+  if (diff > MAX_JOINT_TOLERANCE && config_->pre_move_home)
   {
     // planning free start motion to home from current
     srv::CallFreespaceMotion::Request::SharedPtr free_motion_req =
@@ -259,6 +261,7 @@ common::ActionResult MotionPlanningManager::planProcessPaths()
     {
       return false;
     }
+    start_position = *home_js_;
     result_.move_to_start = opt.get();
   }
 
@@ -269,8 +272,8 @@ common::ActionResult MotionPlanningManager::planProcessPaths()
   req->retreat_dist = config_->retreat_dist;
   req->tool_speed = config_->tool_speed;
   req->tool_offset = tf2::toMsg(config_->offset_pose);
-  req->start_position = *home_js_;
-  req->end_position = *home_js_;
+  req->start_position = start_position;
+  req->end_position = start_position;
 
   for (datatypes::ProcessToolpathData& pd : process_toolpaths_)
   {

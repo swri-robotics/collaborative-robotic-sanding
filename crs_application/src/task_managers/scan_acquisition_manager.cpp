@@ -41,6 +41,7 @@
 static const double WAIT_FOR_SERVICE_PERIOD = 10.0;
 static const double WAIT_MESSAGE_TIMEOUT = 2.0;
 static const double WAIT_ROBOT_STOP = 2.0;
+static const double WAIT_MOTION_COMPLETION = 30.0;
 static const std::size_t POSES_ARRAY_SIZE = 6;
 static const std::string POINT_CLOUD_TOPIC = "custom_camera/custom_points";
 static const std::string FREESPACE_MOTION_PLAN_SERVICE = "plan_freespace_motion";
@@ -167,6 +168,13 @@ common::ActionResult ScanAcquisitionManager::verify()
 
 common::ActionResult ScanAcquisitionManager::moveRobot()
 {
+  // check service
+  if (!call_freespace_motion_client_->service_is_ready())
+  {
+    RCLCPP_ERROR(node_->get_logger(), "%s Freespace Motion is not ready`", MANAGER_NAME.c_str());
+    return false;
+  }
+
   auto freespace_motion_request = std::make_shared<crs_msgs::srv::CallFreespaceMotion::Request>();
   freespace_motion_request->target_link = tool_frame_;
   freespace_motion_request->goal_pose = scan_poses_.at(scan_index_);
@@ -174,7 +182,7 @@ common::ActionResult ScanAcquisitionManager::moveRobot()
 
   auto result_future = call_freespace_motion_client_->async_send_request(freespace_motion_request);
 
-  std::future_status status = result_future.wait_for(std::chrono::seconds(30));
+  std::future_status status = result_future.wait_for(std::chrono::duration<double>(WAIT_MOTION_COMPLETION));
   if (status != std::future_status::ready)
   {
     RCLCPP_ERROR(node_->get_logger(), "%s Call Freespace Motion service call timedout", MANAGER_NAME.c_str());
