@@ -47,6 +47,7 @@ namespace config_fields
 namespace motion_planning
 {
 static const std::string TOP_LEVEL = "motion_planning";
+static const std::string PRE_MOVE_HOME = "pre_move_home";
 static const std::string HOME_POS_ROOT = "home_position";
 static const std::string PROCESS_PATH_ROOT = "process_path";
 static const std::string MEDIA_CHANGE_ROOT = "media_change";
@@ -118,6 +119,12 @@ boost::optional<MotionPlanningConfig> parse(YAML::Node& config, std::string& err
     {
       err_msg = boost::str(boost::format("The '%s' field was not found") % TOP_LEVEL);
       return boost::none;
+    }
+
+    Node pre_move_home = root_node[PRE_MOVE_HOME];
+    if(pre_move_home)
+    {
+      cfg.pre_move_home = pre_move_home.as<bool>();
     }
 
     Node home_pose_node = root_node[HOME_POS_ROOT];
