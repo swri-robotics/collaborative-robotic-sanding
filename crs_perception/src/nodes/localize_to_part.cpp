@@ -444,7 +444,7 @@ private:
   bool alignIcp(Cloud::Ptr target_cloud, Cloud::Ptr src_cloud, Eigen::Isometry3d& transform)
   {
     Eigen::Isometry3d init_transform = Eigen::Isometry3d::Identity();
-    if(icp_config_.use_cog_alignment)
+    if (icp_config_.use_cog_alignment)
     {
       // initial alignment
       pcl::PointCloud<pcl::PointXYZ>::Ptr temp_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
@@ -707,7 +707,7 @@ private:
                 angles(1),
                 angles(2));
 
-    response->transform = tf2::eigenToTransform(transform * part_seed_transform_); // applying seed
+    response->transform = tf2::eigenToTransform(transform * part_seed_transform_);  // applying seed
     response->transform.header.stamp = this->now();
     response->transform.header.frame_id = request->frame;
     response->transform.child_frame_id = part_frame_;
