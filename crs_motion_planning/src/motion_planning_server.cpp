@@ -217,6 +217,7 @@ public:
     trajopt_freespace_config.smooth_jerks = true;
     trajopt_freespace_config.special_collision_cost.push_back({ "eoat_link", LOADED_PART_LINK_NAME, 0.03, 20.0 });
     trajopt_freespace_config.special_collision_cost.push_back({ "eoat_link", "robot_frame", 0.05, 15.0 });
+    trajopt_freespace_config.special_collision_cost.push_back({ "shoulder_link", "robot_frame", 0.03, 15.0 });
 
     motion_planner_config_ = std::make_shared<crs_motion_planning::pathPlanningConfig>();
     motion_planner_config_->tesseract_local = tesseract_local_;
@@ -237,7 +238,7 @@ public:
     motion_planner_config_->use_gazebo_sim_timing = this->get_parameter(param_names::GAZEBO_SIM_TIMING).as_bool();
     motion_planner_config_->trajopt_verbose_output = this->get_parameter(param_names::TRAJOPT_VERBOSE).as_bool();
     motion_planner_config_->simplify_start_end_freespace = true;
-    motion_planner_config_->use_trajopt_freespace = true;
+    motion_planner_config_->use_trajopt_freespace = false;
     motion_planner_config_->combine_strips = true;
     motion_planner_config_->global_descartes = true;
   }
