@@ -332,7 +332,7 @@
         </collision>-->
         <collision> <!-- Top back beam-->
             <geometry>
-                <box size="0.4 0.12 3.0" />
+                <box size="0.4 0.15 3.0" />
             </geometry>
             <origin rpy="0 0 0" xyz="-0.98 -2.135 0.0" />
         </collision>
@@ -358,8 +358,8 @@
     <joint name="${prefix}robot_base_joint" type="fixed">
         <parent link="${prefix}robot_stand" />
         <child link="${prefix}base" />
-<!--        <origin rpy="-1.570796 1.570796 0" xyz="-0.148896 -2.047406 0.6277 " />-->
-        <origin rpy="-1.570796 1.570796 0" xyz="-1.050659 -2.047406 0.6277 " />
+        <origin rpy="-1.570796 1.570796 0" xyz="-0.148896 -2.047406 0.6277 " />
+<!--        <origin rpy="-1.570796 1.570796 0" xyz="-1.030659 -2.037406 0.7977 " />-->
         <axis xyz="1 0 0"/>
         <limit effort="1.0" lower="-0.1" upper="1.9" velocity=".01" />
     </joint>
