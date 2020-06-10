@@ -49,6 +49,7 @@ namespace config
 struct MotionPlanningConfig
 {
   // home pose
+  bool pre_move_home;
   std::vector<std::string> joint_names;
   std::vector<double> joint_home_position;
 
