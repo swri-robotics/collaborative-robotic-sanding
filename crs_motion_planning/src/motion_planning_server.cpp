@@ -175,7 +175,7 @@ public:
 
     crs_motion_planning::trajoptSurfaceConfig trajopt_surface_config;
     trajopt_surface_config.smooth_velocities = true;
-    trajopt_surface_config.smooth_accelerations = true;
+    trajopt_surface_config.smooth_accelerations = false;
     trajopt_surface_config.smooth_jerks = false;
     tesseract_motion_planners::CollisionCostConfig coll_cost_config_srfc;
     coll_cost_config_srfc.enabled = false;
@@ -188,7 +188,7 @@ public:
     surface_coeffs << 10, 10, 10, 10, 10, 0;
     trajopt_surface_config.surface_coeffs = surface_coeffs;
     trajopt_surface_config.waypoints_critical = true;
-    trajopt_surface_config.longest_valid_segment_fraction = 0.001;
+    trajopt_surface_config.longest_valid_segment_fraction = 0.005;
     trajopt_surface_config.special_collision_constraint.push_back({ "eoat_link", LOADED_PART_LINK_NAME, -0.025, 15.0 });
 
     crs_motion_planning::omplConfig ompl_config;
@@ -614,7 +614,7 @@ private:
 
     auto result_future = modify_env_client_->async_send_request(mod_env_request);
 
-    RCLCPP_INFO(this->get_logger(), "Part successfully removed from tesseract environment");
+    RCLCPP_INFO(this->get_logger(), "Part successfully moved in tesseract environment");
     response->success = true;
     response->error = "No Errors";
     return;
