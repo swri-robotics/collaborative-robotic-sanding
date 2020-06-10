@@ -46,7 +46,7 @@ static const std::string CROP_BOXES_MARKER_NS = "crop_boxes";
 
 struct IcpConfig
 {
-  bool use_cog_aligment = false;
+  bool use_cog_alignment = false;
   bool use_correspondences = false;
   double max_correspondence_dist = 0.01;
   int max_iter = 200;
@@ -231,7 +231,7 @@ private:
     std::map<std::string, rclcpp::Parameter> params;
     if (this->get_parameters("icp", params))
     {
-      icp_config_.use_cog_aligment = params["use_cog_aligment"].as_bool();
+      icp_config_.use_cog_alignment = params["use_cog_alignment"].as_bool();
       icp_config_.euclidean_fitness = params["euclidean_fitness"].as_double();
       icp_config_.max_correspondence_dist = params["max_correspondence_dist"].as_double();
       icp_config_.max_iter = params["max_iter"].as_int();
@@ -444,7 +444,7 @@ private:
   bool alignIcp(Cloud::Ptr target_cloud, Cloud::Ptr src_cloud, Eigen::Isometry3d& transform)
   {
     Eigen::Isometry3d init_transform = Eigen::Isometry3d::Identity();
-    if(icp_config_.use_cog_aligment)
+    if(icp_config_.use_cog_alignment)
     {
       // initial alignment
       pcl::PointCloud<pcl::PointXYZ>::Ptr temp_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
