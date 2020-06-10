@@ -1,9 +1,11 @@
 <?xml version="1.0"?>
 <launch>
 	<arg name="ns_arg" default="crs"/>
+        <arg name="sim" default="true"/>
 	<let name="state_machine_file" value="$(find-pkg-share crs_application)/resources/crs_process.scxml"/>
 	
 	<let name="group_ns" value="$(var ns_arg)"/>
+        <let name="sim_robot" value="$(var sim)"/>
 	<group>		
 		<push-ros-namespace namespace="$(var group_ns)"/>
 		
@@ -14,11 +16,15 @@
 	    </include>
 		
 		<include file="$(find-pkg-share crs_support)/launch/environment_launch.launch.py">
+                    <arg name="sim_robot" value="$(var sim_robot)"/>
 		</include>
 		
 		<node pkg="crs_application" exec="crs_application_node" name="crs_main" output="screen">
 			<param name="state_machine_file" value="$(var state_machine_file)"/>
 		</node>		
+
+                <node pkg="realsense_node" exec="realsense_node" name="realsense_node" prefix="xterm -e"
+                      output="log" unless="$(var sim_robot)"/>
 				
 		<!-- ros2 component standalone crs_perception crs_perception::LocalizeToPart  -->
 		<!--<let name="node_ns" value="/$(var group_ns)"/>
