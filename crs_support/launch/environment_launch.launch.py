@@ -87,7 +87,7 @@ def generate_launch_description():
         'max_joint_acceleration': 0.7,
         'min_raster_length': 4,
         'use_gazebo_simulation_time': False,
-        'set_trajopt_verbose': True}])
+        'set_trajopt_verbose': False}])
     
     '''  
     Example of how to push a ros namespace 
