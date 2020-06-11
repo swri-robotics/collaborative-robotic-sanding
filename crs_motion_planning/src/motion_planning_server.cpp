@@ -169,12 +169,12 @@ public:
 
     // Set up planning config variable
     crs_motion_planning::descartesConfig descartes_config;
-    descartes_config.axial_step = 0.1;
-    descartes_config.collision_safety_margin = 0.0075;
+    descartes_config.axial_step = 0.075;
+    descartes_config.collision_safety_margin = 0.015;
     descartes_config.tool_offset.translation().z() = 0.025;
 
     crs_motion_planning::trajoptSurfaceConfig trajopt_surface_config;
-    trajopt_surface_config.smooth_velocities = true;
+    trajopt_surface_config.smooth_velocities = false;
     trajopt_surface_config.smooth_accelerations = false;
     trajopt_surface_config.smooth_jerks = false;
     tesseract_motion_planners::CollisionCostConfig coll_cost_config_srfc;
@@ -182,21 +182,22 @@ public:
     trajopt_surface_config.coll_cst_cfg = coll_cost_config_srfc;
     tesseract_motion_planners::CollisionConstraintConfig coll_cnt_config_srfc;
     coll_cnt_config_srfc.enabled = true;
-    coll_cnt_config_srfc.safety_margin = 0.001;
+    coll_cnt_config_srfc.safety_margin = 0.01;
     trajopt_surface_config.coll_cnt_cfg = coll_cnt_config_srfc;
     Eigen::VectorXd surface_coeffs(6);
-    surface_coeffs << 10, 10, 10, 10, 10, 0;
+    surface_coeffs << 6, 6, 10, 10, 10, 0;
     trajopt_surface_config.surface_coeffs = surface_coeffs;
-    trajopt_surface_config.waypoints_critical = true;
-    trajopt_surface_config.longest_valid_segment_fraction = 0.005;
-    trajopt_surface_config.special_collision_constraint.push_back({ "eoat_link", LOADED_PART_LINK_NAME, -0.025, 15.0 });
+    trajopt_surface_config.waypoints_critical = false;
+    trajopt_surface_config.longest_valid_segment_fraction = 0.1;
+    trajopt_surface_config.special_collision_constraint.push_back({ "eoat_link", LOADED_PART_LINK_NAME, -0.02, 15.0 });
+    trajopt_surface_config.special_collision_constraint.push_back({ "sander_center_link", LOADED_PART_LINK_NAME, -0.02, 15.0 });
 
     crs_motion_planning::omplConfig ompl_config;
-    ompl_config.collision_safety_margin = 0.0175;
-    ompl_config.planning_time = 15;
+    ompl_config.collision_safety_margin = 0.01;
+    ompl_config.planning_time = 120;
     ompl_config.n_output_states = this->get_parameter(param_names::NUM_FREEPSACE_STEPS).as_int();
     ompl_config.simplify = true;
-    ompl_config.longest_valid_segment_fraction = 0.005;
+    ompl_config.longest_valid_segment_fraction = 0.015;
     ompl_config.range = 0.25;
     ompl_config.num_threads = 8;
 
@@ -239,7 +240,7 @@ public:
     motion_planner_config_->trajopt_verbose_output = this->get_parameter(param_names::TRAJOPT_VERBOSE).as_bool();
     motion_planner_config_->simplify_start_end_freespace = true;
     motion_planner_config_->use_trajopt_freespace = false;
-    motion_planner_config_->combine_strips = true;
+    motion_planner_config_->combine_strips = false;
     motion_planner_config_->global_descartes = true;
   }
 
@@ -273,6 +274,7 @@ private:
           request->end_position.position, request->end_position.name);
     }
     tesseract_rosutils::fromMsg(motion_planner_config_->tool_offset, request->tool_offset);
+    motion_planner_config_->descartes_config.tool_offset = motion_planner_config_->tool_offset;
 
     std::vector<crs_msgs::msg::ProcessMotionPlan> returned_plans;
     bool success;
@@ -475,7 +477,8 @@ private:
     tesseract_geometry::ConvexMesh conv_mesh = tesseract_geometry::ConvexMesh(conv_hull_vertices, conv_hull_faces);
 
     tesseract_msgs::msg::Geometry link_geom;
-    tesseract_rosutils::toMsg(link_geom, conv_mesh);
+//    tesseract_rosutils::toMsg(link_geom, conv_mesh);
+    tesseract_rosutils::toMsg(link_geom, *meshes[0]);
 
     std::vector<tesseract_msgs::msg::VisualGeometry> vis_geom_vector;
     tesseract_msgs::msg::VisualGeometry link_vis_geom;
