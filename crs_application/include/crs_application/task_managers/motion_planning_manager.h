@@ -94,6 +94,7 @@ protected:
   sensor_msgs::msg::JointState::SharedPtr home_js_;
   datatypes::ProcessExecutionData result_;
 
+  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr js_pub_; // preview publisher
   rclcpp::Client<crs_msgs::srv::CallFreespaceMotion>::SharedPtr call_freespace_planning_client_;
   rclcpp::Client<crs_msgs::srv::PlanProcessMotions>::SharedPtr process_motion_planning_client_;
 
