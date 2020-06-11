@@ -83,11 +83,11 @@ def generate_launch_description():
         'tool0_frame': "tool0",
         'manipulator_group': "manipulator",
         'num_steps': 20,
-        'max_joint_velocity': 0.2,
-        'max_joint_acceleration': 0.6,
-        'min_raster_length': 2,
+        'max_joint_velocity': 0.22,
+        'max_joint_acceleration': 0.7,
+        'min_raster_length': 4,
         'use_gazebo_simulation_time': False,
-        'set_trajopt_verbose': False}])
+        'set_trajopt_verbose': True}])
     
     '''  
     Example of how to push a ros namespace 
