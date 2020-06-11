@@ -43,7 +43,7 @@ static const double WAIT_SERVICE_DURATION = 2.0;          // secs
 static const double WAIT_MOTION_PLANNING_PERIOD = 300.0;  // secs
 static const double WAIT_JOINT_STATE_TIMEOUT = 2.0;
 static const double MAX_JOINT_TOLERANCE = (M_PI / 180.0) * 1.0;
-static const double MIN_PREVIEW_STEP_TIME = 0.05; // secs
+static const double MIN_PREVIEW_STEP_TIME = 0.05;  // secs
 static const std::string CURRENT_JOINT_STATE_TOPIC = "joint_states";
 static const std::string PREVIEW_NAME_PREFIX = "preview/";
 static const std::string PREVIEW_JOINT_STATE_TOPIC = "preview/input_joints";
@@ -415,8 +415,7 @@ common::ActionResult MotionPlanningManager::showPreview()
   }
   publish_preview_enabled_ = true;
 
-  auto publish_joint_trajs = [this](const trajectory_msgs::msg::JointTrajectory& traj,
-                                             double time_factor) -> bool {
+  auto publish_joint_trajs = [this](const trajectory_msgs::msg::JointTrajectory& traj, double time_factor) -> bool {
     sensor_msgs::msg::JointState js_msg;
     js_msg.name = traj.joint_names;
     js_msg.position.resize(js_msg.name.size(), 0.0);
@@ -426,9 +425,7 @@ common::ActionResult MotionPlanningManager::showPreview()
     std::chrono::duration<double> current_dur;
 
     // adding preview prefix to joint names
-    std::for_each(js_msg.name.begin(), js_msg.name.end(), [](std::string& j){
-      j = PREVIEW_NAME_PREFIX + j;
-    });
+    std::for_each(js_msg.name.begin(), js_msg.name.end(), [](std::string& j) { j = PREVIEW_NAME_PREFIX + j; });
 
     for (std::size_t j = 0; j < traj.points.size(); j++)
     {
@@ -447,12 +444,12 @@ common::ActionResult MotionPlanningManager::showPreview()
       rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::nanoseconds>(diff));
 
       js_pub_->publish(js_msg);
-      prev_dur  = current_dur;
+      prev_dur = current_dur;
     }
     return true;
   };
 
-  while(publish_preview_enabled_)
+  while (publish_preview_enabled_)
   {
     // previewing process plan moves now
     if (!publish_joint_trajs(result_.move_to_start, config_->preview_time_scaling))
@@ -476,7 +473,6 @@ common::ActionResult MotionPlanningManager::showPreview()
         {
           return true;
         }
-
       }
       if (!publish_joint_trajs(process_plan.end, config_->preview_time_scaling))
       {
@@ -516,9 +512,7 @@ common::ActionResult MotionPlanningManager::hidePreview()
   js_msg.name = result_.process_plans.front().process_motions.front().joint_names;
 
   // adding preview prefix to joint names
-  std::for_each(js_msg.name.begin(), js_msg.name.end(), [](std::string& j){
-    j = PREVIEW_NAME_PREFIX + j;
-  });
+  std::for_each(js_msg.name.begin(), js_msg.name.end(), [](std::string& j) { j = PREVIEW_NAME_PREFIX + j; });
 
   js_msg.position.resize(js_msg.name.size(), 0.0);
   js_msg.velocity.resize(js_msg.name.size(), 0.0);
