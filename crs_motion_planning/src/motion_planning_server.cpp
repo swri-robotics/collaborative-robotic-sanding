@@ -187,8 +187,8 @@ public:
     Eigen::VectorXd surface_coeffs(6);
     surface_coeffs << 10, 10, 10, 10, 10, 0;
     trajopt_surface_config.surface_coeffs = surface_coeffs;
-    trajopt_surface_config.waypoints_critical = true;
-    trajopt_surface_config.longest_valid_segment_fraction = 0.001;
+    trajopt_surface_config.waypoints_critical = false;
+    trajopt_surface_config.longest_valid_segment_fraction = 0.05;
     trajopt_surface_config.special_collision_constraint.push_back({ "eoat_link", LOADED_PART_LINK_NAME, -0.025, 15.0 });
 
     crs_motion_planning::omplConfig ompl_config;
