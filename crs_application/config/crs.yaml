@@ -1,7 +1,7 @@
 crs:
   general: {}
   motion_planning:
-    pre_move_home: true
+    pre_move_home: false
     home_position:
       joint_names: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
       joint_position: [-0.9644, -1.3617, 2.0724, -0.7108, -0.9640, 0.7994]
