@@ -116,8 +116,22 @@ common::ActionResult PartRegistrationManager::configure(const config::PartRegist
   // saving config
   config_ = std::make_shared<config::PartRegistrationConfig>(config);
 
+  // setting the transform
+  std::array<double, 6> tvals;
+  std::copy(config_->seed_pose.begin(), config_->seed_pose.end(), tvals.begin());
+  part_transform_.transform = common::toTransformMsg(tvals);
+  part_transform_.child_frame_id = PART_FRAME_ID;
+  part_transform_.header.frame_id = config_->target_frame_id;
+
+  // optionally load part into simulator if its running
+  std::copy(config_->simulation_pose.begin(), config_->simulation_pose.end(), tvals.begin());
+  obj_spawner_->remove(PART_FRAME_ID);
+  obj_spawner_->spawn(PART_FRAME_ID, config_->target_frame_id, config_->part_file, tvals);
+
+  // preparing the request
   auto load_part_request = std::make_shared<crs_msgs::srv::LoadPart::Request>();
   load_part_request->path_to_part = config_->part_file;
+  load_part_request->part_origin = tf2::toMsg(tf2::transformToEigen(part_transform_.transform));
 
   // calling load part service
   auto result_future = load_part_client_->async_send_request(load_part_request);
@@ -137,17 +151,6 @@ common::ActionResult PartRegistrationManager::configure(const config::PartRegist
     RCLCPP_ERROR(node_->get_logger(), "Load Part service call failed");
     return false;
   }
-
-  // setting the transform
-  std::array<double, 6> tvals;
-  std::copy(config_->seed_pose.begin(), config_->seed_pose.end(), tvals.begin());
-  part_transform_.transform = common::toTransformMsg(tvals);
-  part_transform_.child_frame_id = PART_FRAME_ID;
-  part_transform_.header.frame_id = config_->target_frame_id;
-
-  // optionally load part into simulator if its running
-  obj_spawner_->remove(PART_FRAME_ID);
-  obj_spawner_->spawn(PART_FRAME_ID, config_->target_frame_id, config_->part_file, tvals);
 
   applyTransform();
   showPreview();
