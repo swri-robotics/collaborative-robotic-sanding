@@ -263,6 +263,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
             results->skipped_rasters.push_back(resplit_rasters[i]);
           }
         }
+        RCLCPP_INFO(logger_, "SPLIT IT");
       }
       else
       {
@@ -279,11 +280,17 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
     post_speed_split_rasters = split_reachable_rasters;
     post_speed_split_trajs = second_descartes_trajs;
   }
+  RCLCPP_INFO(logger_, "FINISHED SPLITTING TRAJECTORIES");
 
   // Approach and retreat
   std::vector<geometry_msgs::msg::PoseArray> final_split_rasters;
   std::vector<trajectory_msgs::msg::JointTrajectory> final_split_trajs;
   std::vector<std::vector<double>> final_time_steps;
+  if (post_speed_split_rasters.empty())
+  {
+    RCLCPP_ERROR(logger_, "ALL TRAJECTORIES TOO SHORT AFTER SPLITTING BY SPEED");
+    return false;
+  }
   if (config_->add_approach_and_retreat)
   {
     // Add approach and retreat
@@ -299,6 +306,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
 
       // Add approach and retreat points
       crs_motion_planning::addApproachAndRetreat(post_speed_split_rasters[i], approach, retreat, modified_raster);
+      RCLCPP_INFO(logger_, "ADDED APPROACH AND RETREAT CARTESIANS");
 
       // Make waypoints used for determining the closest joint states for each new raster point
       begin_orig = std::make_shared<tesseract_motion_planners::JointWaypoint>(
@@ -314,6 +322,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
                                         modified_raster.poses[0].orientation.z);
       new_raster_begin =
           std::make_shared<tesseract_motion_planners::CartesianWaypoint>(goal_pose_begin, goal_ori_begin);
+
       Eigen::Vector3d goal_pose_end(modified_raster.poses.back().position.x,
                                     modified_raster.poses.back().position.y,
                                     modified_raster.poses.back().position.z);
@@ -325,24 +334,43 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
 
       // Find the closest joint state for both the new starting point and the new ending point and convert to vector of
       // doubles
-      findClosestJointOrientation(begin_orig, new_raster_begin, begin_new, config_->descartes_config.axial_step);
-      Eigen::VectorXd new_begin_eig = begin_new->getPositions(post_speed_split_trajs[i].joint_names);
-      std::vector<double> new_begin_vec(new_begin_eig.data(), new_begin_eig.data() + new_begin_eig.size());
-      findClosestJointOrientation(end_orig, new_raster_end, end_new, config_->descartes_config.axial_step);
-      Eigen::VectorXd new_end_eig = end_new->getPositions(post_speed_split_trajs[i].joint_names);
-      std::vector<double> new_end_vec(new_end_eig.data(), new_end_eig.data() + new_end_eig.size());
-
       // Store new joint states points in joint trajectory points
       trajectory_msgs::msg::JointTrajectoryPoint new_traj_point_begin, new_traj_point_end;
-      new_traj_point_begin.positions = new_begin_vec;
-      new_traj_point_end.positions = new_end_vec;
-
-      // Form new raster trajectory msg
-      new_raster_traj.points.push_back(new_traj_point_begin);
+      if(!findClosestJointOrientation(begin_orig, new_raster_begin, begin_new, config_->descartes_config.axial_step))
+      {
+        RCLCPP_WARN(logger_, "UNABLE TO ADD APPROACH RASTER POSE");
+        Eigen::VectorXd new_begin_eig = begin_orig->getPositions(post_speed_split_trajs[i].joint_names);
+        std::vector<double> new_begin_vec(new_begin_eig.data(), new_begin_eig.data() + new_begin_eig.size());
+        new_traj_point_begin.positions = new_begin_vec;
+        new_raster_traj.points.push_back(new_traj_point_begin);
+      }
+      else
+      {
+        RCLCPP_INFO(logger_, "ADDED NEW RASTER BEGIN");
+        Eigen::VectorXd new_begin_eig = begin_new->getPositions(post_speed_split_trajs[i].joint_names);
+        std::vector<double> new_begin_vec(new_begin_eig.data(), new_begin_eig.data() + new_begin_eig.size());
+        new_traj_point_begin.positions = new_begin_vec;
+        new_raster_traj.points.push_back(new_traj_point_begin);
+      }
       new_raster_traj.points.insert(new_raster_traj.points.end(),
                                     post_speed_split_trajs[i].points.begin(),
                                     post_speed_split_trajs[i].points.end());
-      new_raster_traj.points.push_back(new_traj_point_end);
+      if(!findClosestJointOrientation(end_orig, new_raster_end, end_new, config_->descartes_config.axial_step))
+      {
+        RCLCPP_WARN(logger_, "UNABLE TO ADD RETREAT RASTER POSE");
+        Eigen::VectorXd new_end_eig = end_orig->getPositions(post_speed_split_trajs[i].joint_names);
+        std::vector<double> new_end_vec(new_end_eig.data(), new_end_eig.data() + new_end_eig.size());
+        new_traj_point_end.positions = new_end_vec;
+        new_raster_traj.points.push_back(new_traj_point_end);
+      }
+      else
+      {
+        RCLCPP_INFO(logger_, "ADDED NEW RASTER END");
+        Eigen::VectorXd new_end_eig = end_new->getPositions(post_speed_split_trajs[i].joint_names);
+        std::vector<double> new_end_vec(new_end_eig.data(), new_end_eig.data() + new_end_eig.size());
+        new_traj_point_end.positions = new_end_vec;
+        new_raster_traj.points.push_back(new_traj_point_end);
+      }
       new_raster_traj.joint_names = post_speed_split_trajs[i].joint_names;
       new_raster_traj.header = post_speed_split_trajs[i].header;
 
@@ -520,8 +548,10 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
         }
         traj_times.push_back(std::move(curr_traj_time));
         trajectory_msgs::msg::JointTrajectory curr_time_mod_traj;
-        crs_motion_planning::timeParameterizeTrajectories(
-            trajopt_trajectories[trajopt_traj_n], curr_time_mod_traj, config_->use_gazebo_sim_timing);
+//        crs_motion_planning::timeParameterizeTrajectories(
+//            trajopt_trajectories[trajopt_traj_n], curr_time_mod_traj, config_->use_gazebo_sim_timing);
+        crs_motion_planning::timeParameterizeFreespace(
+            trajopt_trajectories[trajopt_traj_n], config_->max_joint_vel, config_->max_joint_acc, curr_time_mod_traj);
         time_mod_traj.push_back(curr_time_mod_traj);
       }
       else
