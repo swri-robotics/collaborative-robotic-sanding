@@ -7,10 +7,11 @@
 - Open terminal and navigate to ROS1 workspace
     and run the following lines in the terminal
     ```
-    source /opt/ros/meldodic/setup.bash
+    source /opt/ros/melodic/setup.bash
     source devel/setup.bash
     roslaunch crs_support_ros1 crs_startup.launch
     ```
+    You should see the UR teach pendant showing "Running" under the program tab
 - Open another terminal window and navigate to ROS Bridge workspace
     and run the following lines in  the terminal
     ```
