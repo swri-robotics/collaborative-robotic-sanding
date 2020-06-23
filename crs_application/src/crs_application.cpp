@@ -92,11 +92,12 @@ int main(int argc, char** argv)
           return;
         }
 
-        Response sm_res = exec.getSM()->execute(Action{ id : req->action_id, data : boost::any() });
+        TransitionResult sm_res = exec.getSM()->execute(Action{ id : req->action_id, data : boost::any() });
+        RCLCPP_INFO(node->get_logger(),"Executed requested action %s",req->action_id.c_str());
         if (!sm_res)
         {
           res->succeeded = false;
-          res->err_msg = sm_res.msg;
+          res->err_msg = sm_res.getErrorMessage();
           RCLCPP_ERROR(node->get_logger(), res->err_msg.c_str());
           return;
         }
@@ -160,7 +161,7 @@ int main(int argc, char** argv)
   // main loop
   while (rclcpp::ok())
   {
-    app.processEvents(QEventLoop::AllEvents);
+    app.processEvents(QEventLoop::AllEvents,100);
     executor.spin_some(rclcpp::Duration::from_seconds(ROS_SPIN_TIMEOUT).to_chrono<std::chrono::nanoseconds>());
   }
   app.exit();
