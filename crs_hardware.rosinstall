@@ -1,0 +1,1 @@
+- git: {local-name: ros2_intel_realsense, uri: 'https://github.com/intel/ros2_intel_realsense.git', version: 47b313c}
