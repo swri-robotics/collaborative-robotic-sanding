@@ -190,7 +190,8 @@ public:
     trajopt_surface_config.waypoints_critical = false;
     trajopt_surface_config.longest_valid_segment_fraction = 0.1;
     trajopt_surface_config.special_collision_constraint.push_back({ "eoat_link", LOADED_PART_LINK_NAME, -0.02, 15.0 });
-    trajopt_surface_config.special_collision_constraint.push_back({ "sander_center_link", LOADED_PART_LINK_NAME, -0.02, 15.0 });
+    trajopt_surface_config.special_collision_constraint.push_back(
+        { "sander_center_link", LOADED_PART_LINK_NAME, -0.02, 15.0 });
 
     crs_motion_planning::omplConfig ompl_config;
     ompl_config.collision_safety_margin = 0.01;
@@ -477,7 +478,7 @@ private:
     tesseract_geometry::ConvexMesh conv_mesh = tesseract_geometry::ConvexMesh(conv_hull_vertices, conv_hull_faces);
 
     tesseract_msgs::msg::Geometry link_geom;
-//    tesseract_rosutils::toMsg(link_geom, conv_mesh);
+    //    tesseract_rosutils::toMsg(link_geom, conv_mesh);
     tesseract_rosutils::toMsg(link_geom, *meshes[0]);
 
     std::vector<tesseract_msgs::msg::VisualGeometry> vis_geom_vector;

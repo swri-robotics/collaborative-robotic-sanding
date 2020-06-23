@@ -358,8 +358,8 @@ bool CRSExecutive::setupGeneralStates()
       return true;
     },
     async : false,
-    exit_cb: nullptr,
-    on_done_action: ""
+    exit_cb : nullptr,
+    on_done_action : ""
   };
 
   // now adding functions to SM

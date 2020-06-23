@@ -39,7 +39,7 @@
 #include <trajectory_msgs/msg/joint_trajectory.hpp>
 #include "crs_application/task_managers/motion_planning_manager.h"
 
-static const double WAIT_SERVICE_DURATION = 2.0;          // secs
+static const double WAIT_SERVICE_DURATION = 2.0;           // secs
 static const double WAIT_MOTION_PLANNING_PERIOD = 1200.0;  // secs
 static const double WAIT_JOINT_STATE_TIMEOUT = 2.0;
 static const double MAX_JOINT_TOLERANCE = (M_PI / 180.0) * 1.0;

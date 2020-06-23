@@ -336,7 +336,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
       // doubles
       // Store new joint states points in joint trajectory points
       trajectory_msgs::msg::JointTrajectoryPoint new_traj_point_begin, new_traj_point_end;
-      if(!findClosestJointOrientation(begin_orig, new_raster_begin, begin_new, config_->descartes_config.axial_step))
+      if (!findClosestJointOrientation(begin_orig, new_raster_begin, begin_new, config_->descartes_config.axial_step))
       {
         RCLCPP_WARN(logger_, "UNABLE TO ADD APPROACH RASTER POSE");
         Eigen::VectorXd new_begin_eig = begin_orig->getPositions(post_speed_split_trajs[i].joint_names);
@@ -355,7 +355,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
       new_raster_traj.points.insert(new_raster_traj.points.end(),
                                     post_speed_split_trajs[i].points.begin(),
                                     post_speed_split_trajs[i].points.end());
-      if(!findClosestJointOrientation(end_orig, new_raster_end, end_new, config_->descartes_config.axial_step))
+      if (!findClosestJointOrientation(end_orig, new_raster_end, end_new, config_->descartes_config.axial_step))
       {
         RCLCPP_WARN(logger_, "UNABLE TO ADD RETREAT RASTER POSE");
         Eigen::VectorXd new_end_eig = end_orig->getPositions(post_speed_split_trajs[i].joint_names);
@@ -548,8 +548,8 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
         }
         traj_times.push_back(std::move(curr_traj_time));
         trajectory_msgs::msg::JointTrajectory curr_time_mod_traj;
-//        crs_motion_planning::timeParameterizeTrajectories(
-//            trajopt_trajectories[trajopt_traj_n], curr_time_mod_traj, config_->use_gazebo_sim_timing);
+        //        crs_motion_planning::timeParameterizeTrajectories(
+        //            trajopt_trajectories[trajopt_traj_n], curr_time_mod_traj, config_->use_gazebo_sim_timing);
         crs_motion_planning::timeParameterizeFreespace(
             trajopt_trajectories[trajopt_traj_n], config_->max_joint_vel, config_->max_joint_acc, curr_time_mod_traj);
         time_mod_traj.push_back(curr_time_mod_traj);
