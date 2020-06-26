@@ -1056,4 +1056,5 @@ bool crsMotionPlanner::findClosestJointOrientation(const tesseract_motion_planne
   return true;
 }
 
+
 }  // namespace crs_motion_planning

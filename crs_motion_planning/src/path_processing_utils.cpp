@@ -747,3 +747,46 @@ bool crs_motion_planning::timeParameterizeFreespace(
   }
   return true;
 }
+
+
+
+void crs_motion_planning::findCartPoseArrayFromTraj(const trajectory_msgs::msg::JointTrajectory& joint_trajectory,
+                                                    const tesseract::Tesseract::Ptr tesseract_local,
+                                                    const std::string manipulator,
+                                                    geometry_msgs::msg::PoseArray& cartesian_poses)
+{
+  const std::shared_ptr<const tesseract_environment::Environment> env = tesseract_local->getEnvironmentConst();
+  tesseract_common::TransformMap curr_transforms = env->getCurrentState()->link_transforms;
+
+  tesseract_kinematics::ForwardKinematics::ConstPtr kin =
+      tesseract_local->getFwdKinematicsManagerConst()->getFwdKinematicSolver(manipulator);
+
+  for (auto joint_pose : joint_trajectory.points)
+  {
+      Eigen::VectorXd joint_positions(joint_pose.positions.size());
+      for (size_t i = 0; i < joint_pose.positions.size(); i++)
+      {
+          joint_positions[static_cast<int>(i)] = joint_pose.positions[i];
+      }
+      Eigen::Isometry3d eig_pose;
+      kin->calcFwdKin(eig_pose, joint_positions);
+      Eigen::Isometry3d world_to_base_link = Eigen::Isometry3d::Identity();
+      eig_pose = world_to_base_link * eig_pose * Eigen::Quaterniond(-0.5, 0.5, -0.5, 0.5); // Fwd kin switches to x forward instead of z
+      geometry_msgs::msg::Pose curr_cart_pose = tf2::toMsg(eig_pose);
+      cartesian_poses.poses.push_back(curr_cart_pose);
+  }
+  cartesian_poses.header.frame_id = "base_link";
+}
+
+
+void crs_motion_planning::genCartesianTrajectory(const trajectory_msgs::msg::JointTrajectory& joint_trajectory,
+                                                 const tesseract::Tesseract::Ptr& tesseract_lock,
+                                                 const std::string& manipulator,
+                                                 const double& target_force,
+                                                 const double& target_speed,
+                                                 const geometry_msgs::msg::Vector3& pose_tolerance,
+                                                 const geometry_msgs::msg::Vector3& ori_tolerance,
+                                                 cartesian_msgs::action::CartesianComplianceTrajectory& cartesian_trajectory)
+{
+  // TODO TYLER: this whole function
+}

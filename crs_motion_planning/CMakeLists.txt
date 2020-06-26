@@ -24,6 +24,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 
 find_package(crs_msgs REQUIRED)
+find_package(cartesian_msgs REQUIRED)
 
 find_package(tesseract_motion_planners REQUIRED)
 find_package(tesseract_rosutils REQUIRED)
@@ -64,6 +65,7 @@ target_include_directories(${PROJECT_NAME}_path_processing_utils PUBLIC
   ${tf2_geometry_msgs_INCLUDE_DIRS}
   ${control_msgs_INCLUDE_DIRS}
   ${crs_msgs_INCLUDE_DIRS}
+  ${cartesian_msgs_INCLUDE_DIRS}
   )
 target_link_libraries(${PROJECT_NAME}_path_processing_utils
   ${YAML_CPP_LIBRARIES}
@@ -77,10 +79,12 @@ target_link_libraries(${PROJECT_NAME}_path_processing_utils
   ${tf2_geometry_msgs_LIBRARIES}
   ${control_msgs_LIBRARIES}
   ${crs_msgs_LIBRARIES}
+  ${cartesian_msgs_LIBRARIES}
   ${yaml_cpp_vendor_LIBRARIES}
   tesseract::tesseract_common
   Eigen3::Eigen
   iterative_spline_parameterization::iterative_spline_parameterization
+  tesseract::tesseract
   )
 
 add_library(${PROJECT_NAME}_path_planning_utils SHARED src/path_planning_utils.cpp)
@@ -107,7 +111,6 @@ target_link_libraries(${PROJECT_NAME}_path_planning_utils
   ${tf2_geometry_msgs_LIBRARIES}
   ${control_msgs_LIBRARIES}
   ur_ikfast_kinematics::ur10e_ikfast
-  tesseract::tesseract
   tesseract::tesseract_motion_planners_trajopt
   tesseract::tesseract_motion_planners_ompl
   tesseract::tesseract_motion_planners_descartes

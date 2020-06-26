@@ -19,11 +19,14 @@
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <control_msgs/action/follow_joint_trajectory.hpp>
 #include <crs_msgs/action/cartesian_compliance_trajectory.hpp>
+#include <cartesian_msgs/action/cartesian_compliance_trajectory.hpp>
 
 #include <Eigen/Eigen>
 #include <vector>
 
 #include <iterative_spline_parameterization/iterative_spline_parameterization.h>
+
+#include <tesseract/tesseract.h>
 
 namespace crs_motion_planning
 {
@@ -174,6 +177,20 @@ bool timeParameterizeFreespace(const std::vector<trajectory_msgs::msg::JointTraj
                                const double& max_joint_vel,
                                const double& max_joint_acc,
                                std::vector<trajectory_msgs::msg::JointTrajectory>& returned_traj);
+
+void findCartPoseArrayFromTraj(const trajectory_msgs::msg::JointTrajectory& joint_trajectory,
+                               const tesseract::Tesseract::Ptr tesseract_local,
+                               const std::string manipulator,
+                               geometry_msgs::msg::PoseArray& cartesian_poses);
+
+void genCartesianTrajectory(const trajectory_msgs::msg::JointTrajectory& joint_trajectory,
+                            const tesseract::Tesseract::Ptr& tesseract_lock,
+                            const std::string& manipulator,
+                            const double& target_force,
+                            const double& target_speed,
+                            const geometry_msgs::msg::Vector3& pose_tolerance,
+                            const geometry_msgs::msg::Vector3& ori_tolerance,
+                            cartesian_msgs::action::CartesianComplianceTrajectory& cartesian_trajectory);
 
 }  // namespace crs_motion_planning
 
