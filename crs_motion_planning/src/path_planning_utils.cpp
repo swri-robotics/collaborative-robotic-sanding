@@ -9,7 +9,6 @@ crsMotionPlanner::crsMotionPlanner(pathPlanningConfig::Ptr config, rclcpp::Logge
 }
 
 void crsMotionPlanner::updateConfiguration(pathPlanningConfig::Ptr config) { config_ = std::move(config); }
-
 bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray& waypoints_pose_array,
                                              std::vector<std::size_t>& failed_edges,
                                              std::vector<std::size_t>& failed_vertices,
@@ -20,7 +19,7 @@ bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray
   const double collision_safety_margin = config_->descartes_config.collision_safety_margin;
   tesseract::Tesseract::Ptr tesseract_local = config_->tesseract_local;
   const std::shared_ptr<const tesseract_environment::Environment> env = tesseract_local->getEnvironmentConst();
-  tesseract_common::TransformMap curr_transforms = env->getCurrentState()->transforms;
+  tesseract_common::TransformMap curr_transforms = env->getCurrentState()->link_transforms;
 
   tesseract_kinematics::ForwardKinematics::ConstPtr kin =
       tesseract_local->getFwdKinematicsManagerConst()->getFwdKinematicSolver(config_->manipulator);
@@ -81,7 +80,7 @@ bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray
   Eigen::MatrixXd joint_traj_eigen_out =
       Eigen::Map<Eigen::MatrixXd>(seed_traj.data(), kin_interface->dof(), n_rows).transpose();
 
-  crs_motion_planning::tesseractRosutilsToMsg(joint_trajectory, kin->getJointNames(), joint_traj_eigen_out);
+  tesseract_rosutils::toMsg(joint_trajectory, kin->getJointNames(), joint_traj_eigen_out);
   return true;
 }
 
@@ -264,6 +263,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
             results->skipped_rasters.push_back(resplit_rasters[i]);
           }
         }
+        RCLCPP_INFO(logger_, "SPLIT IT");
       }
       else
       {
@@ -280,11 +280,17 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
     post_speed_split_rasters = split_reachable_rasters;
     post_speed_split_trajs = second_descartes_trajs;
   }
+  RCLCPP_INFO(logger_, "FINISHED SPLITTING TRAJECTORIES");
 
   // Approach and retreat
   std::vector<geometry_msgs::msg::PoseArray> final_split_rasters;
   std::vector<trajectory_msgs::msg::JointTrajectory> final_split_trajs;
   std::vector<std::vector<double>> final_time_steps;
+  if (post_speed_split_rasters.empty())
+  {
+    RCLCPP_ERROR(logger_, "ALL TRAJECTORIES TOO SHORT AFTER SPLITTING BY SPEED");
+    return false;
+  }
   if (config_->add_approach_and_retreat)
   {
     // Add approach and retreat
@@ -300,6 +306,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
 
       // Add approach and retreat points
       crs_motion_planning::addApproachAndRetreat(post_speed_split_rasters[i], approach, retreat, modified_raster);
+      RCLCPP_INFO(logger_, "ADDED APPROACH AND RETREAT CARTESIANS");
 
       // Make waypoints used for determining the closest joint states for each new raster point
       begin_orig = std::make_shared<tesseract_motion_planners::JointWaypoint>(
@@ -315,6 +322,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
                                         modified_raster.poses[0].orientation.z);
       new_raster_begin =
           std::make_shared<tesseract_motion_planners::CartesianWaypoint>(goal_pose_begin, goal_ori_begin);
+
       Eigen::Vector3d goal_pose_end(modified_raster.poses.back().position.x,
                                     modified_raster.poses.back().position.y,
                                     modified_raster.poses.back().position.z);
@@ -326,24 +334,43 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
 
       // Find the closest joint state for both the new starting point and the new ending point and convert to vector of
       // doubles
-      findClosestJointOrientation(begin_orig, new_raster_begin, begin_new, config_->descartes_config.axial_step);
-      Eigen::VectorXd new_begin_eig = begin_new->getPositions(post_speed_split_trajs[i].joint_names);
-      std::vector<double> new_begin_vec(new_begin_eig.data(), new_begin_eig.data() + new_begin_eig.size());
-      findClosestJointOrientation(end_orig, new_raster_end, end_new, config_->descartes_config.axial_step);
-      Eigen::VectorXd new_end_eig = end_new->getPositions(post_speed_split_trajs[i].joint_names);
-      std::vector<double> new_end_vec(new_end_eig.data(), new_end_eig.data() + new_end_eig.size());
-
       // Store new joint states points in joint trajectory points
       trajectory_msgs::msg::JointTrajectoryPoint new_traj_point_begin, new_traj_point_end;
-      new_traj_point_begin.positions = new_begin_vec;
-      new_traj_point_end.positions = new_end_vec;
-
-      // Form new raster trajectory msg
-      new_raster_traj.points.push_back(new_traj_point_begin);
+      if (!findClosestJointOrientation(begin_orig, new_raster_begin, begin_new, config_->descartes_config.axial_step))
+      {
+        RCLCPP_WARN(logger_, "UNABLE TO ADD APPROACH RASTER POSE");
+        Eigen::VectorXd new_begin_eig = begin_orig->getPositions(post_speed_split_trajs[i].joint_names);
+        std::vector<double> new_begin_vec(new_begin_eig.data(), new_begin_eig.data() + new_begin_eig.size());
+        new_traj_point_begin.positions = new_begin_vec;
+        new_raster_traj.points.push_back(new_traj_point_begin);
+      }
+      else
+      {
+        RCLCPP_INFO(logger_, "ADDED NEW RASTER BEGIN");
+        Eigen::VectorXd new_begin_eig = begin_new->getPositions(post_speed_split_trajs[i].joint_names);
+        std::vector<double> new_begin_vec(new_begin_eig.data(), new_begin_eig.data() + new_begin_eig.size());
+        new_traj_point_begin.positions = new_begin_vec;
+        new_raster_traj.points.push_back(new_traj_point_begin);
+      }
       new_raster_traj.points.insert(new_raster_traj.points.end(),
                                     post_speed_split_trajs[i].points.begin(),
                                     post_speed_split_trajs[i].points.end());
-      new_raster_traj.points.push_back(new_traj_point_end);
+      if (!findClosestJointOrientation(end_orig, new_raster_end, end_new, config_->descartes_config.axial_step))
+      {
+        RCLCPP_WARN(logger_, "UNABLE TO ADD RETREAT RASTER POSE");
+        Eigen::VectorXd new_end_eig = end_orig->getPositions(post_speed_split_trajs[i].joint_names);
+        std::vector<double> new_end_vec(new_end_eig.data(), new_end_eig.data() + new_end_eig.size());
+        new_traj_point_end.positions = new_end_vec;
+        new_raster_traj.points.push_back(new_traj_point_end);
+      }
+      else
+      {
+        RCLCPP_INFO(logger_, "ADDED NEW RASTER END");
+        Eigen::VectorXd new_end_eig = end_new->getPositions(post_speed_split_trajs[i].joint_names);
+        std::vector<double> new_end_vec(new_end_eig.data(), new_end_eig.data() + new_end_eig.size());
+        new_traj_point_end.positions = new_end_vec;
+        new_raster_traj.points.push_back(new_traj_point_end);
+      }
       new_raster_traj.joint_names = post_speed_split_trajs[i].joint_names;
       new_raster_traj.header = post_speed_split_trajs[i].header;
 
@@ -420,8 +447,25 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
     traj_pc->smooth_accelerations = config_->trajopt_surface_config.smooth_accelerations;
     traj_pc->smooth_jerks = config_->trajopt_surface_config.smooth_accelerations;
     traj_pc->target_waypoints = curr_raster;
-    traj_pc->special_collision_constraint = config_->trajopt_surface_config.special_collision_constraint;
-    traj_pc->special_collision_cost = config_->trajopt_surface_config.special_collision_cost;
+    trajopt::SafetyMarginData::Ptr traj_smd_cost =
+        std::make_shared<trajopt::SafetyMarginData>(config_->trajopt_surface_config.coll_cst_cfg.buffer_margin, 20);
+    for (auto& spec_cost : config_->trajopt_surface_config.special_collision_cost)
+    {
+      traj_smd_cost->setPairSafetyMarginData(
+          std::get<0>(spec_cost), std::get<1>(spec_cost), std::get<2>(spec_cost), std::get<3>(spec_cost));
+    }
+    trajopt::SafetyMarginData::Ptr traj_smd_cnt =
+        std::make_shared<trajopt::SafetyMarginData>(config_->trajopt_surface_config.coll_cnt_cfg.safety_margin, 20);
+    for (auto& spec_cnt : config_->trajopt_surface_config.special_collision_constraint)
+    {
+      traj_smd_cnt->setPairSafetyMarginData(
+          std::get<0>(spec_cnt), std::get<1>(spec_cnt), std::get<2>(spec_cnt), std::get<3>(spec_cnt));
+    }
+
+    if (config_->trajopt_surface_config.special_collision_cost.size() > 0)
+      traj_pc->special_collision_cost = traj_smd_cost;
+    if (config_->trajopt_surface_config.special_collision_constraint.size() > 0)
+      traj_pc->special_collision_constraint = traj_smd_cnt;
 
     Eigen::MatrixXd joint_eigen_from_jt;
     joint_eigen_from_jt = tesseract_rosutils::toEigen(results->descartes_trajectory_results[i],
@@ -450,8 +494,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
       Eigen::MatrixXd result_traj(planner_resp.joint_trajectory.trajectory.rows(),
                                   planner_resp.joint_trajectory.trajectory.cols());
       result_traj << planner_resp.joint_trajectory.trajectory;
-      crs_motion_planning::tesseractRosutilsToMsg(
-          trajopt_result_traj, results->descartes_trajectory_results[i].joint_names, result_traj);
+      tesseract_rosutils::toMsg(trajopt_result_traj, results->descartes_trajectory_results[i].joint_names, result_traj);
       results->solved_rasters.push_back(final_split_rasters[i]);
       trajopt_trajectories.push_back(std::move(trajopt_result_traj));
       trajopt_solved.push_back(true);
@@ -505,8 +548,10 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
         }
         traj_times.push_back(std::move(curr_traj_time));
         trajectory_msgs::msg::JointTrajectory curr_time_mod_traj;
-        crs_motion_planning::timeParameterizeTrajectories(
-            trajopt_trajectories[trajopt_traj_n], curr_time_mod_traj, config_->use_gazebo_sim_timing);
+        //        crs_motion_planning::timeParameterizeTrajectories(
+        //            trajopt_trajectories[trajopt_traj_n], curr_time_mod_traj, config_->use_gazebo_sim_timing);
+        crs_motion_planning::timeParameterizeFreespace(
+            trajopt_trajectories[trajopt_traj_n], config_->max_joint_vel, config_->max_joint_acc, curr_time_mod_traj);
         time_mod_traj.push_back(curr_time_mod_traj);
       }
       else
@@ -611,8 +656,25 @@ bool crsMotionPlanner::trajoptFreespaceFromOMPL(const tesseract_motion_planners:
   traj_pc->contact_test_type = config_->trajopt_freespace_config.contact_test_type;
   traj_pc->longest_valid_segment_fraction = config_->trajopt_freespace_config.longest_valid_segment_fraction;
   traj_pc->longest_valid_segment_length = config_->trajopt_freespace_config.longest_valid_segment_length;
-  traj_pc->special_collision_constraint = config_->trajopt_freespace_config.special_collision_constraint;
-  traj_pc->special_collision_cost = config_->trajopt_freespace_config.special_collision_cost;
+  trajopt::SafetyMarginData::Ptr traj_smd_cost =
+      std::make_shared<trajopt::SafetyMarginData>(config_->trajopt_freespace_config.coll_cst_cfg.buffer_margin, 20);
+  for (auto& spec_cost : config_->trajopt_freespace_config.special_collision_cost)
+  {
+    traj_smd_cost->setPairSafetyMarginData(
+        std::get<0>(spec_cost), std::get<1>(spec_cost), std::get<2>(spec_cost), std::get<3>(spec_cost));
+  }
+  trajopt::SafetyMarginData::Ptr traj_smd_cnt =
+      std::make_shared<trajopt::SafetyMarginData>(config_->trajopt_freespace_config.coll_cnt_cfg.safety_margin, 20);
+  for (auto& spec_cnt : config_->trajopt_freespace_config.special_collision_constraint)
+  {
+    traj_smd_cnt->setPairSafetyMarginData(
+        std::get<0>(spec_cnt), std::get<1>(spec_cnt), std::get<2>(spec_cnt), std::get<3>(spec_cnt));
+  }
+
+  if (config_->trajopt_freespace_config.special_collision_cost.size() > 0)
+    traj_pc->special_collision_cost = traj_smd_cost;
+  if (config_->trajopt_freespace_config.special_collision_constraint.size() > 0)
+    traj_pc->special_collision_constraint = traj_smd_cnt;
   RCLCPP_INFO(logger_, "OPTIMIZING WITH TRAJOPT");
   std::vector<tesseract_motion_planners::Waypoint::Ptr> trgt_wypts;
   trgt_wypts.push_back(start_pose);
@@ -638,8 +700,7 @@ bool crsMotionPlanner::trajoptFreespaceFromOMPL(const tesseract_motion_planners:
   Eigen::MatrixXd traj_cumulative_trajectory(traj_array.rows(), traj_array.cols());
   traj_cumulative_trajectory << traj_array;
   // Convert trajectory to ROSmsg
-  crs_motion_planning::tesseractRosutilsToMsg(
-      joint_trajectory, seed_trajectory.joint_names, traj_cumulative_trajectory);
+  tesseract_rosutils::toMsg(joint_trajectory, seed_trajectory.joint_names, traj_cumulative_trajectory);
   return true;
 }
 
@@ -666,7 +727,7 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr& results)
     trajectory_msgs::msg::JointTrajectory curr_joint_traj, ompl_joint_traj;
     Eigen::MatrixXd cumulative_trajectory(seed_trajectory.trajectory.rows(), seed_trajectory.trajectory.cols());
     cumulative_trajectory << seed_trajectory.trajectory;
-    crs_motion_planning::tesseractRosutilsToMsg(ompl_joint_traj, seed_trajectory.joint_names, cumulative_trajectory);
+    tesseract_rosutils::toMsg(ompl_joint_traj, seed_trajectory.joint_names, cumulative_trajectory);
     ompl_joint_traj.header.frame_id = config_->world_frame;
     if (config_->use_trajopt_freespace)
     {
@@ -729,7 +790,7 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr& results)
     trajectory_msgs::msg::JointTrajectory curr_joint_traj, ompl_joint_traj;
     Eigen::MatrixXd cumulative_trajectory(seed_trajectory.trajectory.rows(), seed_trajectory.trajectory.cols());
     cumulative_trajectory << seed_trajectory.trajectory;
-    crs_motion_planning::tesseractRosutilsToMsg(ompl_joint_traj, seed_trajectory.joint_names, cumulative_trajectory);
+    tesseract_rosutils::toMsg(ompl_joint_traj, seed_trajectory.joint_names, cumulative_trajectory);
     ompl_joint_traj.header.frame_id = config_->world_frame;
     if (config_->use_trajopt_freespace)
     {
@@ -793,7 +854,7 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr& results)
     trajectory_msgs::msg::JointTrajectory curr_joint_traj, ompl_joint_traj;
     Eigen::MatrixXd cumulative_trajectory(seed_trajectory.trajectory.rows(), seed_trajectory.trajectory.cols());
     cumulative_trajectory << seed_trajectory.trajectory;
-    crs_motion_planning::tesseractRosutilsToMsg(ompl_joint_traj, seed_trajectory.joint_names, cumulative_trajectory);
+    tesseract_rosutils::toMsg(ompl_joint_traj, seed_trajectory.joint_names, cumulative_trajectory);
     ompl_joint_traj.header.frame_id = config_->world_frame;
     if (config_->use_trajopt_freespace)
     {
@@ -863,7 +924,7 @@ bool crsMotionPlanner::generateFreespacePlan(const tesseract_motion_planners::Jo
   trajectory_msgs::msg::JointTrajectory ompl_joint_traj;
   Eigen::MatrixXd cumulative_trajectory(seed_trajectory.trajectory.rows(), seed_trajectory.trajectory.cols());
   cumulative_trajectory << seed_trajectory.trajectory;
-  crs_motion_planning::tesseractRosutilsToMsg(ompl_joint_traj, seed_trajectory.joint_names, cumulative_trajectory);
+  tesseract_rosutils::toMsg(ompl_joint_traj, seed_trajectory.joint_names, cumulative_trajectory);
   ompl_joint_traj.header.frame_id = config_->world_frame;
   if (config_->use_trajopt_freespace)
   {
@@ -925,7 +986,7 @@ bool crsMotionPlanner::findClosestJointOrientation(const tesseract_motion_planne
   const double collision_safety_margin = config_->ompl_config.collision_safety_margin;
   tesseract::Tesseract::Ptr tesseract_local = config_->tesseract_local;
   const std::shared_ptr<const tesseract_environment::Environment> env = tesseract_local->getEnvironmentConst();
-  tesseract_common::TransformMap curr_transforms = env->getCurrentState()->transforms;
+  tesseract_common::TransformMap curr_transforms = env->getCurrentState()->link_transforms;
 
   tesseract_kinematics::ForwardKinematics::ConstPtr kin =
       tesseract_local->getFwdKinematicsManagerConst()->getFwdKinematicSolver(config_->manipulator);

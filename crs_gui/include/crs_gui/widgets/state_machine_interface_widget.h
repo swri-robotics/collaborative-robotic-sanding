@@ -18,6 +18,7 @@
 #define CRS_GUI_WIDGETS_STATE_MACHINE_INTERFACE_WIDGET_H
 
 #include <QWidget>
+#include <QString>
 
 #include <rclcpp/rclcpp.hpp>
 #include <crs_msgs/srv/get_available_actions.hpp>
@@ -38,9 +39,13 @@ class StateMachineInterfaceWidget : public QWidget
 public:
   StateMachineInterfaceWidget(rclcpp::Node::SharedPtr node, QWidget* parent = nullptr);
   ~StateMachineInterfaceWidget();
+
+  void requestConfiguration();
+
 Q_SIGNALS:
   /** @brief emitted inside currentStateCB when the state changes with the name of new state as the argument*/
   void onStateChange(std::string);
+  void show_msg(bool, std::string);
 
 protected Q_SLOTS:
 
@@ -67,8 +72,10 @@ protected:
   /** @brief Current state subscriber callback*/
   void currentStateCB(const std_msgs::msg::String::ConstSharedPtr current_state);
   /** @brief ROS client to get available sm actions*/
+  rclcpp::callback_group::CallbackGroup::SharedPtr get_available_actions_callback_group_;
   rclcpp::Client<crs_msgs::srv::GetAvailableActions>::SharedPtr get_available_actions_client_;
   /** @brief ROS client to execute sm action*/
+  rclcpp::callback_group::CallbackGroup::SharedPtr execute_action_callback_group_;
   rclcpp::Client<crs_msgs::srv::ExecuteAction>::SharedPtr execute_action_client_;
 };
 

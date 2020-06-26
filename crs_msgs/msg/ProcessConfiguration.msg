@@ -1,2 +1,1 @@
-string part_id
-float64 speed
+string yaml_config	# Configuration for the various managers in a yaml formatter string

@@ -38,6 +38,7 @@
 
 #include <vector>
 #include <Eigen/Geometry>
+#include <geometry_msgs/msg/transform_stamped.hpp>
 #include <crs_msgs/msg/process_motion_plan.hpp>
 #include <geometry_msgs/msg/pose_array.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
@@ -49,6 +50,7 @@ namespace datatypes
 struct ScanAcquisitionResult
 {
   std::vector<sensor_msgs::msg::PointCloud2> point_clouds;
+  std::vector<geometry_msgs::msg::TransformStamped> transforms;
 };
 
 struct ProcessToolpathData

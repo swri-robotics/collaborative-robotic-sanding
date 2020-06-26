@@ -46,7 +46,7 @@ find_package(tf2_ros REQUIRED)
 find_package(tf2_eigen REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 
-find_package(yaml-cpp REQUIRED)
+find_package(yaml_cpp_vendor REQUIRED)
 
 find_package(iterative_spline_parameterization REQUIRED)
 
@@ -77,6 +77,7 @@ target_link_libraries(${PROJECT_NAME}_path_processing_utils
   ${tf2_geometry_msgs_LIBRARIES}
   ${control_msgs_LIBRARIES}
   ${crs_msgs_LIBRARIES}
+  ${yaml_cpp_vendor_LIBRARIES}
   tesseract::tesseract_common
   Eigen3::Eigen
   iterative_spline_parameterization::iterative_spline_parameterization
@@ -253,6 +254,7 @@ ament_export_dependencies(
     tf2_ros
     tf2_eigen
     tf2_geometry_msgs
-    yaml-cpp)
+    yaml_cpp_vendor
+    iterative_spline_parameterization)
 
 ament_package()

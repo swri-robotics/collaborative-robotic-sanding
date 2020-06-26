@@ -26,6 +26,7 @@ find_package(crs_msgs REQUIRED)
 
 find_package(tesseract_motion_planners REQUIRED)
 find_package(tesseract_rosutils REQUIRED)
+find_package(tesseract_msgs REQUIRED)
 
 find_package(std_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)

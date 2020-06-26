@@ -1,6 +1,16 @@
 cmake_minimum_required(VERSION 3.5.0)
 project(crs_gui VERSION 0.1.0 LANGUAGES CXX)
 
+# Default to C99
+if(NOT CMAKE_C_STANDARD)
+  set(CMAKE_C_STANDARD 99)
+endif()
+
+# Default to C++14
+if(NOT CMAKE_CXX_STANDARD)
+  set(CMAKE_CXX_STANDARD 14)
+endif()
+
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(pluginlib REQUIRED)
@@ -12,8 +22,6 @@ find_package(rviz2 REQUIRED)
 find_package(crs_area_selection REQUIRED path)
 find_package(crs_msgs REQUIRED)
 find_package(crs_motion_planning REQUIRED)
-
-find_package(iterative_spline_parameterization REQUIRED)
 
 find_package(Qt5 REQUIRED COMPONENTS
   Core
@@ -75,7 +83,7 @@ target_include_directories(${PROJECT_NAME}_widgets PUBLIC
 # This must be added because qt5_wrap_ui creates a header in the root of the pkg build dir
 target_include_directories(${PROJECT_NAME}_widgets PRIVATE ${CMAKE_CURRENT_BINARY_DIR})
 target_include_directories(${PROJECT_NAME}_widgets PUBLIC ${crs_area_selection_INCLUDE_DIRS})
-  target_link_libraries (${PROJECT_NAME}_widgets ${CMAKE_CURRENT_BINARY_DIR})
+  target_link_libraries (${PROJECT_NAME}_widgets PUBLIC ${CMAKE_CURRENT_BINARY_DIR})
   foreach(DEF ${crs_area_selection_DEFINITIONS})
     string(STRIP ${DEF} DEF)
     if (NOT "${DEF}" STREQUAL "")
@@ -90,11 +98,12 @@ target_include_directories(${PROJECT_NAME}_widgets PUBLIC ${crs_area_selection_I
        endif()
     endif()
   endforeach()
-target_link_libraries(${PROJECT_NAME}_widgets
+target_link_libraries(${PROJECT_NAME}_widgets PUBLIC
   Qt5::Widgets
   crs_area_selection::crs_area_selection_area_selection
   crs_motion_planning::crs_motion_planning_path_processing_utils
 )
+ament_target_dependencies(${PROJECT_NAME}_widgets PUBLIC rclcpp shape_msgs std_srvs crs_msgs)
 
 # Rviz Panel
 add_library(${PROJECT_NAME}_panels SHARED
@@ -105,8 +114,6 @@ target_link_libraries(${PROJECT_NAME}_panels
   ${PROJECT_NAME}_widgets
 )
 
-
-ament_target_dependencies(${PROJECT_NAME}_widgets rclcpp shape_msgs std_srvs crs_msgs)
 
 ######################
 ## Demo Executables ##
@@ -192,6 +199,7 @@ ament_export_dependencies(
     rclcpp
     shape_msgs
     std_srvs)
+    #yaml-cpp)
 
 pluginlib_export_plugin_description_file(rviz_common plugin_description.xml)
 

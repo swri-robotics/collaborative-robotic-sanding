@@ -46,6 +46,7 @@
 #include <scxml_core/state_machine.h>
 #include <QObject>
 
+#include "crs_application/common/config.h"
 #include "crs_application/task_managers/motion_planning_manager.h"
 #include "crs_application/task_managers/part_registration_manager.h"
 #include "crs_application/task_managers/part_rework_manager.h"
@@ -101,11 +102,13 @@ protected:
 
   // support methods
   bool addStateCallbacks(const std::map<std::string, StateCallbackInfo>& st_callbacks_map);
-  bool configureManagers();
+  bool configureManagers(YAML::Node& node);
 
   std::shared_ptr<scxml_core::StateMachine> sm_;
   std::string current_state_;
   std::shared_ptr<rclcpp::Node> node_;
+  std::shared_ptr<rclcpp::Node> pnode_;
+  std::shared_ptr<rclcpp::Node> managers_node_;
   rclcpp::TimerBase::SharedPtr pub_timer_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr state_pub_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr execute_state_subs_;
@@ -119,10 +122,12 @@ protected:
   std::shared_ptr<task_managers::PartReworkManager> part_rework_mngr_;
 
   // rclcpp
+  rclcpp::callback_group::CallbackGroup::SharedPtr get_config_callback_group_;
   rclcpp::Client<crs_msgs::srv::GetConfiguration>::SharedPtr get_config_client_;
   rclcpp::TimerBase::SharedPtr state_pub_timer_;
 
   // data
+  bool task_mngrs_configured_ = false;
   crs_msgs::msg::ProcessConfiguration process_config_;
 };
 

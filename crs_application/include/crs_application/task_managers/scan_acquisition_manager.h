@@ -37,25 +37,25 @@
 #define INCLUDE_CRS_APPLICATION_TASK_MANAGERS_SCAN_ACQUISITION_MANAGER_H_
 
 #include <vector>
+
 #include <rclcpp/rclcpp.hpp>
+
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
+
 #include "crs_application/common/common.h"
 #include "crs_application/common/datatypes.h"
+#include "crs_application/common/config.h"
 #include <crs_msgs/srv/call_freespace_motion.hpp>
 
 #include <geometry_msgs/msg/transform.hpp>
+#include <geometry_msgs/msg/pose_array.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 
 namespace crs_application
 {
 namespace task_managers
 {
-struct ScanAcquisitionConfig
-{
-  std::vector<std::vector<double> > scan_poses;
-  std::string tool_frame;
-  bool skip_on_failure = false;
-};
-
 class ScanAcquisitionManager
 {
 public:
@@ -64,7 +64,7 @@ public:
 
   // initialization and configuration
   common::ActionResult init();
-  common::ActionResult configure(const ScanAcquisitionConfig& config);
+  common::ActionResult configure(const config::ScanAcquisitionConfig& config);
 
   // Process Actions
   /**
@@ -89,22 +89,34 @@ protected:
   common::ActionResult checkPreReqs();
 
   std::shared_ptr<rclcpp::Node> node_;
+  std::shared_ptr<rclcpp::Node> private_node_;
+  rclcpp::executors::MultiThreadedExecutor pnode_executor_;
   datatypes::ScanAcquisitionResult result_;
 
   // parameters
-  std::vector<geometry_msgs::msg::Transform> scan_positions_;
-  std::string camera_frame_id_;
+  std::vector<geometry_msgs::msg::Transform> scan_poses_;
+  std::string tool_frame_;
   double pre_acquisition_pause_;
   double max_time_since_last_point_cloud_;
 
   // subscribers
   rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr point_cloud_sub_;
 
+  // publishers
+  rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr scan_poses_pub_;
+
   // service clients
   rclcpp::Client<crs_msgs::srv::CallFreespaceMotion>::SharedPtr call_freespace_motion_client_;
 
+  // tf
+  tf2_ros::Buffer tf_buffer_;
+  tf2_ros::TransformListener tf_listener_;
+
+  // timers
+  rclcpp::TimerBase::SharedPtr scan_poses_pub_timer_;
+
   sensor_msgs::msg::PointCloud2 curr_point_cloud_;
-  std::vector<sensor_msgs::msg::PointCloud2> point_clouds_;
+  datatypes::ScanAcquisitionResult current_data_;
   uint scan_index_;
 
   void handlePointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr msg);

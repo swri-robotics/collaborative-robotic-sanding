@@ -528,13 +528,14 @@
             -->
             <ros>
               <namespace>custom_ns</namespace>
-              <argument>custom_camera/image_raw:=custom_camera/custom_image</argument>
-              <argument>custom_camera/image_depth:=custom_camera/custom_image_depth</argument>
-              <argument>custom_camera/camera_info:=custom_camera/custom_info_raw</argument>
-              <argument>custom_camera/camera_info_depth:=custom_camera/custom_info_depth</argument>
-              <argument>custom_camera/points:=custom_camera/custom_points</argument>
+              <argument>camera/image_raw:=camera/custom_image</argument>
+              <argument>camera/image_depth:=camera/custom_image_depth</argument>
+              <argument>camera/camera_info:=camera/custom_info_raw</argument>
+              <argument>camera/camera_info_depth:=camera/custom_info_depth</argument>
+              <argument>camera/points:=camera/pointcloud</argument>
             </ros>
             <!-- Set camera name. If empty, defaults to sensor name (i.e. "sensor_name") -->
+            <camera_name>camera</camera_name> sensor name (i.e. "sensor_name") -->
             <camera_name>custom_camera</camera_name>
             <frame_name>camera_link_optical</frame_name>
             <!-- Set TF frame name. If empty, defaults to link name (i.e. "link_name") -->

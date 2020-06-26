@@ -54,7 +54,7 @@ void findCartPoseArrayFromTraj(const trajectory_msgs::msg::JointTrajectory& join
                                geometry_msgs::msg::PoseArray& cartesian_poses)
 {
     const std::shared_ptr<const tesseract_environment::Environment> env = tesseract_local->getEnvironmentConst();
-    tesseract_common::TransformMap curr_transforms = env->getCurrentState()->transforms;
+    tesseract_common::TransformMap curr_transforms = env->getCurrentState()->link_transforms;
 
     tesseract_kinematics::ForwardKinematics::ConstPtr kin =
         tesseract_local->getFwdKinematicsManagerConst()->getFwdKinematicSolver(manipulator);
@@ -202,7 +202,7 @@ private:
     findCartPoseArrayFromTraj(joint_traj, tesseract_local_, manipulator_, cart_pose_array);
 
     const std::shared_ptr<const tesseract_environment::Environment> env = tesseract_local_->getEnvironmentConst();
-    tesseract_common::TransformMap curr_transforms = env->getCurrentState()->transforms;
+    tesseract_common::TransformMap curr_transforms = env->getCurrentState()->link_transforms;
     Eigen::Isometry3d world_to_base_link, world_to_sander, world_to_tool0, tool0_to_sander;
     world_to_base_link = curr_transforms.find(robot_base_frame_)->second;
     world_to_sander = curr_transforms.find(tcp_frame_)->second;

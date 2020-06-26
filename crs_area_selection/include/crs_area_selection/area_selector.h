@@ -51,7 +51,6 @@ public:
    * @brief AreaSelector class constructor
    */
   AreaSelector() {}
-
   /**
    * @brief Finds the points that lie within the selection boundary
    * @param roi_cloud_msg

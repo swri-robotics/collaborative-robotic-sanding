@@ -38,7 +38,8 @@
 
 static const std::string GET_CONFIGURATION_SERVICE = "get_configuration";
 static const double WAIT_FOR_SERVICE_PERIOD = 5.0;
-static const double WAIT_SERVICE_COMPLETION_PERIOD = 10.0;
+static const double WAIT_SERVICE_COMPLETION_PERIOD = 2.0;
+static const std::string CRS_YAML_ELEMENT = "crs";
 
 namespace parameter_names
 {
@@ -52,6 +53,7 @@ namespace general
 {
 static const std::string INITIALIZATION = "Initialization";
 static const std::string CONFIGURATION = "Configuration";
+static const std::string WAIT_USER_CMD = "Wait_User_Cmd";
 }  // namespace general
 
 // scan acquisition
@@ -106,7 +108,10 @@ static const std::string EXEC_HOME = "Exec_Home";
 
 namespace crs_application
 {
-CRSExecutive::CRSExecutive(std::shared_ptr<rclcpp::Node> node) : node_(node)
+CRSExecutive::CRSExecutive(std::shared_ptr<rclcpp::Node> node)
+  : node_(node)
+  , pnode_(std::make_shared<rclcpp::Node>(std::string(node_->get_name()) + "_exec"))
+  , managers_node_(std::make_shared<rclcpp::Node>(std::string(node_->get_name()) + "_tasks"))
 {
   if (!setup())
   {
@@ -115,7 +120,6 @@ CRSExecutive::CRSExecutive(std::shared_ptr<rclcpp::Node> node) : node_(node)
 }
 
 CRSExecutive::~CRSExecutive() {}
-
 common::ActionResult CRSExecutive::initialize()
 {
   if (scan_acqt_mngr_->init() && motion_planning_mngr_->init() && part_regt_mngr_->init() &&
@@ -145,37 +149,84 @@ common::ActionResult CRSExecutive::configure()
     return false;
   }
 
+  auto call_config = [&](const crs_msgs::msg::ProcessConfiguration config_msg) -> common::ActionResult {
+    process_config_ = config_msg;
+    RCLCPP_INFO(node_->get_logger(), "Got Configuration", node_->get_name());
+
+    // parsing
+    YAML::Node config = YAML::LoadFile(process_config_.yaml_config);
+    if (!config)
+    {
+      common::ActionResult result;
+      result.err_msg = boost::str(boost::format("Invalid yaml file") % process_config_.yaml_config);
+      result.succeeded = false;
+      RCLCPP_ERROR(node_->get_logger(), "%s", result.err_msg.c_str());
+      return result;
+    }
+
+    YAML::Node crs_config = config[CRS_YAML_ELEMENT];
+    if (!crs_config)
+    {
+      common::ActionResult result;
+      result.err_msg =
+          boost::str(boost::format("Did not find the '%s' element in the yaml configuration") % CRS_YAML_ELEMENT);
+      result.succeeded = false;
+      RCLCPP_ERROR(node_->get_logger(), "%s", result.err_msg.c_str());
+      return result;
+    }
+
+    return configureManagers(crs_config);
+  };
+
   GetConfiguration::Request::SharedPtr req = std::make_shared<GetConfiguration::Request>();
   std::shared_future<GetConfiguration::Response::SharedPtr> res = get_config_client_->async_send_request(req);
-
-  if (rclcpp::spin_until_future_complete(
-          node_->get_node_base_interface(), res, std::chrono::duration<double>(WAIT_SERVICE_COMPLETION_PERIOD)) !=
-      rclcpp::executor::FutureReturnCode::SUCCESS)
+  rclcpp::executor::FutureReturnCode ret_code = rclcpp::spin_until_future_complete(
+      pnode_,
+      res,
+      rclcpp::Duration::from_seconds(WAIT_SERVICE_COMPLETION_PERIOD).to_chrono<std::chrono::nanoseconds>());
+  if (ret_code != rclcpp::executor::FutureReturnCode::SUCCESS)
   {
-    RCLCPP_ERROR(node_->get_logger(), "%s Failed to get configuration", node_->get_name());
-    return false;
-  }
-  if (!res.get()->success)
-  {
-    RCLCPP_ERROR(
-        node_->get_logger(), "%s configution failed with err msg: ", node_->get_name(), res.get()->err_msg.c_str());
-    return false;
+    common::ActionResult result;
+    result.err_msg = "Call to get config service timed out";
+    result.succeeded = false;
+    RCLCPP_ERROR_STREAM(node_->get_logger(), result.err_msg);
+    return result;
   }
 
-  process_config_ = res.get()->config;
-  RCLCPP_ERROR(node_->get_logger(), "%s Got Configuration", node_->get_name());
-  return configureManagers();
+  return call_config(res.get()->config);
 }
 
-bool CRSExecutive::configureManagers()
+bool CRSExecutive::configureManagers(YAML::Node& node)
 {
-  // TODO: populate each config structure from the data in process_config_
+  using namespace config;
 
-  return scan_acqt_mngr_->configure(task_managers::ScanAcquisitionConfig{}) &&
-         motion_planning_mngr_->configure(task_managers::MotionPlanningConfig{}) &&
-         part_regt_mngr_->configure(task_managers::PartRegistrationConfig{}) &&
-         process_exec_mngr_->configure(task_managers::ProcessExecutionConfig{}) &&
-         part_rework_mngr_->configure(task_managers::PartReworkConfig{});
+  std::string err_msg;
+  boost::optional<ScanAcquisitionConfig> sc_config = config::parse<ScanAcquisitionConfig>(node, err_msg);
+  boost::optional<MotionPlanningConfig> mp_config =
+      sc_config ? config::parse<MotionPlanningConfig>(node, err_msg) : boost::none;
+  boost::optional<PartRegistrationConfig> pr_config =
+      mp_config ? config::parse<PartRegistrationConfig>(node, err_msg) : boost::none;
+  boost::optional<ProcessExecutionConfig> pe_config =
+      pr_config ? config::parse<ProcessExecutionConfig>(node, err_msg) : boost::none;
+  if (!sc_config || !mp_config || !pr_config || !pe_config)
+  {
+    RCLCPP_ERROR(node_->get_logger(), "Failed to parse configurations from yaml, err msg: %s", err_msg.c_str());
+    return false;
+  }
+
+  task_mngrs_configured_ =
+      scan_acqt_mngr_->configure(sc_config.get()) && motion_planning_mngr_->configure(mp_config.get()) &&
+      part_regt_mngr_->configure(pr_config.get()) && process_exec_mngr_->configure(pe_config.get()) &&
+      part_rework_mngr_->configure(config::PartReworkConfig{});
+  if (task_mngrs_configured_)
+  {
+    RCLCPP_INFO(node_->get_logger(), "Task Managers successfully configured");
+  }
+  else
+  {
+    RCLCPP_ERROR(node_->get_logger(), "Task Managers failed configuration");
+  }
+  return task_mngrs_configured_;
 }
 
 bool CRSExecutive::addStateCallbacks(const std::map<std::string, StateCallbackInfo>& st_callbacks_map)
@@ -242,7 +293,9 @@ bool CRSExecutive::setup()
   }
 
   // create connections
-  get_config_client_ = node_->create_client<crs_msgs::srv::GetConfiguration>(GET_CONFIGURATION_SERVICE);
+  get_config_client_ = pnode_->create_client<crs_msgs::srv::GetConfiguration>(GET_CONFIGURATION_SERVICE,
+                                                                              rmw_qos_profile_services_default);
+
   std::vector<rclcpp::ClientBase*> optional_clients = { get_config_client_.get() };
   for (auto& c : optional_clients)
   {
@@ -253,11 +306,20 @@ bool CRSExecutive::setup()
   }
 
   // create managers
-  scan_acqt_mngr_ = std::make_shared<task_managers::ScanAcquisitionManager>(node_);
-  motion_planning_mngr_ = std::make_shared<task_managers::MotionPlanningManager>(node_);
-  part_regt_mngr_ = std::make_shared<task_managers::PartRegistrationManager>(node_);
-  process_exec_mngr_ = std::make_shared<task_managers::ProcessExecutionManager>(node_);
-  part_rework_mngr_ = std::make_shared<task_managers::PartReworkManager>(node_);
+  scan_acqt_mngr_ = std::make_shared<task_managers::ScanAcquisitionManager>(managers_node_);
+  motion_planning_mngr_ = std::make_shared<task_managers::MotionPlanningManager>(managers_node_);
+  part_regt_mngr_ = std::make_shared<task_managers::PartRegistrationManager>(managers_node_);
+  process_exec_mngr_ = std::make_shared<task_managers::ProcessExecutionManager>(managers_node_);
+  part_rework_mngr_ = std::make_shared<task_managers::PartReworkManager>(managers_node_);
+
+  std::thread managers_node_thread([this]() {
+    while (rclcpp::ok())
+    {
+      rclcpp::spin_some(managers_node_);
+    }
+  });
+
+  managers_node_thread.detach();
 
   // create state machine
   std::string state_machine_file = std::get<1>(parameters[0]).get<std::string>();
@@ -285,6 +347,20 @@ bool CRSExecutive::setupGeneralStates()
 
   st_callbacks_map[general::CONFIGURATION] =
   StateCallbackInfo{ entry_cb : std::bind(&CRSExecutive::configure, this), async : false };
+
+  st_callbacks_map[general::WAIT_USER_CMD] = StateCallbackInfo{
+    entry_cb : [this]() -> common::ActionResult {
+      if (!task_mngrs_configured_)
+      {
+        RCLCPP_ERROR(node_->get_logger(), "Task Managers have not been configured");
+        sm_->postAction(Action{ .id = action_names::SM_FAILURE });
+      }
+      return true;
+    },
+    async : false,
+    exit_cb : nullptr,
+    on_done_action : ""
+  };
 
   // now adding functions to SM
   return addStateCallbacks(st_callbacks_map);
@@ -338,7 +414,7 @@ bool CRSExecutive::setupPartRegistrationStates()
 
   st_callbacks_map[part_reg::COMPUTE_TRANSFORM] = StateCallbackInfo{
     entry_cb : std::bind(&task_managers::PartRegistrationManager::computeTransform, part_regt_mngr_.get()),
-    async : false
+    async : true
   };
 
   st_callbacks_map[part_reg::APPLY_TRANSFORM] = StateCallbackInfo{
@@ -450,7 +526,7 @@ bool CRSExecutive::setupScanAcquisitionStates()
 
   st_callbacks_map[scan::MOVE_ROBOT] = StateCallbackInfo{
     entry_cb : std::bind(&task_managers::ScanAcquisitionManager::moveRobot, scan_acqt_mngr_.get()),
-    async : false
+    async : true
   };
 
   st_callbacks_map[scan::VERIFICATION] = StateCallbackInfo{

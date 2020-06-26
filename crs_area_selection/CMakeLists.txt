@@ -41,7 +41,6 @@ target_include_directories(${PROJECT_NAME}_area_selection PUBLIC ${PCL_INCLUDE_D
        endif()
     endif()
   endforeach()
-
 ament_target_dependencies(${PROJECT_NAME}_area_selection
   ament_index_cpp
   rclcpp

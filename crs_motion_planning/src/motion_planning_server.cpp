@@ -46,7 +46,7 @@ static const std::string MODIFY_ENVIRONMENT_SERVICE_NAME = "modify_tesseract";
 static const std::string ENVIRONMENT_UPDATE_TOPIC_NAME = "monitored_tesseract";
 static const std::string ENVIRONMENT_ID = "crs";
 
-static const std::string LOADED_PART_LINK_NAME = "part";
+static const std::string LOADED_PART_LINK_NAME = "part_link";
 static const std::string LOADED_PART_JOINT_NAME = "world_to_part_joint";
 static const std::string ROBOT_BASE_JOINT_NAME = "robot_base_joint";
 
@@ -118,15 +118,16 @@ public:
     joint_state_listener_ = this->create_subscription<sensor_msgs::msg::JointState>(
         JOINT_STATES_TOPIC, 1, std::bind(&MotionPlanningServer::jointCallback, this, std::placeholders::_1));
 
+    traj_exec_node_ = std::make_shared<rclcpp::Node>("trajectory_exec");
     trajectory_exec_client_cbgroup_ =
-        this->create_callback_group(rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
-    trajectory_exec_client_ =
-        rclcpp_action::create_client<control_msgs::action::FollowJointTrajectory>(this->get_node_base_interface(),
-                                                                                  this->get_node_graph_interface(),
-                                                                                  this->get_node_logging_interface(),
-                                                                                  this->get_node_waitables_interface(),
-                                                                                  FOLLOW_JOINT_TRAJECTORY_ACTION,
-                                                                                  trajectory_exec_client_cbgroup_);
+        traj_exec_node_->create_callback_group(rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
+    trajectory_exec_client_ = rclcpp_action::create_client<control_msgs::action::FollowJointTrajectory>(
+        traj_exec_node_->get_node_base_interface(),
+        traj_exec_node_->get_node_graph_interface(),
+        traj_exec_node_->get_node_logging_interface(),
+        traj_exec_node_->get_node_waitables_interface(),
+        FOLLOW_JOINT_TRAJECTORY_ACTION,
+        trajectory_exec_client_cbgroup_);
 
     load_part_service_ = this->create_service<crs_msgs::srv::LoadPart>(
         LOAD_PART_SERVICE,
@@ -168,37 +169,36 @@ public:
 
     // Set up planning config variable
     crs_motion_planning::descartesConfig descartes_config;
-    descartes_config.axial_step = 0.1;
-    descartes_config.collision_safety_margin = 0.0075;
+    descartes_config.axial_step = 0.075;
+    descartes_config.collision_safety_margin = 0.015;
     descartes_config.tool_offset.translation().z() = 0.025;
 
     crs_motion_planning::trajoptSurfaceConfig trajopt_surface_config;
-    trajopt_surface_config.smooth_velocities = true;
-    trajopt_surface_config.smooth_accelerations = true;
+    trajopt_surface_config.smooth_velocities = false;
+    trajopt_surface_config.smooth_accelerations = false;
     trajopt_surface_config.smooth_jerks = false;
     tesseract_motion_planners::CollisionCostConfig coll_cost_config_srfc;
     coll_cost_config_srfc.enabled = false;
     trajopt_surface_config.coll_cst_cfg = coll_cost_config_srfc;
     tesseract_motion_planners::CollisionConstraintConfig coll_cnt_config_srfc;
     coll_cnt_config_srfc.enabled = true;
-    coll_cnt_config_srfc.safety_margin = 0.001;
+    coll_cnt_config_srfc.safety_margin = 0.01;
     trajopt_surface_config.coll_cnt_cfg = coll_cnt_config_srfc;
     Eigen::VectorXd surface_coeffs(6);
-    surface_coeffs << 10, 10, 10, 10, 10, 0;
+    surface_coeffs << 6, 6, 10, 10, 10, 0;
     trajopt_surface_config.surface_coeffs = surface_coeffs;
-    trajopt_surface_config.waypoints_critical = true;
-    trajopt_surface_config.longest_valid_segment_fraction = 0.001;
-//    trajopt_surface_config.special_collision_constraint.push_back({"eoat_link", "part", -0.003, 15.0});
-//    trajopt_surface_config.special_collision_constraint.push_back({"eoat_link", "part", -0.03, 15.0});
-    trajopt_surface_config.special_collision_constraint.push_back({"table", "eoat_link", -0.03, 15.0});
-//    trajopt_surface_config.special_collision_constraint.push_back({"eoat_link", "table", -0.03, 15.0});
+    trajopt_surface_config.waypoints_critical = false;
+    trajopt_surface_config.longest_valid_segment_fraction = 0.1;
+    trajopt_surface_config.special_collision_constraint.push_back({ "eoat_link", LOADED_PART_LINK_NAME, -0.02, 15.0 });
+    trajopt_surface_config.special_collision_constraint.push_back(
+        { "sander_center_link", LOADED_PART_LINK_NAME, -0.02, 15.0 });
 
     crs_motion_planning::omplConfig ompl_config;
-    ompl_config.collision_safety_margin = 0.0175;
-    ompl_config.planning_time = 15;
+    ompl_config.collision_safety_margin = 0.01;
+    ompl_config.planning_time = 120;
     ompl_config.n_output_states = this->get_parameter(param_names::NUM_FREEPSACE_STEPS).as_int();
     ompl_config.simplify = true;
-    ompl_config.longest_valid_segment_fraction = 0.005;
+    ompl_config.longest_valid_segment_fraction = 0.015;
     ompl_config.range = 0.25;
     ompl_config.num_threads = 8;
 
@@ -217,8 +217,9 @@ public:
     trajopt_freespace_config.smooth_velocities = true;
     trajopt_freespace_config.smooth_accelerations = true;
     trajopt_freespace_config.smooth_jerks = true;
-    trajopt_freespace_config.special_collision_cost.push_back({"eoat_link", "part", 0.05, 15.0});
-    trajopt_freespace_config.special_collision_cost.push_back({"eoat_link", "robot_frame", 0.05, 15.0});
+    trajopt_freespace_config.special_collision_cost.push_back({ "eoat_link", LOADED_PART_LINK_NAME, 0.03, 20.0 });
+    trajopt_freespace_config.special_collision_cost.push_back({ "eoat_link", "robot_frame", 0.05, 15.0 });
+    trajopt_freespace_config.special_collision_cost.push_back({ "shoulder_link", "robot_frame", 0.03, 15.0 });
 
     motion_planner_config_ = std::make_shared<crs_motion_planning::pathPlanningConfig>();
     motion_planner_config_->tesseract_local = tesseract_local_;
@@ -239,8 +240,8 @@ public:
     motion_planner_config_->use_gazebo_sim_timing = this->get_parameter(param_names::GAZEBO_SIM_TIMING).as_bool();
     motion_planner_config_->trajopt_verbose_output = this->get_parameter(param_names::TRAJOPT_VERBOSE).as_bool();
     motion_planner_config_->simplify_start_end_freespace = true;
-    motion_planner_config_->use_trajopt_freespace = true;
-    motion_planner_config_->combine_strips = true;
+    motion_planner_config_->use_trajopt_freespace = false;
+    motion_planner_config_->combine_strips = false;
     motion_planner_config_->global_descartes = true;
   }
 
@@ -274,6 +275,7 @@ private:
           request->end_position.position, request->end_position.name);
     }
     tesseract_rosutils::fromMsg(motion_planner_config_->tool_offset, request->tool_offset);
+    motion_planner_config_->descartes_config.tool_offset = motion_planner_config_->tool_offset;
 
     std::vector<crs_msgs::msg::ProcessMotionPlan> returned_plans;
     bool success;
@@ -456,7 +458,7 @@ private:
       // Publish trajectory if desired
       std::cout << "EXECUTING TRAJECTORY" << std::endl;
       // traj_publisher_->publish(response->output_trajectory);
-      if (!execTrajectory(trajectory_exec_client_, this->get_logger(), response->output_trajectory))
+      if (!execTrajectory(trajectory_exec_client_, this->get_logger(), response->output_trajectory, traj_exec_node_))
       {
         return;
       }
@@ -476,7 +478,8 @@ private:
     tesseract_geometry::ConvexMesh conv_mesh = tesseract_geometry::ConvexMesh(conv_hull_vertices, conv_hull_faces);
 
     tesseract_msgs::msg::Geometry link_geom;
-    tesseract_rosutils::toMsg(link_geom, conv_mesh);
+    //    tesseract_rosutils::toMsg(link_geom, conv_mesh);
+    tesseract_rosutils::toMsg(link_geom, *meshes[0]);
 
     std::vector<tesseract_msgs::msg::VisualGeometry> vis_geom_vector;
     tesseract_msgs::msg::VisualGeometry link_vis_geom;
@@ -616,7 +619,7 @@ private:
 
     auto result_future = modify_env_client_->async_send_request(mod_env_request);
 
-    RCLCPP_INFO(this->get_logger(), "Part successfully removed from tesseract environment");
+    RCLCPP_INFO(this->get_logger(), "Part successfully moved in tesseract environment");
     response->success = true;
     response->error = "No Errors";
     return;
@@ -635,6 +638,7 @@ private:
   rclcpp::Client<tesseract_msgs::srv::ModifyEnvironment>::SharedPtr modify_env_client_;
   rclcpp::Subscription<tesseract_msgs::msg::TesseractState>::SharedPtr env_state_sub_;
 
+  rclcpp::Node::SharedPtr traj_exec_node_;
   rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SharedPtr trajectory_exec_client_;
   rclcpp::callback_group::CallbackGroup::SharedPtr trajectory_exec_client_cbgroup_;
 

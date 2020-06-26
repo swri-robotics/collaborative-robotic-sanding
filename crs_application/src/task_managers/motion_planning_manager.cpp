@@ -39,14 +39,16 @@
 #include <trajectory_msgs/msg/joint_trajectory.hpp>
 #include "crs_application/task_managers/motion_planning_manager.h"
 
-static const double WAIT_SERVICE_DURATION = 2.0;            // secs
-static const double WAIT_SERVICE_COMPLETION_PERIOD = 30.0;  // secs
+static const double WAIT_SERVICE_DURATION = 2.0;           // secs
+static const double WAIT_MOTION_PLANNING_PERIOD = 1200.0;  // secs
 static const double WAIT_JOINT_STATE_TIMEOUT = 2.0;
 static const double MAX_JOINT_TOLERANCE = (M_PI / 180.0) * 1.0;
+static const double MIN_PREVIEW_STEP_TIME = 0.05;  // secs
 static const std::string CURRENT_JOINT_STATE_TOPIC = "joint_states";
+static const std::string PREVIEW_NAME_PREFIX = "preview/";
 static const std::string PREVIEW_JOINT_STATE_TOPIC = "preview/input_joints";
 static const std::string CALL_FREESPACE_MOTION_SERVICE = "plan_freespace_motion";
-static const std::string PLAN_PROCESS_MOTIONS_SERVICE = "plan_process_motions";
+static const std::string PLAN_PROCESS_MOTIONS_SERVICE = "plan_process_motion";
 static const std::string MANAGER_NAME = "MotionPlanningManager";
 
 static Eigen::Vector3d toEigen(const geometry_msgs::msg::Point& p_msg)
@@ -59,12 +61,13 @@ namespace crs_application
 namespace task_managers
 {
 MotionPlanningManager::MotionPlanningManager(std::shared_ptr<rclcpp::Node> node) : node_(node) {}
-
 MotionPlanningManager::~MotionPlanningManager() {}
-
 common::ActionResult MotionPlanningManager::init()
 {
   using namespace crs_msgs;
+
+  js_pub_ = node_->create_publisher<sensor_msgs::msg::JointState>(PREVIEW_JOINT_STATE_TOPIC, 10);
+
   call_freespace_planning_client_ = node_->create_client<srv::CallFreespaceMotion>(CALL_FREESPACE_MOTION_SERVICE);
   process_motion_planning_client_ =
       node_->create_client<crs_msgs::srv::PlanProcessMotions>(PLAN_PROCESS_MOTIONS_SERVICE);
@@ -72,20 +75,22 @@ common::ActionResult MotionPlanningManager::init()
   // checking clients
   std::vector<rclcpp::ClientBase*> clients = { call_freespace_planning_client_.get(),
                                                process_motion_planning_client_.get() };
-  if (std::all_of(clients.begin(), clients.end(), [](rclcpp::ClientBase* c) {
-        return c->wait_for_service(std::chrono::duration<float>(WAIT_SERVICE_DURATION));
+  if (!std::all_of(clients.begin(), clients.end(), [this](rclcpp::ClientBase* c) {
+        bool found = c->wait_for_service(std::chrono::duration<float>(WAIT_SERVICE_DURATION));
+        RCLCPP_ERROR_EXPRESSION(node_->get_logger(), !found, "Service %s not found", c->get_service_name());
+        return found;
       }))
   {
-    RCLCPP_WARN(node_->get_logger(), "%s: One or more services were not found", MANAGER_NAME.c_str());
+    RCLCPP_ERROR(node_->get_logger(), "%s: One or more services were not found", MANAGER_NAME.c_str());
     return false;
   }
 
   return true;
 }
 
-common::ActionResult MotionPlanningManager::configure(const MotionPlanningConfig& config)
+common::ActionResult MotionPlanningManager::configure(const config::MotionPlanningConfig& config)
 {
-  config_ = std::make_shared<MotionPlanningConfig>(config);
+  config_ = std::make_shared<config::MotionPlanningConfig>(config);
   home_js_.reset();
   if (config_->joint_home_position.empty() || config_->joint_names.empty())
   {
@@ -242,7 +247,9 @@ common::ActionResult MotionPlanningManager::planProcessPaths()
     return res;
   }
 
-  if (diff > MAX_JOINT_TOLERANCE)
+  sensor_msgs::msg::JointState start_position = *current_st;
+
+  if (diff > MAX_JOINT_TOLERANCE && config_->pre_move_home)
   {
     // planning free start motion to home from current
     srv::CallFreespaceMotion::Request::SharedPtr free_motion_req =
@@ -251,11 +258,15 @@ common::ActionResult MotionPlanningManager::planProcessPaths()
     free_motion_req->num_steps = 0;
     free_motion_req->target_link = config_->tool_frame;  // shouldn't make a difference since planning to a joint goal
     free_motion_req->start_position = *current_st;
+    free_motion_req->execute = true;
+
+    RCLCPP_INFO(node_->get_logger(), "Planning and moving to home position");
     boost::optional<trajectory_msgs::msg::JointTrajectory> opt = planFreeSpace("CURRENT TO HOME", free_motion_req);
     if (!opt.is_initialized())
     {
       return false;
     }
+    start_position = *home_js_;
     result_.move_to_start = opt.get();
   }
 
@@ -266,8 +277,8 @@ common::ActionResult MotionPlanningManager::planProcessPaths()
   req->retreat_dist = config_->retreat_dist;
   req->tool_speed = config_->tool_speed;
   req->tool_offset = tf2::toMsg(config_->offset_pose);
-  req->start_position = *home_js_;
-  req->end_position = *home_js_;
+  req->start_position = start_position;
+  req->end_position = start_position;
 
   for (datatypes::ProcessToolpathData& pd : process_toolpaths_)
   {
@@ -279,23 +290,28 @@ common::ActionResult MotionPlanningManager::planProcessPaths()
     req->process_paths.push_back(process_path);
   }
 
-  std::shared_future<srv::PlanProcessMotions::Response::SharedPtr> fut =
+  std::shared_future<srv::PlanProcessMotions::Response::SharedPtr> result_future =
       process_motion_planning_client_->async_send_request(req);
-  if (rclcpp::spin_until_future_complete(
-          node_->get_node_base_interface(), fut, std::chrono::duration<double>(WAIT_SERVICE_COMPLETION_PERIOD)) !=
-      rclcpp::executor::FutureReturnCode::SUCCESS)
+
+  if (result_future.wait_for(std::chrono::duration<double>(WAIT_MOTION_PLANNING_PERIOD)) != std::future_status::ready)
   {
-    RCLCPP_ERROR(node_->get_logger(), "%s process planning service error or timeout", MANAGER_NAME.c_str());
-    return false;
+    res.succeeded = false;
+    res.err_msg = boost::str(boost::format("%s process planning service error or timeout") % MANAGER_NAME);
+    RCLCPP_ERROR_STREAM(node_->get_logger(), res.err_msg);
+    return res;
   }
 
-  if (!fut.get()->succeeded)
+  if (!result_future.get()->succeeded)
   {
-    RCLCPP_ERROR(node_->get_logger(), "%s process planning failed", MANAGER_NAME.c_str());
+    res.succeeded = false;
+    res.err_msg = boost::str(boost::format("%s process planning failed") % MANAGER_NAME);
+    RCLCPP_ERROR_STREAM(node_->get_logger(), res.err_msg);
+    return res;
   }
 
   // saving process plans
-  result_.process_plans = fut.get()->plans;
+  RCLCPP_INFO(node_->get_logger(), "Successfully planned all process toolpaths");
+  result_.process_plans = result_future.get()->plans;
   return true;
 }
 
@@ -304,12 +320,10 @@ MotionPlanningManager::planFreeSpace(const std::string& plan_name,
                                      crs_msgs::srv::CallFreespaceMotion::Request::SharedPtr req)
 {
   using namespace crs_msgs::srv;
-  std::shared_future<CallFreespaceMotion::Response::SharedPtr> fut =
+  std::shared_future<CallFreespaceMotion::Response::SharedPtr> result_future =
       call_freespace_planning_client_->async_send_request(req);
 
-  if (rclcpp::spin_until_future_complete(
-          node_->get_node_base_interface(), fut, std::chrono::duration<double>(WAIT_SERVICE_COMPLETION_PERIOD)) !=
-      rclcpp::executor::FutureReturnCode::SUCCESS)
+  if (result_future.wait_for(std::chrono::duration<double>(WAIT_MOTION_PLANNING_PERIOD)) != std::future_status::ready)
   {
     RCLCPP_ERROR(node_->get_logger(),
                  "%s freespace planning service for '%s' error or timeout",
@@ -318,19 +332,18 @@ MotionPlanningManager::planFreeSpace(const std::string& plan_name,
     return boost::none;
   }
 
-  if (!fut.get()->success)
+  if (!result_future.get()->success)
   {
     RCLCPP_ERROR(node_->get_logger(),
                  "%s freespace planning for '%s' failed, %s",
                  MANAGER_NAME.c_str(),
                  plan_name.c_str(),
-                 fut.get()->message.c_str());
+                 result_future.get()->message.c_str());
     return boost::none;
   }
 
   RCLCPP_INFO(node_->get_logger(), "%s freespace planning for '%s' succeeded", MANAGER_NAME.c_str(), plan_name.c_str());
-
-  return fut.get()->output_trajectory;
+  return result_future.get()->output_trajectory;
 }
 
 common::ActionResult MotionPlanningManager::planMediaChanges()
@@ -402,10 +415,7 @@ common::ActionResult MotionPlanningManager::showPreview()
   }
   publish_preview_enabled_ = true;
 
-  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr js_pub =
-      node_->create_publisher<sensor_msgs::msg::JointState>(PREVIEW_JOINT_STATE_TOPIC, 10);
-  auto publish_joint_trajs = [this, &js_pub](const trajectory_msgs::msg::JointTrajectory& traj,
-                                             double time_factor) -> bool {
+  auto publish_joint_trajs = [this](const trajectory_msgs::msg::JointTrajectory& traj, double time_factor) -> bool {
     sensor_msgs::msg::JointState js_msg;
     js_msg.name = traj.joint_names;
     js_msg.position.resize(js_msg.name.size(), 0.0);
@@ -413,6 +423,9 @@ common::ActionResult MotionPlanningManager::showPreview()
     js_msg.effort.resize(js_msg.name.size(), 0.0);
     std::chrono::duration<double> prev_dur(0.0);
     std::chrono::duration<double> current_dur;
+
+    // adding preview prefix to joint names
+    std::for_each(js_msg.name.begin(), js_msg.name.end(), [](std::string& j) { j = PREVIEW_NAME_PREFIX + j; });
 
     for (std::size_t j = 0; j < traj.points.size(); j++)
     {
@@ -424,57 +437,60 @@ common::ActionResult MotionPlanningManager::showPreview()
       js_msg.position = traj.points[j].positions;
       current_dur = rclcpp::Duration(traj.points[j].time_from_start).to_chrono<std::chrono::seconds>();
       std::chrono::duration<double> diff = (current_dur - prev_dur) / time_factor;
-      if (diff.count() > 0.0)
+      if (diff.count() < MIN_PREVIEW_STEP_TIME)
       {
-        rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::nanoseconds>(diff));
+        diff = std::chrono::duration<double>(MIN_PREVIEW_STEP_TIME);
       }
-      js_pub->publish(js_msg);
-      prev_dur += diff;
+      rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::nanoseconds>(diff));
+
+      js_pub_->publish(js_msg);
+      prev_dur = current_dur;
     }
     return true;
   };
 
-  for (std::size_t i = 0; i < result_.process_plans.size(); i++)
+  while (publish_preview_enabled_)
   {
-    const crs_msgs::msg::ProcessMotionPlan& process_plan = result_.process_plans[i];
-
     // previewing process plan moves now
-    if (!publish_joint_trajs(process_plan.start, config_->preview_time_scaling))
+    if (!publish_joint_trajs(result_.move_to_start, config_->preview_time_scaling))
     {
       return true;
     }
 
-    for (std::size_t j = 0; j < process_plan.process_motions.size(); j++)
+    for (std::size_t i = 0; i < result_.process_plans.size(); i++)
     {
-      if (!publish_joint_trajs(process_plan.process_motions[j], config_->preview_time_scaling))
+      const crs_msgs::msg::ProcessMotionPlan& process_plan = result_.process_plans[i];
+
+      // previewing process plan moves now
+      if (!publish_joint_trajs(process_plan.start, config_->preview_time_scaling))
       {
         return true;
       }
 
-      if (j < process_plan.process_motions.size())
+      for (std::size_t j = 0; j < process_plan.process_motions.size(); j++)
       {
         if (!publish_joint_trajs(process_plan.process_motions[j], config_->preview_time_scaling))
         {
           return true;
         }
       }
-    }
-    if (!publish_joint_trajs(process_plan.end, config_->preview_time_scaling))
-    {
-      return true;
-    }
-
-    // previewing media change moves now
-    if (result_.media_change_plans.size() > i)
-    {
-      if (!publish_joint_trajs(result_.media_change_plans[i].start_traj, config_->preview_time_scaling))
+      if (!publish_joint_trajs(process_plan.end, config_->preview_time_scaling))
       {
         return true;
       }
 
-      if (!publish_joint_trajs(result_.media_change_plans[i].return_traj, config_->preview_time_scaling))
+      // previewing media change moves now
+      if (result_.media_change_plans.size() > i)
       {
-        return true;
+        if (!publish_joint_trajs(result_.media_change_plans[i].start_traj, config_->preview_time_scaling))
+        {
+          return true;
+        }
+
+        if (!publish_joint_trajs(result_.media_change_plans[i].return_traj, config_->preview_time_scaling))
+        {
+          return true;
+        }
       }
     }
   }
@@ -489,16 +505,21 @@ common::ActionResult MotionPlanningManager::hidePreview()
     return true;
   }
 
-  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr js_pub =
-      node_->create_publisher<sensor_msgs::msg::JointState>(PREVIEW_JOINT_STATE_TOPIC, 10);
+  // wait a second
+  rclcpp::sleep_for(std::chrono::seconds(1));
+
   sensor_msgs::msg::JointState js_msg;
   js_msg.name = result_.process_plans.front().process_motions.front().joint_names;
+
+  // adding preview prefix to joint names
+  std::for_each(js_msg.name.begin(), js_msg.name.end(), [](std::string& j) { j = PREVIEW_NAME_PREFIX + j; });
+
   js_msg.position.resize(js_msg.name.size(), 0.0);
   js_msg.velocity.resize(js_msg.name.size(), 0.0);
   js_msg.effort.resize(js_msg.name.size(), 0.0);
   for (std::size_t i = 0; i < 10; i++)
   {
-    js_pub->publish(js_msg);
+    js_pub_->publish(js_msg);
   }
   return true;
 }

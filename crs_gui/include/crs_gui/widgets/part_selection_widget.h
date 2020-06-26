@@ -18,6 +18,7 @@
 #define CRS_GUI_WIDGETS_PART_SELECTION_WIDGET_H
 
 #include <QWidget>
+#include <QString>
 #include <memory>
 #include <string>
 
@@ -39,11 +40,11 @@ public:
                                                                                           "offline_generated_paths");
   ~PartSelectionWidget();
 Q_SIGNALS:
-  /** @brief Signal emitted when Load Selected Part is clicked with name of the part selected*/
-  void partSelected(std::string);
+  /** @brief Signal eitted when Load Selected Part is clicked with name of the part selected*/
+  void partSelected(QString, QString);
   /** @brief Signal emmited when Load Selected Part is clicked. First arg is part selected. Second arg is path to
    * toolpath yaml */
-  void partPathSelected(std::string, std::string);
+  void partPathSelected(QString, QString);
 
 protected Q_SLOTS:
 

@@ -1,8 +1,23 @@
+#include <rclcpp/logging.hpp>
+#include <boost/format.hpp>
+#include <crs_motion_planning/path_processing_utils.h>
 
 static const double TRAJECTORY_TIME_TOLERANCE = 5.0;  // seconds
 static const double WAIT_RESULT_TIMEOUT = 1.0;        // seconds
+static const rclcpp::Logger LOGGER = rclcpp::get_logger("PATH_PROCESSING_UTILS");
 
-#include <crs_motion_planning/path_processing_utils.h>
+static geometry_msgs::msg::Pose pose3DtoPoseMsg(const std::array<float, 6>& p)
+{
+  using namespace Eigen;
+  geometry_msgs::msg::Pose pose_msg;
+  Eigen::Affine3d eigen_pose = Translation3d(Vector3d(std::get<0>(p), std::get<1>(p), std::get<2>(p))) *
+                               AngleAxisd(std::get<3>(p), Vector3d::UnitX()) *
+                               AngleAxisd(std::get<4>(p), Vector3d::UnitY()) *
+                               AngleAxisd(std::get<5>(p), Vector3d::UnitZ());
+
+  pose_msg = tf2::toMsg(eigen_pose);
+  return std::move(pose_msg);
+}
 
 bool crs_motion_planning::parsePathFromFile(const std::string& yaml_filepath,
                                             const std::string& waypoint_origin_frame,
@@ -10,13 +25,37 @@ bool crs_motion_planning::parsePathFromFile(const std::string& yaml_filepath,
 {
   std::vector<geometry_msgs::msg::PoseArray> temp_raster_strips;
   YAML::Node full_yaml_node = YAML::LoadFile(yaml_filepath);
+  if (!full_yaml_node)
+  {
+    RCLCPP_ERROR(LOGGER, "Failed to load into YAML from file %s", yaml_filepath.c_str());
+    return false;
+  }
+
+  if (full_yaml_node.Type() != YAML::NodeType::Sequence)
+  {
+    RCLCPP_WARN(
+        LOGGER, "Top level YAML element is not a sequence but a %i type", static_cast<int>(full_yaml_node.Type()));
+    return false;
+  }
+
   YAML::Node paths = full_yaml_node[0]["paths"];
+  if (!paths || paths.Type() != YAML::NodeType::Sequence)
+  {
+    RCLCPP_ERROR(LOGGER, "The 'path' YAML element was not found or is not a sequence");
+    return false;
+  }
+
   std::double_t offset_strip = 0.0;
   for (YAML::const_iterator path_it = paths.begin(); path_it != paths.end(); ++path_it)
   {
     std::vector<geometry_msgs::msg::PoseStamped> temp_poses;
     geometry_msgs::msg::PoseArray curr_pose_array;
     YAML::Node strip = (*path_it)["poses"];
+    if (!strip)
+    {
+      RCLCPP_ERROR(LOGGER, "The 'poses' YAML element was not found");
+      return false;
+    }
     for (YAML::const_iterator pose_it = strip.begin(); pose_it != strip.end(); ++pose_it)
     {
       const YAML::Node& pose = *pose_it;
@@ -70,33 +109,151 @@ bool crs_motion_planning::parsePathFromFile(const std::string& yaml_filepath,
   return true;
 }
 
-void crs_motion_planning::tesseractRosutilsToMsg(trajectory_msgs::msg::JointTrajectory& traj_msg,
-                                                 const std::vector<std::string>& joint_names,
-                                                 const Eigen::Ref<const tesseract_common::TrajArray>& traj)
+visualization_msgs::msg::Marker crs_motion_planning::meshToMarker(const std::string& file_path,
+                                                                  const std::string& ns,
+                                                                  const std::string& frame_id,
+                                                                  const std::array<float, 4> color)
 {
-  assert(joint_names.size() == static_cast<unsigned>(traj.cols()));
+  visualization_msgs::msg::Marker m;
+  m.ns = ns;
+  m.header.frame_id = frame_id;
+  m.type = m.MESH_RESOURCE;
+  m.action = m.ADD;
+  m.pose = tf2::toMsg(Eigen::Isometry3d::Identity());
+  m.lifetime = rclcpp::Duration(0);
+  m.mesh_resource = "file://" + file_path;
+  std::tie(m.scale.x, m.scale.y, m.scale.z) = std::make_tuple(1.0, 1.0, 1.0);
+  std::tie(m.color.r, m.color.g, m.color.b, m.color.a) = std::make_tuple(color[0], color[1], color[2], color[3]);
+  return m;
+}
 
-  // Initialze the whole traject with the current state.
-  std::map<std::string, int> jn_to_index;
-  traj_msg.joint_names.resize(joint_names.size());
-  traj_msg.points.resize(static_cast<size_t>(traj.rows()));
+visualization_msgs::msg::MarkerArray
+crs_motion_planning::convertToAxisMarkers(const std::vector<geometry_msgs::msg::PoseArray>& path,
+                                          const std::string& frame_id,
+                                          const std::string& ns,
+                                          const std::size_t& start_id,
+                                          const double& axis_scale,
+                                          const double& axis_length,
+                                          const std::array<float, 6>& offset)
+{
+  using namespace Eigen;
 
-  for (int i = 0; i < traj.rows(); ++i)
+  visualization_msgs::msg::MarkerArray markers;
+
+  auto create_line_marker = [&](const int id,
+                                const std::tuple<float, float, float, float>& rgba) -> visualization_msgs::msg::Marker {
+    visualization_msgs::msg::Marker line_marker;
+    line_marker.action = line_marker.ADD;
+    std::tie(line_marker.color.r, line_marker.color.g, line_marker.color.b, line_marker.color.a) = rgba;
+    line_marker.header.frame_id = frame_id;
+    line_marker.type = line_marker.LINE_LIST;
+    line_marker.id = id;
+    line_marker.lifetime = rclcpp::Duration(0);
+    line_marker.ns = ns;
+    std::tie(line_marker.scale.x, line_marker.scale.y, line_marker.scale.z) = std::make_tuple(axis_scale, 0.0, 0.0);
+    line_marker.pose = pose3DtoPoseMsg(offset);
+    return std::move(line_marker);
+  };
+
+  // markers for each axis line
+  int marker_id = start_id;
+  visualization_msgs::msg::Marker x_axis_marker = create_line_marker(++marker_id, std::make_tuple(1.0, 0.0, 0.0, 1.0));
+  visualization_msgs::msg::Marker y_axis_marker = create_line_marker(++marker_id, std::make_tuple(0.0, 1.0, 0.0, 1.0));
+  visualization_msgs::msg::Marker z_axis_marker = create_line_marker(++marker_id, std::make_tuple(0.0, 0.0, 1.0, 1.0));
+
+  auto add_axis_line = [](const Isometry3d& eigen_pose,
+                          const Vector3d& dir,
+                          const geometry_msgs::msg::Point& p1,
+                          visualization_msgs::msg::Marker& marker) {
+    geometry_msgs::msg::Point p2;
+    Eigen::Vector3d line_endpoint;
+
+    // axis endpoint
+    line_endpoint = eigen_pose * dir;
+    std::tie(p2.x, p2.y, p2.z) = std::make_tuple(line_endpoint.x(), line_endpoint.y(), line_endpoint.z());
+
+    // adding line
+    marker.points.push_back(p1);
+    marker.points.push_back(p2);
+  };
+
+  for (auto& poses : path)
   {
-    trajectory_msgs::msg::JointTrajectoryPoint jtp;
-    jtp.positions.resize(static_cast<size_t>(traj.cols()));
-
-    for (int j = 0; j < traj.cols(); ++j)
+    for (auto& pose : poses.poses)
     {
-      if (i == 0)
-        traj_msg.joint_names[static_cast<size_t>(j)] = joint_names[static_cast<size_t>(j)];
+      Eigen::Isometry3d eigen_pose;
+      tf2::fromMsg(pose, eigen_pose);
 
-      jtp.positions[static_cast<size_t>(j)] = traj(i, j);
+      geometry_msgs::msg::Point p1;
+      std::tie(p1.x, p1.y, p1.z) = std::make_tuple(pose.position.x, pose.position.y, pose.position.z);
+
+      add_axis_line(eigen_pose, Vector3d::UnitX() * axis_length, p1, x_axis_marker);
+      add_axis_line(eigen_pose, Vector3d::UnitY() * axis_length, p1, y_axis_marker);
+      add_axis_line(eigen_pose, Vector3d::UnitZ() * axis_length, p1, z_axis_marker);
+    }
+  }
+
+  markers.markers.push_back(x_axis_marker);
+  markers.markers.push_back(y_axis_marker);
+  markers.markers.push_back(z_axis_marker);
+  return std::move(markers);
+}
+
+visualization_msgs::msg::MarkerArray
+crs_motion_planning::convertToDottedLineMarker(const std::vector<geometry_msgs::msg::PoseArray>& path,
+                                               const std::string& frame_id,
+                                               const std::string& ns,
+                                               const std::size_t& start_id,
+                                               const std::array<float, 6>& offset,
+                                               const float& line_width,
+                                               const float& point_size)
+{
+  visualization_msgs::msg::MarkerArray markers_msgs;
+  visualization_msgs::msg::Marker line_marker, points_marker;
+
+  // configure line marker
+  line_marker.action = line_marker.ADD;
+  std::tie(line_marker.color.r, line_marker.color.g, line_marker.color.b, line_marker.color.a) =
+      std::make_tuple(1.0, 1.0, 0.2, 1.0);
+  line_marker.header.frame_id = frame_id;
+  line_marker.type = line_marker.LINE_STRIP;
+  line_marker.id = start_id;
+  line_marker.lifetime = rclcpp::Duration(0);
+  line_marker.ns = ns;
+  std::tie(line_marker.scale.x, line_marker.scale.y, line_marker.scale.z) = std::make_tuple(line_width, 0.0, 0.0);
+  line_marker.pose = pose3DtoPoseMsg(offset);
+
+  // configure point marker
+  points_marker = line_marker;
+  points_marker.type = points_marker.POINTS;
+  points_marker.ns = ns;
+  std::tie(points_marker.color.r, points_marker.color.g, points_marker.color.b, points_marker.color.a) =
+      std::make_tuple(0.1, .8, 0.2, 1.0);
+  std::tie(points_marker.scale.x, points_marker.scale.y, points_marker.scale.z) =
+      std::make_tuple(point_size, point_size, point_size);
+
+  int id_counter = start_id;
+  for (auto& poses : path)
+  {
+    line_marker.points.clear();
+    points_marker.points.clear();
+    line_marker.points.reserve(poses.poses.size());
+    points_marker.points.reserve(poses.poses.size());
+    for (auto& pose : poses.poses)
+    {
+      geometry_msgs::msg::Point p;
+      std::tie(p.x, p.y, p.z) = std::make_tuple(pose.position.x, pose.position.y, pose.position.z);
+      line_marker.points.push_back(p);
+      points_marker.points.push_back(p);
     }
 
-    jtp.time_from_start = rclcpp::Duration(i, 0);
-    traj_msg.points[static_cast<size_t>(i)] = jtp;
+    line_marker.id = (++id_counter);
+    points_marker.id = (++id_counter);
+    markers_msgs.markers.push_back(line_marker);
+    markers_msgs.markers.push_back(points_marker);
   }
+
+  return markers_msgs;
 }
 
 void crs_motion_planning::rasterStripsToMarkerArray(const geometry_msgs::msg::PoseArray& strip,
@@ -357,73 +514,83 @@ bool crs_motion_planning::timeParameterizeTrajectories(const trajectory_msgs::ms
 bool crs_motion_planning::execTrajectory(
     rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SharedPtr ac,
     const rclcpp::Logger& logger,
-    const trajectory_msgs::msg::JointTrajectory& traj)
+    const trajectory_msgs::msg::JointTrajectory& traj,
+    rclcpp::Node::SharedPtr node)
 {
   using namespace control_msgs::action;
-  using namespace rclcpp_action;
-  using GoalHandleT = Client<FollowJointTrajectory>::GoalHandle;
+
+  auto print_time = [&](const trajectory_msgs::msg::JointTrajectory& traj) {
+    for (std::size_t i = 0; i < traj.points.size(); i++)
+    {
+      auto& p = traj.points[i];
+      rclcpp::Duration dur(p.time_from_start);
+      RCLCPP_INFO(logger, "Point %lu time: %f", i, dur.seconds());
+    }
+  };
+  print_time(traj);
 
   rclcpp::Duration traj_dur(traj.points.back().time_from_start);
   bool res = false;
-  std::string err_msg;
-
-  auto print_traj_time = [&](const trajectory_msgs::msg::JointTrajectory& traj) {
-    RCLCPP_ERROR(logger, "Trajectory with %lu points time data", traj.points.size());
-    for (std::size_t i = 0; i < traj.points.size(); i++)
-    {
-      const auto& p = traj.points[i];
-      RCLCPP_ERROR(logger, "\tPoint %lu : %f secs", rclcpp::Duration(p.time_from_start).seconds());
-    }
-  };
 
   FollowJointTrajectory::Goal goal;
   goal.trajectory = traj;
   auto goal_options = rclcpp_action::Client<FollowJointTrajectory>::SendGoalOptions();
-  // TODO populate tolerances
+
+  using GoalHandle = rclcpp_action::ClientGoalHandle<FollowJointTrajectory>;
+  std::promise<bool> result_promise;
+  std::future<bool> result_fut = result_promise.get_future();
+  goal_options.goal_response_callback = [&](std::shared_future<GoalHandle::SharedPtr> future) {
+    if (!future.get())
+    {
+      std::string err_msg = "Failed to accept goal";
+      RCLCPP_ERROR(logger, err_msg.c_str());
+      ac->async_cancel_all_goals();
+      result_promise.set_value(false);
+    }
+  };
+
+  goal_options.result_callback = [&](const GoalHandle::WrappedResult& result) {
+    if (result.code != rclcpp_action::ResultCode::SUCCEEDED)
+    {
+      std::string err_msg = result.result->error_string;
+      RCLCPP_ERROR(logger, "Trajectory execution failed with error message: %s", err_msg.c_str());
+      result_promise.set_value(false);
+      return;
+    }
+    result_promise.set_value(true);
+  };
 
   // send goal
-  std::shared_future<GoalHandleT::SharedPtr> trajectory_exec_fut = ac->async_send_goal(goal);
-  traj_dur = traj_dur + rclcpp::Duration(std::chrono::duration<double>(TRAJECTORY_TIME_TOLERANCE));
+  auto trajectory_exec_fut_ = ac->async_send_goal(goal, goal_options);
 
-  // wait for goal acceptance
-  std::future_status status = trajectory_exec_fut.wait_for(std::chrono::duration<double>(WAIT_RESULT_TIMEOUT));
+  // spinning
+  std::atomic<bool> done;
+  done = false;
+  std::future<bool> spinner_fut;
+  if (node)
+  {
+    spinner_fut = std::async([&]() -> bool {
+      while (!done)
+      {
+        rclcpp::spin_some(node);
+      }
+      return true;
+    });
+  }
+
+  traj_dur = traj_dur + rclcpp::Duration(std::chrono::duration<double>(TRAJECTORY_TIME_TOLERANCE));
+  RCLCPP_INFO(logger, "Waiting %f seconds for goal", traj_dur.seconds());
+  std::future_status status = result_fut.wait_for(traj_dur.to_chrono<std::chrono::seconds>());
+  done = true;
   if (status != std::future_status::ready)
   {
-    err_msg = "Action request was not accepted in time";
-    RCLCPP_ERROR(logger, "%s", err_msg.c_str());
+    std::string err_msg =
+        boost::str(boost::format("Trajectory execution timed out with flag %i") % static_cast<int>(status));
+    RCLCPP_ERROR(logger, err_msg.c_str());
     ac->async_cancel_all_goals();
     return res;
   }
-
-  auto gh = trajectory_exec_fut.get();
-  if (!gh)
-  {
-    RCLCPP_ERROR(logger, "Goal was rejected by server");
-    return res;
-  }
-
-  // getting result
-  RCLCPP_INFO(logger, "Waiting %f seconds for goal", traj_dur.seconds());
-  auto result_fut = ac->async_get_result(gh);
-  status = result_fut.wait_for(traj_dur.to_chrono<std::chrono::seconds>());
-  if (status != std::future_status::ready)
-  {
-    print_traj_time(traj);
-    err_msg = "trajectory execution timed out";
-    RCLCPP_ERROR(logger, "%s", err_msg.c_str());
-    return res;
-  }
-
-  rclcpp_action::ClientGoalHandle<FollowJointTrajectory>::WrappedResult wrapped_result = result_fut.get();
-  if (wrapped_result.code != rclcpp_action::ResultCode::SUCCEEDED)
-  {
-    err_msg = wrapped_result.result->error_string;
-    RCLCPP_ERROR(logger, "Trajectory execution failed with error message: %s", err_msg.c_str());
-    return res;
-  }
-
-  // reset future
-  RCLCPP_INFO(logger, "Trajectory completed");
+  RCLCPP_INFO(logger, "Finished trajectory");
   return true;
 }
 

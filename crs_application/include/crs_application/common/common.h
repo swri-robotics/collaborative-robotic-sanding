@@ -39,9 +39,13 @@
 #include <string>
 #include <boost/any.hpp>
 #include <boost/format.hpp>
+#include <Eigen/Geometry>
+#include <rclcpp/executors.hpp>
 #include <rclcpp/node.hpp>
 #include <rclcpp/subscription.hpp>
 #include <sensor_msgs/msg/joint_state.hpp>
+#include <geometry_msgs/msg/pose.hpp>
+#include <geometry_msgs/msg/transform.hpp>
 
 namespace crs_application
 {
@@ -94,6 +98,85 @@ static double compare(const sensor_msgs::msg::JointState& js1,
   return diff;
 }
 
+static Eigen::Isometry3d toEigen(std::array<double, 6>& pose_data)
+{
+  using namespace Eigen;
+  Isometry3d eigen_t = Translation3d(Vector3d(pose_data[0], pose_data[1], pose_data[2])) *
+                       AngleAxisd(pose_data[3], Vector3d::UnitX()) * AngleAxisd(pose_data[4], Vector3d::UnitY()) *
+                       AngleAxisd(pose_data[5], Vector3d::UnitZ());
+  return eigen_t;
+}
+
+static geometry_msgs::msg::Pose toPoseMsg(const Eigen::Isometry3d& eigen_t)
+{
+  using namespace Eigen;
+  geometry_msgs::msg::Pose pose_msg;
+  auto& t = pose_msg.position;
+  auto& q = pose_msg.orientation;
+  Quaterniond eigen_q(eigen_t.linear());
+  std::tie(t.x, t.y, t.z) =
+      std::make_tuple(eigen_t.translation().x(), eigen_t.translation().y(), eigen_t.translation().z());
+  std::tie(q.x, q.y, q.z, q.w) = std::make_tuple(eigen_q.x(), eigen_q.y(), eigen_q.z(), eigen_q.w());
+  return pose_msg;
+}
+
+static geometry_msgs::msg::Pose toPoseMsg(std::array<double, 6>& pose_data) { return toPoseMsg(toEigen(pose_data)); }
+
+static geometry_msgs::msg::Transform toTransformMsg(const Eigen::Isometry3d& eigen_t)
+{
+  using namespace Eigen;
+  geometry_msgs::msg::Transform transform_msg;
+  auto& t = transform_msg.translation;
+  auto& q = transform_msg.rotation;
+  Quaterniond eigen_q(eigen_t.linear());
+  std::tie(t.x, t.y, t.z) =
+      std::make_tuple(eigen_t.translation().x(), eigen_t.translation().y(), eigen_t.translation().z());
+  std::tie(q.x, q.y, q.z, q.w) = std::make_tuple(eigen_q.x(), eigen_q.y(), eigen_q.z(), eigen_q.w());
+  return transform_msg;
+}
+
+static geometry_msgs::msg::Transform toTransformMsg(std::array<double, 6>& pose_data)
+{
+  return toTransformMsg(toEigen(pose_data));
+}
+
+template <typename Srv>
+static typename Srv::Response::SharedPtr waitForResponse(typename rclcpp::Client<Srv>::SharedPtr client,
+                                                         typename Srv::Request::SharedPtr request,
+                                                         double timeout,
+                                                         double interval = 0.05)
+{
+  using namespace std::chrono;
+  static rclcpp::Logger logger = rclcpp::get_logger(client->get_service_name());
+
+  std::promise<typename Srv::Response::SharedPtr> promise;
+  std::shared_future<typename Srv::Response::SharedPtr> res(promise.get_future());
+  client->async_send_request(request, [&promise](const typename rclcpp::Client<Srv>::SharedFuture future) {
+    auto result = future.get();
+    promise.set_value(result);
+  });
+  system_clock::time_point timeout_time = system_clock::now() + duration_cast<nanoseconds>(duration<double>(timeout));
+
+  std::future_status status = std::future_status::timeout;
+  while (system_clock::now() < timeout_time)
+  {
+    status = res.wait_for(duration<double>(interval));
+    if (status == std::future_status::ready)
+    {
+      RCLCPP_ERROR(logger, "future ready");
+      break;
+    }
+  }
+
+  if (status != std::future_status::ready)
+  {
+    RCLCPP_ERROR(
+        logger, "Timed out while waiting for response from service with status flag '%i'", static_cast<int>(status));
+    return nullptr;
+  }
+  return res.get();
+}
+
 template <class Msg>
 static std::shared_ptr<Msg> waitForMessage(std::shared_ptr<rclcpp::Node> node,
                                            const std::string& topic_name,
@@ -109,12 +192,23 @@ static std::shared_ptr<Msg> waitForMessage(std::shared_ptr<rclcpp::Node> node,
         promise_obj.set_value(*msg);
       });
 
-  std::future_status sts = fut_obj.wait_for(std::chrono::duration<double>(timeout));
-  subs.reset();
+  std::atomic<bool> done;
+  done = false;
+  auto spinner_fut = std::async([&done, node, subs]() mutable -> bool {
+    while (!done)
+    {
+      rclcpp::spin_some(node);
+    }
+    /** @warning there's no clean way to close a subscription but according to this issue
+                             https://github.com/ros2/rclcpp/issues/205, destroying the subscription
+                             should accomplish the same */
+    subs.reset();
+    return true;
+  });
 
-  /** @warning there's no clean way to close a subscription but according to this issue
-                           https://github.com/ros2/rclcpp/issues/205, destroying the subscription
-                           should accomplish the same */
+  std::future_status sts = fut_obj.wait_for(std::chrono::duration<double>(timeout));
+  done = true;
+  spinner_fut.get();
   if (sts != std::future_status::ready)
   {
     std::string err_code = sts == std::future_status::timeout ? std::string("Timeout") : std::string("Deferred");
@@ -135,15 +229,30 @@ static sensor_msgs::msg::JointState::SharedPtr getCurrentState(std::shared_ptr<r
 
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr subs;
   subs = node->create_subscription<sensor_msgs::msg::JointState>(
-      topic_name, rclcpp::QoS(1), [&promise_obj](const sensor_msgs::msg::JointState::SharedPtr msg) -> void {
+      topic_name, rclcpp::QoS(1), [&promise_obj, node](const sensor_msgs::msg::JointState::SharedPtr msg) -> void {
+        RCLCPP_INFO(node->get_logger(), "Got current state message");
         promise_obj.set_value(*msg);
       });
 
+  /*  std::atomic<bool> done;
+    done = false;
+    auto spinner_fut = std::async([&done, node, subs]() mutable -> bool {
+      while (!done)
+      {
+        rclcpp::spin_some(node);
+      }
+      * @warning there's no clean way to close a subscription but according to this issue
+                               https://github.com/ros2/rclcpp/issues/205, destroying the subscription
+                               should accomplish the same
+      subs.reset();
+      return true;
+    });*/
+
+  RCLCPP_INFO(node->get_logger(), "Waiting for  current joint state");
   std::future_status sts = fut_obj.wait_for(std::chrono::duration<double>(timeout));
-  subs.reset();
-  /** @warning there's no clean way to close a subscription but according to this issue
-                           https://github.com/ros2/rclcpp/issues/205, destroying the subscription
-                           should accomplish the same */
+  /*  done = true;
+    spinner_fut.get();*/
+  RCLCPP_INFO(node->get_logger(), "Done waiting for current state");
   if (sts != std::future_status::ready)
   {
     return nullptr;

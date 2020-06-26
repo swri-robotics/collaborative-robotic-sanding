@@ -17,14 +17,20 @@
 #include <crs_gui/application_panel.h>
 #include <crs_gui/widgets/crs_application_widget.h>
 #include <QVBoxLayout>
+#include <QtConcurrent/QtConcurrent>
 
 namespace crs_gui
 {
 ApplicationPanel::ApplicationPanel(QWidget* parent)
-  : rviz_common::Panel(parent)
-  , node_(new rclcpp::Node("application_panel_node"))
-  , application_widget_(new CRSApplicationWidget(node_, this))
+  : rviz_common::Panel(parent), node_(new rclcpp::Node("application_panel_node"))
 {
+  application_widget_.reset(new CRSApplicationWidget(node_, this));
+  auto nodes = application_widget_->getNodes();
+  for (auto& n : nodes)
+  {
+    executor_.add_node(n);
+  }
+  QtConcurrent::run([this]() { executor_.spin(); });
 }
 
 void ApplicationPanel::onInitialize()
