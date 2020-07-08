@@ -141,6 +141,7 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node, QWidget
           this,
           &CRSApplicationWidget::onPartPathSelected,
           Qt::QueuedConnection);
+
   connect(state_machine_interface_widget_.get(), &StateMachineInterfaceWidget::onStateChange, [this](std::string st) {
     bool enable_part_select_wd = false;
     if (std::find(PART_SELECTION_STATES.begin(), PART_SELECTION_STATES.end(), st) != PART_SELECTION_STATES.end())
@@ -244,6 +245,9 @@ void CRSApplicationWidget::onPartPathSelected(const QString qselected_part, cons
 
   // Clear the old toolpath
   toolpath_marker_pub_->publish(delete_all_marker_);
+
+  // calling configuration request
+  state_machine_interface_widget_->requestConfiguration();
 }
 
 std::vector<rclcpp::Node::SharedPtr> CRSApplicationWidget::getNodes() { return { node_, support_widgets_node_ }; }

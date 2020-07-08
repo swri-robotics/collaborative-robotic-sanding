@@ -9,4 +9,3 @@
 - git: {local-name: ros_scxml, uri: 'https://github.com/swri-robotics/ros_scxml.git', version: master}
 - git: {local-name: ur_ikfast_kinematics, uri: 'https://github.com/schornakj/ur_ikfast_kinematics.git', version: 533d183}
 - git: {local-name: iterative_spline_parameterization, uri: 'https://github.com/schornakj/iterative_spline_parameterization.git', version: 81df45a}
-- git: {local-name: ros2_intel_realsense, uri: 'https://github.com/intel/ros2_intel_realsense.git', version: 47b313c}

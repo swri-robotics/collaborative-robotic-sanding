@@ -4,13 +4,14 @@ general:
   part_frame: "part"
   enable_debug_visualizations: True
 icp:
-  max_correspondence_dist: 0.02
-  max_iter: 500
-  transformation_eps: 1e-16
-  rotation_eps: 1e-16  # transformation rotation epsilon in order for an optimization to be considered as having converged to the final solution (epsilon is the cos(angle) 
-  euclidean_fitness: 1.0
+  max_correspondence_dist: 0.3
+  max_iter: 1500
+  transformation_eps: 1e-12
+  rotation_eps: 1e-12  # transformation rotation epsilon in order for an optimization to be considered as having converged to the final solution (epsilon is the cos(angle)
+  euclidean_fitness: 1e-12
   ransac_threshold: 0.05
-  use_correspondences: False
+  use_correspondences: True
+  use_cog_alignment: False
 sac:
   normal_est_rad: 0.1
   feature_est_rad: 0.04
@@ -22,10 +23,14 @@ sac:
   inlier_fraction: 0.25
 crop_boxes:
   box1:
-    xyz: [-0.6, 0.0, 1.0]
-    size: [2.0, 2.0, 0.6]
+    xyz: [-0.4, 0.0, 1.15]
+    size: [2.0, 2.0, 0.8]
     reverse: True
   box2:
-    xyz: [-0.6, 0.0, 0.56]
+    xyz: [-0.4, 0.0, 0.56]
     size: [0.7, 3.0, 0.8]
+    reverse: False # deletes what's inside the box
+  box3:
+    xyz: [0.25, -0.8, 1.3]
+    size: [0.5, 0.5, 0.5]
     reverse: False # deletes what's inside the box

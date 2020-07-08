@@ -47,6 +47,7 @@ namespace config_fields
 namespace motion_planning
 {
 static const std::string TOP_LEVEL = "motion_planning";
+static const std::string PRE_MOVE_HOME = "pre_move_home";
 static const std::string HOME_POS_ROOT = "home_position";
 static const std::string PROCESS_PATH_ROOT = "process_path";
 static const std::string MEDIA_CHANGE_ROOT = "media_change";
@@ -81,6 +82,7 @@ static const std::string SKIP_ON_FAILURE = "skip_on_failure";
 namespace part_registration
 {
 static const std::string TOP_LEVEL = "part_registration";
+static const std::string SIMULATION_POSE = "simulation_pose";
 static const std::string SEED_POSE = "seed_pose";
 static const std::string TARGET_FRAME_ID = "target_frame_id";
 static const std::string PART_FILE = "part_file";
@@ -118,6 +120,12 @@ boost::optional<MotionPlanningConfig> parse(YAML::Node& config, std::string& err
     {
       err_msg = boost::str(boost::format("The '%s' field was not found") % TOP_LEVEL);
       return boost::none;
+    }
+
+    Node pre_move_home = root_node[PRE_MOVE_HOME];
+    if (pre_move_home)
+    {
+      cfg.pre_move_home = pre_move_home.as<bool>();
     }
 
     Node home_pose_node = root_node[HOME_POS_ROOT];
@@ -327,13 +335,19 @@ boost::optional<PartRegistrationConfig> parse(YAML::Node& config, std::string& e
       return boost::none;
     }
 
-    if (hasFields(root_node, TOP_LEVEL, { SEED_POSE, TARGET_FRAME_ID, PART_FILE, TOOLPATH_FILE }))
+    if (hasFields(root_node, TOP_LEVEL, { SIMULATION_POSE, SEED_POSE, TARGET_FRAME_ID, PART_FILE, TOOLPATH_FILE }))
     {
       cfg.target_frame_id = root_node[TARGET_FRAME_ID].as<std::string>();
       cfg.part_file = root_node[PART_FILE].as<std::string>();
       cfg.toolpath_file = root_node[TOOLPATH_FILE].as<std::string>();
-      std::vector<double> seed_pose_vals = root_node[SEED_POSE].as<std::vector<double>>();
-      std::copy(seed_pose_vals.begin(), seed_pose_vals.end(), cfg.seed_pose.begin());
+
+      // seed pose
+      std::vector<double> pose_vals = root_node[SEED_POSE].as<std::vector<double>>();
+      std::copy(pose_vals.begin(), pose_vals.end(), cfg.seed_pose.begin());
+
+      // simulation pose
+      pose_vals = root_node[SIMULATION_POSE].as<std::vector<double>>();
+      std::copy(pose_vals.begin(), pose_vals.end(), cfg.simulation_pose.begin());
     }
     else
     {

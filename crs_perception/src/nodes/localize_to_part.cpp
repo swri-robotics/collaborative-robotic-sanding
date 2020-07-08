@@ -46,6 +46,7 @@ static const std::string CROP_BOXES_MARKER_NS = "crop_boxes";
 
 struct IcpConfig
 {
+  bool use_cog_alignment = false;
   bool use_correspondences = false;
   double max_correspondence_dist = 0.01;
   int max_iter = 200;
@@ -230,6 +231,7 @@ private:
     std::map<std::string, rclcpp::Parameter> params;
     if (this->get_parameters("icp", params))
     {
+      icp_config_.use_cog_alignment = params["use_cog_alignment"].as_bool();
       icp_config_.euclidean_fitness = params["euclidean_fitness"].as_double();
       icp_config_.max_correspondence_dist = params["max_correspondence_dist"].as_double();
       icp_config_.max_iter = params["max_iter"].as_int();
@@ -316,6 +318,7 @@ private:
 
     RCLCPP_INFO(this->get_logger(), "Loading part from %s", request->path_to_part.c_str());
 
+    // converting mesh into cloud
     ModelToPointCloud mtpc(mesh_num_samples_, leaf_size_);
     if (!mtpc.convertToPCL(request->path_to_part, part_point_cloud_, response->error))
     {
@@ -323,6 +326,10 @@ private:
       return;
     }
 
+    // transforming point cloud
+    tf2::fromMsg(request->part_origin, part_seed_transform_);
+    pcl::PointCloud<pcl::PointXYZ>::Ptr original_cloud = part_point_cloud_->makeShared();
+    pcl::transformPointCloud(*original_cloud, *part_point_cloud_, part_seed_transform_.matrix());
     part_loaded_ = true;
     response->success = true;
 
@@ -436,11 +443,15 @@ private:
 
   bool alignIcp(Cloud::Ptr target_cloud, Cloud::Ptr src_cloud, Eigen::Isometry3d& transform)
   {
-    // initial alignment
-    pcl::PointCloud<pcl::PointXYZ>::Ptr temp_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
-    Eigen::Isometry3d init_transform = findTransform(src_cloud, target_cloud, false);
-    pcl::transformPointCloud(*src_cloud, *temp_cloud, init_transform.cast<float>());
-    *src_cloud = *temp_cloud;
+    Eigen::Isometry3d init_transform = Eigen::Isometry3d::Identity();
+    if (icp_config_.use_cog_alignment)
+    {
+      // initial alignment
+      pcl::PointCloud<pcl::PointXYZ>::Ptr temp_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
+      init_transform = findTransform(src_cloud, target_cloud, false);
+      pcl::transformPointCloud(*src_cloud, *temp_cloud, init_transform.cast<float>());
+      *src_cloud = *temp_cloud;
+    }
 
     // icp
     pcl::IterativeClosestPoint<pcl::PointXYZ, pcl::PointXYZ> icp;
@@ -449,7 +460,7 @@ private:
     icp.setMaximumIterations(icp_config_.max_iter);
     icp.setTransformationEpsilon(icp_config_.transformation_eps);
     // TODO: Uncomment this after migrating to pcl 1.9.1
-    // //icp.setTransformationRotationEpsilon(icp_config_.rotation_eps);
+    // icp.setTransformationRotationEpsilon(icp_config_.rotation_eps);
     icp.setEuclideanFitnessEpsilon(icp_config_.euclidean_fitness);
     icp.setRANSACOutlierRejectionThreshold(icp_config_.ransac_threshold);
     icp.setInputSource(src_cloud);
@@ -682,11 +693,6 @@ private:
     // aligning
     Eigen::Isometry3d transform;
     response->success = alignIcp(target_cloud, src_cloud, transform);
-    response->transform = tf2::eigenToTransform(transform);
-    response->transform.header.stamp = this->now();
-    response->transform.header.frame_id = request->frame;
-    response->transform.child_frame_id = part_frame_;
-
     RCLCPP_INFO_EXPRESSION(this->get_logger(), response->success, "ICP converged");
     RCLCPP_ERROR_EXPRESSION(this->get_logger(), !response->success, "ICP failed to converge");
 
@@ -700,6 +706,11 @@ private:
                 angles(0),
                 angles(1),
                 angles(2));
+
+    response->transform = tf2::eigenToTransform(transform * part_seed_transform_);  // applying seed
+    response->transform.header.stamp = this->now();
+    response->transform.header.frame_id = request->frame;
+    response->transform.child_frame_id = part_frame_;
 
     if (enable_debug_visualizations_)
     {
@@ -753,6 +764,7 @@ private:
   bool part_loaded_;
   std::string world_frame_;
   pcl::PointCloud<pcl::PointXYZ>::Ptr part_point_cloud_;
+  Eigen::Affine3d part_seed_transform_;
   visualization_msgs::msg::MarkerArray cropbox_markers_;
 
   // other

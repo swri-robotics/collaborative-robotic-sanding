@@ -30,7 +30,8 @@
         <child link="${prefix}shoulder_link" />
         <origin rpy="0 0 3.14159249728" xyz="0 0 0.180920744391" />
         <axis xyz="0 0 1" />
-        <limit effort="330.0" lower="-6.28318530718" upper="6.28318530718" velocity="3.14" />
+<!--        <limit effort="330.0" lower="-6.28318530718" upper="6.28318530718" velocity="3.14" />-->
+        <limit effort="330.0" lower="-4" upper="2.28" velocity="3.14" />
         <dynamics damping="0.0" friction="0.0" />
     </joint>
     <link name="${prefix}shoulder_link">
@@ -238,7 +239,8 @@
     </link>
     <link name="${prefix}base" />
     <joint name="${prefix}base_link-base_fixed_joint" type="fixed">
-        <origin rpy="-1.571 0 0" xyz="0 0 0" />
+        <!--<origin rpy="-1.571 0 0" xyz="0 0 0" />-->
+        <origin rpy="0 0 0" xyz="0 0 0" />-->
         <parent link="${prefix}base" />
         <child link="${prefix}base_link" />
     </joint>
@@ -285,7 +287,7 @@
             </material>
         </visual>
         <visual>
-            <origin rpy="1.57079632679 0 0" xyz="0 0 -0.1168" />
+            <origin rpy="1.57079632679 0 0" xyz="0.20 0 -0.1168" />
             <geometry>
                 <mesh filename="package://crs_support/meshes/Mockup/visual/mockup_cart_v4.stl" />
             </geometry>
@@ -294,7 +296,7 @@
             </material>
         </visual>
         <collision>
-            <origin rpy="1.57079632679 0 0" xyz="0 0 -0.1168" />
+            <origin rpy="1.57079632679 0 0" xyz="0.20 0 -0.1168" />
             <geometry>
                 <mesh filename="package://crs_support/meshes/Mockup/collision/Mockup3_6_Cart_collision.stl" />
             </geometry>
@@ -317,23 +319,65 @@
             </geometry>
             <origin rpy="0 0 0" xyz="0.85 -1.1 0.0" />
         </collision>
-        <collision> Back Wall
+        <!--<collision> Back Wall Full
             <geometry>
                 <box size="0.1 2.14 3.0" />
             </geometry>
             <origin rpy="0 0 0" xyz="-2.06 -1.1 0.0" />
+        </collision>-->
+        <collision> Back Wall bottom Half
+            <geometry>
+                <box size="0.1 1.1 3.0" />
+            </geometry>
+            <origin rpy="0 0 0" xyz="-2.06 -0.6 0.0" />
         </collision>
-        <collision> <!-- Top front beam-->
+        <collision> Back Wall top beam
+            <geometry>
+                <box size="0.1 0.15 3.0" />
+            </geometry>
+            <origin rpy="0 0 0" xyz="-2.06 -2.135 0.0" />
+        </collision>
+        <collision> Back Wall Half right
+            <geometry>
+                <box size="0.1 0.3 0.7" />
+            </geometry>
+            <origin rpy="-0.786 0 0" xyz="-2.06 -1.9 1.15" />
+        </collision>
+        <collision> Back Wall Half left
+            <geometry>
+                <box size="0.1 0.3 0.7" />
+            </geometry>
+            <origin rpy="0.786 0 0" xyz="-2.06 -1.9 -1.15" />
+        </collision>
+<!--        <collision> < Top front beam>
             <geometry>
                 <box size="1.25 0.12 3.0" />
             </geometry>
             <origin rpy="0 0 0" xyz="0.38 -2.135 0.0" />
-        </collision>
+        </collision>-->
         <collision> <!-- Top back beam-->
             <geometry>
-                <box size="1.25 0.12 3.0" />
+                <box size="0.34 0.15 3.0" />
             </geometry>
-            <origin rpy="0 0 0" xyz="-1.56 -2.135 0.0" />
+            <origin rpy="0 0 0" xyz="-1.0 -2.135 0.0" />
+        </collision>
+        <collision> <!-- Corner Bracket 1-->
+            <geometry>
+                <box size="1.25 0.12 1.25" />
+            </geometry>
+            <origin rpy="0 0.785 0" xyz="-2.06 -2.135 -1.33" />
+        </collision>
+        <collision> <!-- Corner Bracket 2-->
+            <geometry>
+                <box size="1.25 0.12 1.25" />
+            </geometry>
+            <origin rpy="0 0.785 0" xyz="-2.06 -2.135 1.38" />
+        </collision>
+        <collision> <!-- fake floor -->
+            <geometry>
+                <box size="3.0 0.12 3.0" />
+            </geometry>
+            <origin rpy="0 0 0" xyz="-0.65 -0.82 0" />
         </collision>
 
         <inertial>
@@ -345,7 +389,8 @@
     <joint name="${prefix}robot_base_joint" type="fixed">
         <parent link="${prefix}robot_stand" />
         <child link="${prefix}base" />
-        <origin rpy="0 1.570796 0" xyz="-0.148896 -2.047406 0.6277 " />
+<!--        <origin rpy="-1.570796 1.570796 0" xyz="-0.148896 -2.047406 0.6277 " />-->
+        <origin rpy="-1.570796 1.570796 0" xyz="-1.030659 -2.037406 0.7977 " />
         <axis xyz="1 0 0"/>
         <limit effort="1.0" lower="-0.1" upper="1.9" velocity=".01" />
     </joint>
@@ -368,7 +413,39 @@
         <!-- <parent link="${prefix}gazebo_camera_link"/> -->
         <child link="${prefix}camera_link_optical"/>
     </joint>
-    <link name="${prefix}sander_center_link" />
+    <link name="${prefix}camera_link" />
+    <joint name="${prefix}camera_link_joint" type="fixed">
+<!--        <origin xyz="0.001 0.015 0.0" rpy="-1.57 1.57 0"/>-->
+        <origin xyz="0.0 0.0 0.0" rpy="1.57 -1.57 0"/>
+        <parent link="${prefix}camera_link_optical"/>
+        <child link="${prefix}camera_link"/>
+    </joint>
+    <link name="${prefix}sander_center_link" >
+      <visual>
+          <geometry>
+              <cylinder length="0.025" radius="0.06425" />
+          </geometry>
+          <origin rpy="0 0 0" xyz="0 0 0" />
+      </visual>
+      <collision>
+          <geometry>
+              <cylinder length="0.025" radius="0.06425" />
+          </geometry>
+          <origin rpy="0 0 0" xyz="0 0 0" />
+      </collision>
+      <collision>
+          <geometry>
+              <cylinder length="0.03" radius="0.115" />
+          </geometry>
+          <origin rpy="0 0 0" xyz="0 0 -0.105" />
+      </collision>
+<!--      <collision>
+          <geometry>
+              <cylinder length="0.025" radius="0.135" />
+          </geometry>
+          <origin rpy="0 0 0" xyz="0 0 -0.035" />
+      </collision>-->
+    </link>
     <joint name="${prefix}sander_joint" type = "fixed">
         <origin xyz="0.0 -0.15497 0.17503" rpy="0.7854 0.0 0.0"/>
         <parent link="${prefix}eoat_link"/>
@@ -529,14 +606,14 @@
             -->
             <ros>
               <namespace>custom_ns</namespace>
-              <argument>custom_camera/image_raw:=custom_camera/custom_image</argument>
-              <argument>custom_camera/image_depth:=custom_camera/custom_image_depth</argument>
-              <argument>custom_camera/camera_info:=custom_camera/custom_info_raw</argument>
-              <argument>custom_camera/camera_info_depth:=custom_camera/custom_info_depth</argument>
-              <argument>custom_camera/points:=custom_camera/custom_points</argument>
+              <argument>camera/image_raw:=camera/custom_image</argument>
+              <argument>camera/image_depth:=camera/custom_image_depth</argument>
+              <argument>camera/camera_info:=camera/custom_info_raw</argument>
+              <argument>camera/camera_info_depth:=camera/custom_info_depth</argument>
+              <argument>camera/points:=camera/pointcloud</argument>
             </ros>
             <!-- Set camera name. If empty, defaults to sensor name (i.e. "sensor_name") -->
-            <camera_name>custom_camera</camera_name>
+            <camera_name>camera</camera_name>
             <frame_name>camera_link_optical</frame_name>
             <!-- Set TF frame name. If empty, defaults to link name (i.e. "link_name") -->
             <hack_baseline>0.07</hack_baseline>
