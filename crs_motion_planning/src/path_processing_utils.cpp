@@ -751,15 +751,20 @@ bool crs_motion_planning::timeParameterizeFreespace(
 
 
 void crs_motion_planning::findCartPoseArrayFromTraj(const trajectory_msgs::msg::JointTrajectory& joint_trajectory,
-                                                    const tesseract::Tesseract::Ptr tesseract_local,
-                                                    const std::string manipulator,
+                                                    const cartesianTrajectoryConfig traj_config,
                                                     geometry_msgs::msg::PoseArray& cartesian_poses)
 {
-  const std::shared_ptr<const tesseract_environment::Environment> env = tesseract_local->getEnvironmentConst();
+  const std::shared_ptr<const tesseract_environment::Environment> env = traj_config.tesseract_local->getEnvironmentConst();
   tesseract_common::TransformMap curr_transforms = env->getCurrentState()->link_transforms;
 
   tesseract_kinematics::ForwardKinematics::ConstPtr kin =
-      tesseract_local->getFwdKinematicsManagerConst()->getFwdKinematicSolver(manipulator);
+      traj_config.tesseract_local->getFwdKinematicsManagerConst()->getFwdKinematicSolver(traj_config.manipulator);
+
+  Eigen::Isometry3d world_to_base_link, world_to_sander, world_to_tool0, tool0_to_sander;
+  world_to_base_link = curr_transforms.find(traj_config.base_frame)->second;
+  world_to_sander = curr_transforms.find(traj_config.tcp_frame)->second;
+  world_to_tool0 = curr_transforms.find(traj_config.tool_frame)->second;
+  tool0_to_sander = world_to_tool0.inverse() * world_to_sander;
 
   for (auto joint_pose : joint_trajectory.points)
   {
@@ -771,22 +776,137 @@ void crs_motion_planning::findCartPoseArrayFromTraj(const trajectory_msgs::msg::
       Eigen::Isometry3d eig_pose;
       kin->calcFwdKin(eig_pose, joint_positions);
       Eigen::Isometry3d world_to_base_link = Eigen::Isometry3d::Identity();
-      eig_pose = world_to_base_link * eig_pose * Eigen::Quaterniond(-0.5, 0.5, -0.5, 0.5); // Fwd kin switches to x forward instead of z
+      eig_pose = world_to_base_link * eig_pose * Eigen::Quaterniond(-0.5, 0.5, -0.5, 0.5) * tool0_to_sander; // Fwd kin switches to x forward instead of z
       geometry_msgs::msg::Pose curr_cart_pose = tf2::toMsg(eig_pose);
       cartesian_poses.poses.push_back(curr_cart_pose);
   }
-  cartesian_poses.header.frame_id = "base_link";
+  cartesian_poses.header.frame_id = traj_config.base_frame;
 }
 
 
 void crs_motion_planning::genCartesianTrajectory(const trajectory_msgs::msg::JointTrajectory& joint_trajectory,
-                                                 const tesseract::Tesseract::Ptr& tesseract_lock,
-                                                 const std::string& manipulator,
-                                                 const double& target_force,
-                                                 const double& target_speed,
-                                                 const geometry_msgs::msg::Vector3& pose_tolerance,
-                                                 const geometry_msgs::msg::Vector3& ori_tolerance,
-                                                 cartesian_msgs::action::CartesianComplianceTrajectory& cartesian_trajectory)
+                                                 const crs_motion_planning::cartesianTrajectoryConfig traj_config,
+                                                 cartesian_msgs::action::CartesianComplianceTrajectory::Goal& cartesian_trajectory)
 {
-  // TODO TYLER: this whole function
+  geometry_msgs::msg::PoseArray cartesian_poses;
+  crs_motion_planning::findCartPoseArrayFromTraj(joint_trajectory,
+                                                 traj_config,
+                                                 cartesian_poses);
+
+  const std::shared_ptr<const tesseract_environment::Environment> env = traj_config.tesseract_local->getEnvironmentConst();
+  tesseract_common::TransformMap curr_transforms = env->getCurrentState()->link_transforms;
+
+  tesseract_kinematics::ForwardKinematics::ConstPtr kin =
+      traj_config.tesseract_local->getFwdKinematicsManagerConst()->getFwdKinematicSolver(traj_config.manipulator);
+
+  tesseract_environment::AdjacencyMap::Ptr adjacency_map = std::make_shared<tesseract_environment::AdjacencyMap>(
+      env->getSceneGraph(), kin->getActiveLinkNames(), curr_transforms);
+
+  Eigen::Isometry3d world_to_base_link, world_to_sander, world_to_tool0, tool0_to_sander;
+  world_to_base_link = curr_transforms.find(traj_config.base_frame)->second;
+  world_to_sander = curr_transforms.find(traj_config.tcp_frame)->second;
+  world_to_tool0 = curr_transforms.find(traj_config.tool_frame)->second;
+  tool0_to_sander = world_to_tool0.inverse() * world_to_sander;
+
+  Eigen::Vector3d tcp_force_vec = Eigen::Vector3d::Zero();
+  tcp_force_vec.z() = traj_config.target_force;
+  Eigen::Vector3d tool0_force_vec = tool0_to_sander.rotation() * tcp_force_vec;
+  Eigen::Vector3d tool0_moment_vec = tool0_to_sander.translation().cross(tool0_force_vec);
+  geometry_msgs::msg::Vector3 target_wrench_force, target_wrench_torque;
+  target_wrench_force = tf2::toMsg(tool0_force_vec, target_wrench_force);
+  target_wrench_torque = tf2::toMsg(tool0_moment_vec, target_wrench_torque);
+  geometry_msgs::msg::Wrench target_wrench;
+  target_wrench.force = target_wrench_force;
+  target_wrench.torque = target_wrench_torque;
+
+  cartesian_trajectory.speed = traj_config.target_speed;
+  cartesian_trajectory.force = target_wrench;
+  cartesian_trajectory.path_tolerance.position_error = traj_config.path_pose_tolerance;
+  cartesian_trajectory.path_tolerance.orientation_error = traj_config.path_ori_tolerance;
+  cartesian_trajectory.goal_tolerance.position_error = traj_config.goal_pose_tolerance;
+  cartesian_trajectory.goal_tolerance.orientation_error = traj_config.goal_ori_tolerance;
+  cartesian_trajectory.trajectory.header.frame_id = traj_config.base_frame;
+  cartesian_trajectory.trajectory.tcp_frame = traj_config.tcp_frame;
+  for (auto pose : cartesian_poses.poses)
+  {
+    cartesian_msgs::msg::CartesianTrajectoryPoint curr_point;
+    curr_point.pose = pose;
+    curr_point.wrench = target_wrench;
+    cartesian_trajectory.trajectory.points.push_back(curr_point);
+  }
+}
+
+
+bool crs_motion_planning::execSurfaceTrajectory(
+    rclcpp_action::Client<cartesian_msgs::action::CartesianComplianceTrajectory>::SharedPtr ac,
+    const rclcpp::Logger& logger,
+    const trajectory_msgs::msg::JointTrajectory& traj,
+    const crs_motion_planning::cartesianTrajectoryConfig& traj_config)
+{
+  using namespace cartesian_msgs::action;
+  using namespace rclcpp_action;
+  using GoalHandleT = Client<CartesianComplianceTrajectory>::GoalHandle;
+
+  rclcpp::Duration traj_dur(traj.points.back().time_from_start);
+  bool res = false;
+  std::string err_msg;
+
+  auto print_traj_time = [&](const trajectory_msgs::msg::JointTrajectory& traj) {
+    RCLCPP_ERROR(logger, "Trajectory with %lu points time data", traj.points.size());
+    for (std::size_t i = 0; i < traj.points.size(); i++)
+    {
+      const auto& p = traj.points[i];
+      RCLCPP_ERROR(logger, "\tPoint %lu : %f secs", rclcpp::Duration(p.time_from_start).seconds());
+    }
+  };
+
+  CartesianComplianceTrajectory::Goal goal;
+  crs_motion_planning::genCartesianTrajectory(traj, traj_config, goal);
+
+  auto goal_options = rclcpp_action::Client<CartesianComplianceTrajectory>::SendGoalOptions();
+
+  // send goal
+  std::shared_future<GoalHandleT::SharedPtr> trajectory_exec_fut = ac->async_send_goal(goal);
+  traj_dur = traj_dur + rclcpp::Duration(std::chrono::duration<double>(60));
+
+  // wait for goal acceptance
+  std::future_status status = trajectory_exec_fut.wait_for(std::chrono::duration<double>(WAIT_RESULT_TIMEOUT));
+  if (status != std::future_status::ready)
+  {
+    err_msg = "Action request was not accepted in time";
+    RCLCPP_ERROR(logger, "%s", err_msg.c_str());
+    ac->async_cancel_all_goals();
+    return res;
+  }
+
+  auto gh = trajectory_exec_fut.get();
+  if (!gh)
+  {
+    RCLCPP_ERROR(logger, "Goal was rejected by server");
+    return res;
+  }
+
+  // getting result
+  RCLCPP_INFO(logger, "Waiting %f seconds for goal", traj_dur.seconds());
+  auto result_fut = ac->async_get_result(gh);
+  status = result_fut.wait_for(traj_dur.to_chrono<std::chrono::seconds>());
+  if (status != std::future_status::ready)
+  {
+    print_traj_time(traj);
+    err_msg = "trajectory execution timed out";
+    RCLCPP_ERROR(logger, "%s", err_msg.c_str());
+    return res;
+  }
+
+  rclcpp_action::ClientGoalHandle<CartesianComplianceTrajectory>::WrappedResult wrapped_result = result_fut.get();
+  if (wrapped_result.code != rclcpp_action::ResultCode::SUCCEEDED)
+  {
+    err_msg = wrapped_result.result->err_msg;
+    RCLCPP_ERROR(logger, "Trajectory execution failed with error message: %s", err_msg.c_str());
+    return res;
+  }
+
+  // reset future
+  RCLCPP_INFO(logger, "Trajectory completed");
+  return true;
 }

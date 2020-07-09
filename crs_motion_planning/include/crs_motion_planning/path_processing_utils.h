@@ -178,19 +178,39 @@ bool timeParameterizeFreespace(const std::vector<trajectory_msgs::msg::JointTraj
                                const double& max_joint_acc,
                                std::vector<trajectory_msgs::msg::JointTrajectory>& returned_traj);
 
+struct cartesianTrajectoryConfig
+{
+  using Ptr = std::shared_ptr<cartesianTrajectoryConfig>;
+
+  tesseract::Tesseract::Ptr tesseract_local;
+  std::string manipulator = "manipulator";
+
+  std::string base_frame = "base_link";
+  std::string tool_frame = "tool0";
+  std::string tcp_frame = "sander_center_link";
+
+  double target_force = 20;
+  double target_speed = 0.05;
+
+  geometry_msgs::msg::Vector3 path_pose_tolerance;
+  geometry_msgs::msg::Vector3 path_ori_tolerance;
+
+  geometry_msgs::msg::Vector3 goal_pose_tolerance;
+  geometry_msgs::msg::Vector3 goal_ori_tolerance;
+};
+
 void findCartPoseArrayFromTraj(const trajectory_msgs::msg::JointTrajectory& joint_trajectory,
-                               const tesseract::Tesseract::Ptr tesseract_local,
-                               const std::string manipulator,
+                               const cartesianTrajectoryConfig traj_config,
                                geometry_msgs::msg::PoseArray& cartesian_poses);
 
 void genCartesianTrajectory(const trajectory_msgs::msg::JointTrajectory& joint_trajectory,
-                            const tesseract::Tesseract::Ptr& tesseract_lock,
-                            const std::string& manipulator,
-                            const double& target_force,
-                            const double& target_speed,
-                            const geometry_msgs::msg::Vector3& pose_tolerance,
-                            const geometry_msgs::msg::Vector3& ori_tolerance,
-                            cartesian_msgs::action::CartesianComplianceTrajectory& cartesian_trajectory);
+                            const cartesianTrajectoryConfig traj_config,
+                            cartesian_msgs::action::CartesianComplianceTrajectory::Goal& cartesian_trajectory);
+
+bool execSurfaceTrajectory(rclcpp_action::Client<cartesian_msgs::action::CartesianComplianceTrajectory>::SharedPtr ac,
+                           const rclcpp::Logger& logger,
+                           const trajectory_msgs::msg::JointTrajectory& traj,
+                           const cartesianTrajectoryConfig& traj_config);
 
 }  // namespace crs_motion_planning
 

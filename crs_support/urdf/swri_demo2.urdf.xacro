@@ -2,7 +2,8 @@
 <robot name="crs" xmlns:xacro="http://ros.org/wiki/xacro">
   <xacro:macro name="crs_workcell" params="prefix:=^|''">
   <xacro:arg name="table_size" default="1.5"/>
-  <xacro:property name="BASE_PLATE_THICKNESS" value="0.6096" scope="parent"/> CHANGED TO ACCOUNT FOR KUKA
+<!--  <xacro:property name="BASE_PLATE_THICKNESS" value="0.6096" scope="parent"/> CHANGED TO ACCOUNT FOR KUKA-->
+  <xacro:property name="BASE_PLATE_THICKNESS" value="0.01" scope="parent"/> CHANGED TO ACCOUNT FOR KUKA
   <xacro:property name="BASE_PLATE_LENGTH" value="0.762" scope="parent"/>
   <xacro:property name="BASE_PLATE_WIDTH" value="0.3048" scope="parent"/>
 
@@ -16,12 +17,12 @@
           <color rgba="0.8 0.8 0.8 0.9"/>
         </material>
       </visual>
-      <collision>
+<!--      <collision>
         <origin xyz="0 0 -0.05"/>
         <geometry>
           <box size="$(arg table_size) $(arg table_size) 0.1"/>
         </geometry>
-      </collision>
+      </collision>-->
     </link>
 
     <joint name="world_to_table_joint" type="fixed">
@@ -67,12 +68,12 @@
           <color rgba="1 1 1 1"/>
         </material>
       </visual>
-      <collision>
+<!--      <collision>
         <origin xyz="0 0 0"/>
         <geometry>
           <mesh filename="package://crs_support/meshes/Swri_demo/mold_transformed.stl"/>
         </geometry>
-      </collision>
+      </collision>-->
     </link>
 
     <joint name="table_to_mold" type="fixed">
@@ -100,7 +101,7 @@
           <box size="0.7747 0.1143 0.0508"/>
         </geometry>
       </visual>
-      <collision> Small square base plate
+<!--      <collision> Small square base plate
         <origin xyz="0.2286 -0.127 0.005" rpy="0 0 0"/>
         <geometry>
           <box size="0.254 0.254 0.01"/>
@@ -117,7 +118,7 @@
         <geometry>
           <box size="0.7747 0.1143 0.0508"/>
         </geometry>
-      </collision>
+      </collision>-->
     </link>
     <joint name="table_to_table_obstacles" type="fixed">
       <parent link="table"/>
