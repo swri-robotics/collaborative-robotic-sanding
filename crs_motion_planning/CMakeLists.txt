@@ -176,6 +176,7 @@ target_include_directories(${PROJECT_NAME}_process_planner_test PUBLIC
   ${tf2_eigen_INCLUDE_DIRS}
   ${tf2_ros_INCLUDE_DIRS}
   ${control_msgs_INCLUDE_DIRS}
+  ${cartesian_msgs_INCLUDE_DIRS}
   )
 target_link_libraries(${PROJECT_NAME}_process_planner_test
   ${PROJECT_NAME}_path_planning_utils
@@ -191,6 +192,7 @@ target_link_libraries(${PROJECT_NAME}_process_planner_test
   ${tf2_eigen_LIBRARIES}
   ${tf2_ros_LIBRARIES}
   ${control_msgs_LIBRARIES}
+  ${cartesian_msgs_LIBRARIES}
   ${visualization_msgs_LIBRARIES}
   )
 
