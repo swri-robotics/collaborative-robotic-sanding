@@ -25,7 +25,7 @@
 
 #include <boost/format.hpp>
 
-#include <std_srvs/srv/trigger.hpp>
+#include <std_srvs/srv/set_bool.hpp>
 
 static const std::string RESOURCES_PACKAGE_NAME = "crs_support";
 static const std::string DEFAULT_URDF_PATH = "urdf/crs.urdf";
@@ -161,7 +161,7 @@ public:
 
     part_loader_client_ = node_->create_client<crs_msgs::srv::LoadPart>("load_part_tesseract_env");
 
-    controller_changer_client_ = node_->create_client<std_srvs::srv::Trigger>(CONTROLLER_CHANGER_SERVICE);
+    controller_changer_client_ = node_->create_client<std_srvs::srv::SetBool>(CONTROLLER_CHANGER_SERVICE);
 
     toolpath_filepath_ = ament_index_cpp::get_package_share_directory("crs_support") + "/toolpaths/scanned_part1/"
                                                                                        "job_90degrees.yaml";
@@ -227,13 +227,10 @@ public:
 
 private:
 
-  bool change_controller(const std_srvs::srv::Trigger::Request::SharedPtr req)
+  bool change_controller(const std_srvs::srv::SetBool::Request::SharedPtr req)
   {
     using namespace std_srvs::srv;
-    auto change_ctrl_cb = std::bind(&ProcessPlannerTestServer::change_controller_cb, this, std::placeholders::_1);
-//    std::shared_future<Trigger::Response::SharedPtr> result_future =
-//        controller_changer_client_->async_send_request(req, change_ctrl_cb);
-    std::shared_future<Trigger::Response::SharedPtr> result_future =
+    std::shared_future<SetBool::Response::SharedPtr> result_future =
         controller_changer_client_->async_send_request(req);
 
     std::future_status status = result_future.wait_for(std::chrono::seconds(15));
@@ -253,15 +250,6 @@ private:
 
     RCLCPP_INFO(node_->get_logger(), "change controller service succeeded");
     return true;
-  }
-
-  void change_controller_cb(const rclcpp::Client<std_srvs::srv::Trigger>::SharedFuture future)
-  {
-    bool suc = future.get()->success;
-    if (suc)
-      std::cout << "SUCCESSFUL" << std::endl;
-    else
-      std::cout << "FAILURE" << std::endl;
   }
 
   void envCallback(const tesseract_msgs::msg::TesseractState::SharedPtr msg)
@@ -334,7 +322,6 @@ private:
     path_wf.rasters = raster_strips_world_frame;
     path_requests.push_back(path_wf);
     proc_req->process_paths = path_requests;
-    std::cout << "HEREHEREHERE" << std::endl;
 
     auto process_plan_cb = std::bind(&ProcessPlannerTestServer::processPlanCallback, this, std::placeholders::_1);
     std::shared_future<crs_msgs::srv::PlanProcessMotions::Response::SharedPtr> result_future =
@@ -404,16 +391,15 @@ private:
             process_plans[j].force_controlled_process_motions;
         if (start_traj.points.size() > 0)
         {
+          trig_req->data = false;
+          successful_controller_change = change_controller(trig_req);
           RCLCPP_INFO(node_->get_logger(), "EXECUTING FIRST FREESPACE");
-          if (!execTrajectory(trajectory_exec_client_, node_->get_logger(), start_traj))
+          if (!successful_controller_change || !execTrajectory(trajectory_exec_client_, node_->get_logger(), start_traj))
           {
             return;
           }
         }
-        std_srvs::srv::Trigger::Request::SharedPtr trig_req = std::make_shared<std_srvs::srv::Trigger::Request>();
-        std::cout << "ATTEMPTING CONTROLLER CHANGE" << std::endl;
-        bool successful_controller = change_controller(trig_req);
-        std::cout << "WAS SUCCESSFUL? " << successful_controller << std::endl;
+
 
         for (size_t i = 0; i < freespace_motions.size(); ++i)
         {
@@ -422,13 +408,17 @@ private:
 //          {
 //            return;
 //          }
-          if (!execSurfaceTrajectory(surface_traj_exec_client_, node_->get_logger(), process_motions[i], traj_config))
+          trig_req->data = true;
+          successful_controller_change = change_controller(trig_req);
+          if (!successful_controller_change || !execSurfaceTrajectory(surface_traj_exec_client_, node_->get_logger(), process_motions[i], traj_config))
           {
             return;
           }
 
+          trig_req->data = false;
+          successful_controller_change = change_controller(trig_req);
           RCLCPP_INFO(node_->get_logger(), "EXECUTING FREESPACE TRAJECTORY\t%i OF %i", i + 1, freespace_motions.size());
-          if (!execTrajectory(trajectory_exec_client_, node_->get_logger(), freespace_motions[i]))
+          if (!successful_controller_change || !execTrajectory(trajectory_exec_client_, node_->get_logger(), freespace_motions[i]))
           {
             return;
           }
@@ -438,15 +428,18 @@ private:
                     "EXECUTING SURFACE TRAJECTORY\t%i OF %i",
                     process_motions.size(),
                     process_motions.size());
-        execTrajectory(trajectory_exec_client_, node_->get_logger(), process_motions.back());
-//        if (!execSurfaceTrajectory(surface_traj_exec_client_, this->get_logger(), process_motions.back(), traj_config))
-//        {
-//          return;
-//        }
+        trig_req->data = true;
+        successful_controller_change = change_controller(trig_req);
+        if (!successful_controller_change || !execSurfaceTrajectory(surface_traj_exec_client_, node_->get_logger(), process_motions.back(), traj_config))
+        {
+          return;
+        }
         if (end_traj.points.size() > 0)
         {
+          trig_req->data = false;
+          successful_controller_change = change_controller(trig_req);
           RCLCPP_INFO(node_->get_logger(), "EXECUTING FINAL FREESPACE");
-          if (!execTrajectory(trajectory_exec_client_, node_->get_logger(), end_traj))
+          if (!successful_controller_change || !execTrajectory(trajectory_exec_client_, node_->get_logger(), end_traj))
           {
             return;
           }
@@ -493,7 +486,7 @@ private:
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr test_part_loader_client_;
   rclcpp::Client<crs_msgs::srv::LoadPart>::SharedPtr part_loader_client_;
 
-  rclcpp::Client<std_srvs::srv::Trigger>::SharedPtr controller_changer_client_;
+  rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr controller_changer_client_;
 
   std::shared_ptr<rclcpp::Clock> clock_;
   tf2_ros::Buffer tf_buffer_;
