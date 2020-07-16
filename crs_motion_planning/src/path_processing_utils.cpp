@@ -786,27 +786,12 @@ void crs_motion_planning::findCartPoseArrayFromTraj(const trajectory_msgs::msg::
 
 void crs_motion_planning::genCartesianTrajectory(const trajectory_msgs::msg::JointTrajectory& joint_trajectory,
                                                  const crs_motion_planning::cartesianTrajectoryConfig traj_config,
-                                                 cartesian_msgs::action::CartesianComplianceTrajectory::Goal& cartesian_trajectory)
+                                                 cartesian_trajectory_msgs::msg::CartesianTrajectory& cartesian_trajectory)
 {
   geometry_msgs::msg::PoseArray cartesian_poses;
   crs_motion_planning::findCartPoseArrayFromTraj(joint_trajectory,
                                                  traj_config,
                                                  cartesian_poses);
-
-  const std::shared_ptr<const tesseract_environment::Environment> env = traj_config.tesseract_local->getEnvironmentConst();
-  tesseract_common::TransformMap curr_transforms = env->getCurrentState()->link_transforms;
-
-  tesseract_kinematics::ForwardKinematics::ConstPtr kin =
-      traj_config.tesseract_local->getFwdKinematicsManagerConst()->getFwdKinematicSolver(traj_config.manipulator);
-
-  tesseract_environment::AdjacencyMap::Ptr adjacency_map = std::make_shared<tesseract_environment::AdjacencyMap>(
-      env->getSceneGraph(), kin->getActiveLinkNames(), curr_transforms);
-
-  Eigen::Isometry3d world_to_base_link, world_to_sander, world_to_tool0, tool0_to_sander;
-  world_to_base_link = curr_transforms.find(traj_config.base_frame)->second;
-  world_to_sander = curr_transforms.find(traj_config.tcp_frame)->second;
-  world_to_tool0 = curr_transforms.find(traj_config.tool_frame)->second;
-  tool0_to_sander = world_to_tool0.inverse() * world_to_sander;
 
   Eigen::Vector3d tcp_force_vec = Eigen::Vector3d::Zero();
   tcp_force_vec.z() = traj_config.target_force;
@@ -817,33 +802,52 @@ void crs_motion_planning::genCartesianTrajectory(const trajectory_msgs::msg::Joi
   target_wrench.force = target_wrench_force;
   target_wrench.torque = target_wrench_torque;
 
-  cartesian_trajectory.speed = traj_config.target_speed;
-  cartesian_trajectory.force = target_wrench;
-  cartesian_trajectory.path_tolerance.position_error = traj_config.path_pose_tolerance;
-  cartesian_trajectory.path_tolerance.orientation_error = traj_config.path_ori_tolerance;
-  cartesian_trajectory.goal_tolerance.position_error = traj_config.goal_pose_tolerance;
-  cartesian_trajectory.goal_tolerance.orientation_error = traj_config.goal_ori_tolerance;
-  cartesian_trajectory.path_tolerance.wrench_error.force = traj_config.force_tolerance;
-  cartesian_trajectory.trajectory.header.frame_id = traj_config.base_frame;
-  cartesian_trajectory.trajectory.tcp_frame = traj_config.tcp_frame;
-  for (auto pose : cartesian_poses.poses)
+  cartesian_trajectory.header.frame_id = traj_config.base_frame;
+  cartesian_trajectory.tcp_frame = traj_config.tcp_frame;
+  for (size_t i = 0; i < cartesian_poses.poses.size(); ++i)
   {
-    cartesian_msgs::msg::CartesianTrajectoryPoint curr_point;
+    geometry_msgs::msg::Pose pose = cartesian_poses.poses[i];
+    cartesian_trajectory_msgs::msg::CartesianTrajectoryPoint curr_point;
     curr_point.pose = pose;
     curr_point.wrench = target_wrench;
-    cartesian_trajectory.trajectory.points.push_back(curr_point);
+    curr_point.time_from_start = joint_trajectory.points[i].time_from_start;
+    cartesian_trajectory.points.push_back(curr_point);
   }
-  cartesian_trajectory.trajectory.points.back().wrench.force.z = -target_wrench.force.z;
+  cartesian_trajectory.points.back().wrench.force.z = -target_wrench.force.z;
+}
+
+
+void crs_motion_planning::genCartesianTrajectoryGoal(const cartesian_trajectory_msgs::msg::CartesianTrajectory& cartesian_trajectory,
+                                                     const cartesianTrajectoryConfig traj_config,
+                                                     cartesian_trajectory_msgs::action::CartesianComplianceTrajectory::Goal& cartesian_trajectory_goal)
+{
+  Eigen::Vector3d tcp_force_vec = Eigen::Vector3d::Zero();
+  tcp_force_vec.z() = traj_config.target_force;
+  geometry_msgs::msg::Vector3 target_wrench_force, target_wrench_torque;
+  target_wrench_force = tf2::toMsg(tcp_force_vec, target_wrench_force);
+  target_wrench_torque = tf2::toMsg(Eigen::Vector3d::Zero(), target_wrench_torque);
+  geometry_msgs::msg::Wrench target_wrench;
+  target_wrench.force = target_wrench_force;
+  target_wrench.torque = target_wrench_torque;
+
+  cartesian_trajectory_goal.speed = traj_config.target_speed;
+  cartesian_trajectory_goal.force = target_wrench;
+  cartesian_trajectory_goal.path_tolerance.position_error = traj_config.path_pose_tolerance;
+  cartesian_trajectory_goal.path_tolerance.orientation_error = traj_config.path_ori_tolerance;
+  cartesian_trajectory_goal.goal_tolerance.position_error = traj_config.goal_pose_tolerance;
+  cartesian_trajectory_goal.goal_tolerance.orientation_error = traj_config.goal_ori_tolerance;
+  cartesian_trajectory_goal.path_tolerance.wrench_error.force = traj_config.force_tolerance;
+  cartesian_trajectory_goal.trajectory = cartesian_trajectory;
 }
 
 
 bool crs_motion_planning::execSurfaceTrajectory(
-    rclcpp_action::Client<cartesian_msgs::action::CartesianComplianceTrajectory>::SharedPtr ac,
+    rclcpp_action::Client<cartesian_trajectory_msgs::action::CartesianComplianceTrajectory>::SharedPtr ac,
     const rclcpp::Logger& logger,
     const trajectory_msgs::msg::JointTrajectory& traj,
     const crs_motion_planning::cartesianTrajectoryConfig& traj_config)
 {
-  using namespace cartesian_msgs::action;
+  using namespace cartesian_trajectory_msgs::action;
   using namespace rclcpp_action;
   using GoalHandleT = Client<CartesianComplianceTrajectory>::GoalHandle;
 
@@ -861,7 +865,84 @@ bool crs_motion_planning::execSurfaceTrajectory(
   };
 
   CartesianComplianceTrajectory::Goal goal;
-  crs_motion_planning::genCartesianTrajectory(traj, traj_config, goal);
+  cartesian_trajectory_msgs::msg::CartesianTrajectory cart_traj;
+  crs_motion_planning::genCartesianTrajectory(traj, traj_config, cart_traj);
+  crs_motion_planning::genCartesianTrajectoryGoal(cart_traj, traj_config, goal);
+
+  auto goal_options = rclcpp_action::Client<CartesianComplianceTrajectory>::SendGoalOptions();
+
+  // send goal
+  std::shared_future<GoalHandleT::SharedPtr> trajectory_exec_fut = ac->async_send_goal(goal);
+  traj_dur = traj_dur + rclcpp::Duration(std::chrono::duration<double>(60));
+
+  // wait for goal acceptance
+  std::future_status status = trajectory_exec_fut.wait_for(std::chrono::duration<double>(WAIT_RESULT_TIMEOUT));
+  if (status != std::future_status::ready)
+  {
+    err_msg = "Action request was not accepted in time";
+    RCLCPP_ERROR(logger, "%s", err_msg.c_str());
+    ac->async_cancel_all_goals();
+    return res;
+  }
+
+  auto gh = trajectory_exec_fut.get();
+  if (!gh)
+  {
+    RCLCPP_ERROR(logger, "Goal was rejected by server");
+    return res;
+  }
+
+  // getting result
+  RCLCPP_INFO(logger, "Waiting %f seconds for goal", traj_dur.seconds());
+  auto result_fut = ac->async_get_result(gh);
+  status = result_fut.wait_for(traj_dur.to_chrono<std::chrono::seconds>());
+  if (status != std::future_status::ready)
+  {
+    print_traj_time(traj);
+    err_msg = "trajectory execution timed out";
+    RCLCPP_ERROR(logger, "%s", err_msg.c_str());
+    return res;
+  }
+
+  rclcpp_action::ClientGoalHandle<CartesianComplianceTrajectory>::WrappedResult wrapped_result = result_fut.get();
+  if (wrapped_result.code != rclcpp_action::ResultCode::SUCCEEDED)
+  {
+    err_msg = wrapped_result.result->err_msg;
+    RCLCPP_ERROR(logger, "Trajectory execution failed with error message: %s", err_msg.c_str());
+    return res;
+  }
+
+  // reset future
+  RCLCPP_INFO(logger, "Trajectory completed");
+  return true;
+}
+
+
+bool crs_motion_planning::execSurfaceTrajectory(
+    rclcpp_action::Client<cartesian_trajectory_msgs::action::CartesianComplianceTrajectory>::SharedPtr ac,
+    const rclcpp::Logger& logger,
+    const cartesian_trajectory_msgs::msg::CartesianTrajectory& traj,
+    const cartesianTrajectoryConfig& traj_config)
+{
+  using namespace cartesian_trajectory_msgs::action;
+  using namespace rclcpp_action;
+  using GoalHandleT = Client<CartesianComplianceTrajectory>::GoalHandle;
+
+  rclcpp::Duration traj_dur(traj.points.back().time_from_start);
+  bool res = false;
+  std::string err_msg;
+
+  auto print_traj_time = [&](const cartesian_trajectory_msgs::msg::CartesianTrajectory& traj) {
+    RCLCPP_ERROR(logger, "Trajectory with %lu points time data", traj.points.size());
+    for (std::size_t i = 0; i < traj.points.size(); i++)
+    {
+      const auto& p = traj.points[i];
+      RCLCPP_ERROR(logger, "\tPoint %lu : %f secs", rclcpp::Duration(p.time_from_start).seconds());
+    }
+  };
+
+  CartesianComplianceTrajectory::Goal goal;
+  crs_motion_planning::genCartesianTrajectoryGoal(traj, traj_config, goal);
 
   auto goal_options = rclcpp_action::Client<CartesianComplianceTrajectory>::SendGoalOptions();
 

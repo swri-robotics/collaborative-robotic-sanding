@@ -24,7 +24,7 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_action REQUIRED)
 
 find_package(crs_msgs REQUIRED)
-find_package(cartesian_msgs REQUIRED)
+find_package(cartesian_trajectory_msgs REQUIRED)
 
 find_package(tesseract_motion_planners REQUIRED)
 find_package(tesseract_rosutils REQUIRED)
@@ -65,7 +65,7 @@ target_include_directories(${PROJECT_NAME}_path_processing_utils PUBLIC
   ${tf2_geometry_msgs_INCLUDE_DIRS}
   ${control_msgs_INCLUDE_DIRS}
   ${crs_msgs_INCLUDE_DIRS}
-  ${cartesian_msgs_INCLUDE_DIRS}
+  ${cartesian_trajectory_msgs_INCLUDE_DIRS}
   )
 target_link_libraries(${PROJECT_NAME}_path_processing_utils
   ${YAML_CPP_LIBRARIES}
@@ -78,7 +78,7 @@ target_link_libraries(${PROJECT_NAME}_path_processing_utils
   ${tf2_ros_LIBRARIES}
   ${tf2_geometry_msgs_LIBRARIES}
   ${control_msgs_LIBRARIES}
-  ${cartesian_msgs_LIBRARIES}
+  ${cartesian_trajectory_msgs_LIBRARIES}
   ${yaml_cpp_vendor_LIBRARIES}
   ${crs_msgs_LIBRARIES}
   tesseract::tesseract_common
@@ -176,7 +176,7 @@ target_include_directories(${PROJECT_NAME}_process_planner_test PUBLIC
   ${tf2_eigen_INCLUDE_DIRS}
   ${tf2_ros_INCLUDE_DIRS}
   ${control_msgs_INCLUDE_DIRS}
-  ${cartesian_msgs_INCLUDE_DIRS}
+  ${cartesian_trajectory_msgs_INCLUDE_DIRS}
   )
 target_link_libraries(${PROJECT_NAME}_process_planner_test
   ${PROJECT_NAME}_path_planning_utils
@@ -192,7 +192,7 @@ target_link_libraries(${PROJECT_NAME}_process_planner_test
   ${tf2_eigen_LIBRARIES}
   ${tf2_ros_LIBRARIES}
   ${control_msgs_LIBRARIES}
-  ${cartesian_msgs_LIBRARIES}
+  ${cartesian_trajectory_msgs_LIBRARIES}
   ${visualization_msgs_LIBRARIES}
   )
 
