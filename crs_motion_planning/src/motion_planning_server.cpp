@@ -189,12 +189,17 @@ public:
     trajopt_surface_config.surface_coeffs = surface_coeffs;
     trajopt_surface_config.waypoints_critical = false;
     trajopt_surface_config.longest_valid_segment_fraction = 0.1;
-    trajopt_surface_config.special_collision_constraint.push_back({ "eoat_link", LOADED_PART_LINK_NAME, -0.02, 15.0 });
+//    trajopt_surface_config.special_collision_constraint.push_back({ "eoat_link", LOADED_PART_LINK_NAME, -0.02, 15.0 });
+//    trajopt_surface_config.special_collision_constraint.push_back(
+//        { "sander_center_link", LOADED_PART_LINK_NAME, -0.02, 15.0 });
+    trajopt_surface_config.special_collision_constraint.push_back({ "eoat_link", "table", -0.05, 15.0 });
     trajopt_surface_config.special_collision_constraint.push_back(
-        { "sander_center_link", LOADED_PART_LINK_NAME, -0.02, 15.0 });
+        { "sander_center_link", "table", -0.05, 15.0 });
+//    trajopt_surface_config.special_collision_constraint.push_back(
+//        { "wrist_3_link", "table", -0.05, 15.0 });
 
     crs_motion_planning::omplConfig ompl_config;
-    ompl_config.collision_safety_margin = 0.01;
+    ompl_config.collision_safety_margin = 0.0075;
     ompl_config.planning_time = 120;
     ompl_config.n_output_states = this->get_parameter(param_names::NUM_FREEPSACE_STEPS).as_int();
     ompl_config.simplify = true;
@@ -220,6 +225,9 @@ public:
     trajopt_freespace_config.special_collision_cost.push_back({ "eoat_link", LOADED_PART_LINK_NAME, 0.03, 20.0 });
     trajopt_freespace_config.special_collision_cost.push_back({ "eoat_link", "robot_frame", 0.05, 15.0 });
     trajopt_freespace_config.special_collision_cost.push_back({ "shoulder_link", "robot_frame", 0.03, 15.0 });
+    trajopt_freespace_config.special_collision_cost.push_back({ "eoat_link", "table", 0.03, 20.0 });
+    trajopt_freespace_config.special_collision_cost.push_back({ "eoat_link", "robot_stand", 0.03, 10.0 });
+    trajopt_freespace_config.special_collision_cost.push_back({ "eoat_link", "forearm_link", 0.03, 10.0 });
 
     motion_planner_config_ = std::make_shared<crs_motion_planning::pathPlanningConfig>();
     motion_planner_config_->tesseract_local = tesseract_local_;
@@ -240,8 +248,8 @@ public:
     motion_planner_config_->use_gazebo_sim_timing = this->get_parameter(param_names::GAZEBO_SIM_TIMING).as_bool();
     motion_planner_config_->trajopt_verbose_output = this->get_parameter(param_names::TRAJOPT_VERBOSE).as_bool();
     motion_planner_config_->simplify_start_end_freespace = true;
-    motion_planner_config_->use_trajopt_freespace = false;
-    motion_planner_config_->combine_strips = false;
+    motion_planner_config_->use_trajopt_freespace = true;
+    motion_planner_config_->combine_strips = true;
     motion_planner_config_->global_descartes = true;
   }
 
@@ -275,7 +283,7 @@ private:
           request->end_position.position, request->end_position.name);
     }
     tesseract_rosutils::fromMsg(motion_planner_config_->tool_offset, request->tool_offset);
-    motion_planner_config_->descartes_config.tool_offset = motion_planner_config_->tool_offset;
+    motion_planner_config_->descartes_config.tool_offset = motion_planner_config_->tool_offset * Eigen::Translation3d(0.0, 0.0, 0.03);
 
     std::vector<crs_msgs::msg::ProcessMotionPlan> returned_plans;
     bool success;

@@ -810,11 +810,9 @@ void crs_motion_planning::genCartesianTrajectory(const trajectory_msgs::msg::Joi
 
   Eigen::Vector3d tcp_force_vec = Eigen::Vector3d::Zero();
   tcp_force_vec.z() = traj_config.target_force;
-  Eigen::Vector3d tool0_force_vec = tool0_to_sander.rotation() * tcp_force_vec;
-  Eigen::Vector3d tool0_moment_vec = tool0_to_sander.translation().cross(tool0_force_vec);
   geometry_msgs::msg::Vector3 target_wrench_force, target_wrench_torque;
-  target_wrench_force = tf2::toMsg(tool0_force_vec, target_wrench_force);
-  target_wrench_torque = tf2::toMsg(tool0_moment_vec, target_wrench_torque);
+  target_wrench_force = tf2::toMsg(tcp_force_vec, target_wrench_force);
+  target_wrench_torque = tf2::toMsg(Eigen::Vector3d::Zero(), target_wrench_torque);
   geometry_msgs::msg::Wrench target_wrench;
   target_wrench.force = target_wrench_force;
   target_wrench.torque = target_wrench_torque;
@@ -825,6 +823,7 @@ void crs_motion_planning::genCartesianTrajectory(const trajectory_msgs::msg::Joi
   cartesian_trajectory.path_tolerance.orientation_error = traj_config.path_ori_tolerance;
   cartesian_trajectory.goal_tolerance.position_error = traj_config.goal_pose_tolerance;
   cartesian_trajectory.goal_tolerance.orientation_error = traj_config.goal_ori_tolerance;
+  cartesian_trajectory.path_tolerance.wrench_error.force = traj_config.force_tolerance;
   cartesian_trajectory.trajectory.header.frame_id = traj_config.base_frame;
   cartesian_trajectory.trajectory.tcp_frame = traj_config.tcp_frame;
   for (auto pose : cartesian_poses.poses)
@@ -834,6 +833,7 @@ void crs_motion_planning::genCartesianTrajectory(const trajectory_msgs::msg::Joi
     curr_point.wrench = target_wrench;
     cartesian_trajectory.trajectory.points.push_back(curr_point);
   }
+  cartesian_trajectory.trajectory.points.back().wrench.force.z = -target_wrench.force.z;
 }
 
 

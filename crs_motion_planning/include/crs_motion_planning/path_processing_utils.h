@@ -197,6 +197,8 @@ struct cartesianTrajectoryConfig
 
   geometry_msgs::msg::Vector3 goal_pose_tolerance;
   geometry_msgs::msg::Vector3 goal_ori_tolerance;
+
+  geometry_msgs::msg::Vector3 force_tolerance;
 };
 
 void findCartPoseArrayFromTraj(const trajectory_msgs::msg::JointTrajectory& joint_trajectory,
