@@ -41,6 +41,8 @@
 #include <control_msgs/action/follow_joint_trajectory.hpp>
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <rclcpp/rclcpp.hpp>
+#include <crs_motion_planning/path_processing_utils.h>
+#include <std_srvs/srv/set_bool.hpp>
 #include "crs_application/common/common.h"
 #include "crs_application/common/datatypes.h"
 #include "crs_application/common/config.h"
@@ -88,15 +90,20 @@ public:
 protected:
   // support methods
   void resetIndexes();
+  bool changeActiveController(const bool turn_on_cart);
   common::ActionResult execTrajectory(const trajectory_msgs::msg::JointTrajectory& traj);
+  common::ActionResult execSurfaceTrajectory(const cartesian_trajectory_msgs::msg::CartesianTrajectory& traj,
+                                             const crs_motion_planning::cartesianTrajectoryConfig& traj_config);
   common::ActionResult checkPreReq();
 
   // roscpp
   using GoalHandleT = rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::GoalHandle;
   std::shared_ptr<rclcpp::Node> node_;
   rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SharedPtr trajectory_exec_client_;
+  rclcpp_action::Client<cartesian_trajectory_msgs::action::CartesianComplianceTrajectory>::SharedPtr surface_trajectory_exec_client_;
   rclcpp::callback_group::CallbackGroup::SharedPtr trajectory_exec_client_cbgroup_;
   std::shared_future<GoalHandleT::SharedPtr> trajectory_exec_fut_;
+  rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr controller_changer_client_;
 
   // process data
   std::shared_ptr<config::ProcessExecutionConfig> config_ = nullptr;
