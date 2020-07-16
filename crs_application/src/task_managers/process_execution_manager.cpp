@@ -40,8 +40,7 @@ static const double WAIT_SERVER_TIMEOUT = 10.0;  // seconds
 static const std::string MANAGER_NAME = "ProcessExecutionManager";
 static const std::string FOLLOW_JOINT_TRAJECTORY_ACTION = "follow_joint_trajectory";
 static const std::string SURFACE_TRAJECTORY_ACTION = "execute_surface_motion";
-static const std::string CONTROLLER_CHANGER_SERVICE = "compliance_controller_on";
-static const std::string RUN_ROBOT_SCRIPT_SERVICE = "run_robot_script";
+static const std::string CONTROLLER_CHANGER_SERVICE = "test_serv";
 
 namespace crs_application
 {
@@ -59,17 +58,15 @@ ProcessExecutionManager::ProcessExecutionManager(std::shared_ptr<rclcpp::Node> n
                                                                                 FOLLOW_JOINT_TRAJECTORY_ACTION,
                                                                                 trajectory_exec_client_cbgroup_);
   surface_trajectory_exec_client_ =
-      rclcpp_action::create_client<cartesian_trajectory_msgs::action::CartesianComplianceTrajectory>(
-          node_->get_node_base_interface(),
-          node_->get_node_graph_interface(),
-          node_->get_node_logging_interface(),
-          node_->get_node_waitables_interface(),
-          SURFACE_TRAJECTORY_ACTION,
-          trajectory_exec_client_cbgroup_);
+      rclcpp_action::create_client<cartesian_trajectory_msgs::action::CartesianComplianceTrajectory>(node_->get_node_base_interface(),
+                                                                                          node_->get_node_graph_interface(),
+                                                                                          node_->get_node_logging_interface(),
+                                                                                          node_->get_node_waitables_interface(),
+                                                                                          SURFACE_TRAJECTORY_ACTION,
+                                                                                          trajectory_exec_client_cbgroup_);
 
   controller_changer_client_ = node_->create_client<std_srvs::srv::SetBool>(CONTROLLER_CHANGER_SERVICE);
 
-  run_robot_script_client_ = node_->create_client<crs_msgs::srv::RunRobotScript>(RUN_ROBOT_SCRIPT_SERVICE);
 }
 
 ProcessExecutionManager::~ProcessExecutionManager() {}
@@ -102,21 +99,27 @@ common::ActionResult ProcessExecutionManager::setInput(const datatypes::ProcessE
 common::ActionResult ProcessExecutionManager::execProcess()
 {
   crs_motion_planning::cartesianTrajectoryConfig cartesian_traj_config;
-  Eigen::Vector3d force_tolerance = Eigen::Vector3d(60, 60, config_->force_tolerance);
-  cartesian_traj_config.path_pose_tolerance =
-      tf2::toMsg(config_->position_path_tolerance, cartesian_traj_config.path_pose_tolerance);
-  cartesian_traj_config.path_ori_tolerance =
-      tf2::toMsg(config_->orientation_path_tolerance, cartesian_traj_config.path_ori_tolerance);
-  cartesian_traj_config.goal_pose_tolerance =
-      tf2::toMsg(config_->position_goal_tolerance, cartesian_traj_config.goal_pose_tolerance);
-  cartesian_traj_config.goal_ori_tolerance =
-      tf2::toMsg(config_->orientation_goal_tolerance, cartesian_traj_config.goal_ori_tolerance);
+  Eigen::Vector3d path_pose_tolerance = Eigen::Vector3d::Ones() * 0.01;
+  path_pose_tolerance(2) = 0.02;
+  Eigen::Vector3d path_ori_tolerance = Eigen::Vector3d::Ones() * 0.2;
+  Eigen::Vector3d goal_pose_tolerance = Eigen::Vector3d::Ones() * 0.015;
+  goal_pose_tolerance(2) = 0.025;
+  Eigen::Vector3d goal_ori_tolerance = Eigen::Vector3d::Ones() * 0.05;
+  Eigen::Vector3d force_tolerance = Eigen::Vector3d::Ones() * 20;
+  force_tolerance(0) = 50;
+  force_tolerance(1) = 50;
+  cartesian_traj_config.path_pose_tolerance = tf2::toMsg(path_pose_tolerance, cartesian_traj_config.path_pose_tolerance);
+  cartesian_traj_config.path_ori_tolerance = tf2::toMsg(path_ori_tolerance, cartesian_traj_config.path_ori_tolerance);
+  cartesian_traj_config.goal_pose_tolerance = tf2::toMsg(goal_pose_tolerance, cartesian_traj_config.goal_pose_tolerance);
+  cartesian_traj_config.goal_ori_tolerance = tf2::toMsg(goal_ori_tolerance, cartesian_traj_config.goal_ori_tolerance);
   cartesian_traj_config.force_tolerance = tf2::toMsg(force_tolerance, cartesian_traj_config.force_tolerance);
-  cartesian_traj_config.target_force = config_->target_force;
-  cartesian_traj_config.target_speed = config_->tool_speed;
+  cartesian_traj_config.target_force = 50;
+  cartesian_traj_config.target_speed = 0.15;
+
 
   const crs_msgs::msg::ProcessMotionPlan& process_plan = input_->process_plans[current_process_idx_];
   RCLCPP_INFO(node_->get_logger(), "%s Executing process %i", MANAGER_NAME.c_str(), current_process_idx_);
+  ProcessExecutionManager::changeActiveController(false);
   RCLCPP_INFO(node_->get_logger(), "CHANGED CONTROLLER");
   if (!execTrajectory(process_plan.start))
   {
@@ -129,8 +132,9 @@ common::ActionResult ProcessExecutionManager::execProcess()
 
   for (std::size_t i = 0; i < process_plan.process_motions.size(); i++)
   {
-    RCLCPP_INFO(node_->get_logger(), "%s Executing process path %i", MANAGER_NAME.c_str(), i);
-    if (config_->force_controlled_trajectories)
+    RCLCPP_INFO(node_->get_logger(), "%s Executing process path %i", MANAGER_NAME.c_str(), i); // TODO: Change controller TYLER
+    if (changeActiveController(true) && !execSurfaceTrajectory(process_plan.force_controlled_process_motions[i], cartesian_traj_config))
+//    if (!execTrajectory(process_plan.process_motions[i]))
     {
       if (!execSurfaceTrajectory(process_plan.force_controlled_process_motions[i], cartesian_traj_config))
       {
@@ -161,7 +165,7 @@ common::ActionResult ProcessExecutionManager::execProcess()
     }
 
     RCLCPP_INFO(node_->get_logger(), "%s Executing free motion %i", MANAGER_NAME.c_str(), i);
-    if (!execTrajectory(process_plan.free_motions[i]))
+    if (changeActiveController(false) && !execTrajectory(process_plan.free_motions[i]))
     {
       common::ActionResult res;
       res.err_msg = boost::str(boost::format("%s failed to execute free motion %i") % MANAGER_NAME.c_str() % i);
@@ -172,7 +176,7 @@ common::ActionResult ProcessExecutionManager::execProcess()
   }
 
   RCLCPP_INFO(node_->get_logger(), "%s Executing end motion", MANAGER_NAME.c_str());
-  if (!execTrajectory(process_plan.end))
+  if (changeActiveController(false) && !execTrajectory(process_plan.end))
   {
     common::ActionResult res;
     res.err_msg = boost::str(boost::format("%s failed to execute end motion") % MANAGER_NAME.c_str());
@@ -356,6 +360,39 @@ bool ProcessExecutionManager::changeActiveController(const bool turn_on_cart)
   return true;
 }
 
+bool ProcessExecutionManager::changeActiveController(const bool turn_on_cart)
+{
+    RCLCPP_INFO(node_->get_logger(), "Changing controller");
+    using namespace std_srvs::srv;
+    SetBool::Request::SharedPtr req = std::make_shared<std_srvs::srv::SetBool::Request>();
+    req->data = turn_on_cart;
+    if (req->data)
+        RCLCPP_INFO(node_->get_logger(), "Turning on cartesian compliance controller");
+    else
+        RCLCPP_INFO(node_->get_logger(), "Turning on joint trajectory controller");
+    std::shared_future<SetBool::Response::SharedPtr> result_future =
+        controller_changer_client_->async_send_request(req);
+
+    std::future_status status = result_future.wait_for(std::chrono::seconds(15));
+    if (status != std::future_status::ready)
+    {
+      RCLCPP_ERROR(node_->get_logger(),
+                   "change controller service error or timeout");
+      return false;
+    }
+
+    if (!result_future.get()->success)
+    {
+      RCLCPP_ERROR(node_->get_logger(),
+                   "change controller service failed");
+      return false;
+    }
+
+    RCLCPP_INFO(node_->get_logger(), "change controller service succeeded");
+    return true;
+
+}
+
 common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_msgs::msg::JointTrajectory& traj)
 {
   using namespace control_msgs::action;
@@ -430,9 +467,8 @@ common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_ms
   return true;
 }
 
-common::ActionResult
-ProcessExecutionManager::execSurfaceTrajectory(const cartesian_trajectory_msgs::msg::CartesianTrajectory& traj,
-                                               const crs_motion_planning::cartesianTrajectoryConfig& traj_config)
+common::ActionResult ProcessExecutionManager::execSurfaceTrajectory(const cartesian_trajectory_msgs::msg::CartesianTrajectory& traj,
+                                                                    const crs_motion_planning::cartesianTrajectoryConfig& traj_config)
 {
   using namespace control_msgs::action;
   static const double GOAL_ACCEPT_TIMEOUT_PERIOD = 1.0;
@@ -440,14 +476,7 @@ ProcessExecutionManager::execSurfaceTrajectory(const cartesian_trajectory_msgs::
   // rclcpp::Duration traj_dur(traj.points.back().time_from_start);
   common::ActionResult res = false;
 
-  if (config_->force_controlled_trajectories && !ProcessExecutionManager::changeActiveController(true))
-  {
-    res.succeeded = false;
-    return res;
-  }
-
-  res.succeeded = crs_motion_planning::execSurfaceTrajectory(
-      surface_trajectory_exec_client_, node_->get_logger(), traj, traj_config);
+  res.succeeded = crs_motion_planning::execSurfaceTrajectory(surface_trajectory_exec_client_, node_->get_logger(), traj, traj_config);
   if (!res)
   {
     return res;
