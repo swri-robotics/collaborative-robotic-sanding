@@ -23,7 +23,7 @@ def generate_launch_description():
     
 #    xacro = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs.urdf.xacro')
 #    xacro = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'swri_demo.urdf.xacro')
-    xacro = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'swri_demo2.urdf.xacro')
+    xacro = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'swri_demo3.urdf.xacro')
     urdf = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs.urdf')
     urdf_preview = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs_preview.urdf')
     srdf = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'ur10e_robot.srdf')
