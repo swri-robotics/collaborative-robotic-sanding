@@ -68,9 +68,9 @@ void generateFakeToolPath(const double length_x,
     while (curr_y < length_y/2)
     {
       geometry_msgs::msg::Pose curr_pose;
-      curr_pose.position.x = curr_x;
-      curr_pose.position.y = curr_y * side_mult;
-      curr_pose.position.z = 0;
+      curr_pose.position.y = curr_x;
+      curr_pose.position.x = curr_y * side_mult;
+      curr_pose.position.z = -0.002;
       curr_pose.orientation.w = 0;
       curr_pose.orientation.x = 1;
       curr_pose.orientation.y = 0;
@@ -230,6 +230,10 @@ private:
   bool change_controller(const std_srvs::srv::SetBool::Request::SharedPtr req)
   {
     using namespace std_srvs::srv;
+    if (req->data)
+        RCLCPP_ERROR(node_->get_logger(), "REQUESTING CART");
+    else
+        RCLCPP_ERROR(node_->get_logger(), "REQUESTING JOINT");
     std::shared_future<SetBool::Response::SharedPtr> result_future =
         controller_changer_client_->async_send_request(req);
 
@@ -267,7 +271,7 @@ private:
     // Load rasters and get them in usable form
     std::string waypoint_origin_frame = "part";
     std::vector<geometry_msgs::msg::PoseArray> raster_strips;
-    generateFakeToolPath(0.06, 0.2, 0.05, 0.01, raster_strips);
+    generateFakeToolPath(0.06, 0.5, 0.05, 0.025, raster_strips);
 //    crs_motion_planning::parsePathFromFile(toolpath_filepath_, waypoint_origin_frame, raster_strips);
     geometry_msgs::msg::PoseArray strip_of_interset;
     for (auto strip : raster_strips)
@@ -307,9 +311,9 @@ private:
 
     auto proc_req = std::make_shared<crs_msgs::srv::PlanProcessMotions::Request>();
     proc_req->tool_link = "sander_center_link";
-    proc_req->tool_speed = 0.01;
-    proc_req->approach_dist = 0.045;
-    proc_req->retreat_dist = 0.045;
+    proc_req->tool_speed = 0.05;
+    proc_req->approach_dist = 0.025;
+    proc_req->retreat_dist = 0.025;
     proc_req->start_position = curr_joint_state_;
     proc_req->end_position = curr_joint_state_;
     Eigen::Isometry3d tool_offset_req = Eigen::Isometry3d::Identity();
@@ -362,20 +366,22 @@ private:
       traj_config.manipulator = "manipulator";
       traj_config.base_frame = "base_link";
       traj_config.tcp_frame = "sander_center_link";
-      Eigen::Vector3d path_pose_tolerance = Eigen::Vector3d::Ones() * 0.025;
-      Eigen::Vector3d path_ori_tolerance = Eigen::Vector3d::Ones() * 0.05;
-      Eigen::Vector3d goal_pose_tolerance = Eigen::Vector3d::Ones() * 0.01;
-      Eigen::Vector3d goal_ori_tolerance = Eigen::Vector3d::Ones() * 0.02;
-//      Eigen::Vector3d path_pose_tolerance = Eigen::Vector3d::Ones() * 25;
-//      Eigen::Vector3d path_ori_tolerance = Eigen::Vector3d::Ones() * 5;
-//      Eigen::Vector3d goal_pose_tolerance = Eigen::Vector3d::Ones() * 10;
-//      Eigen::Vector3d goal_ori_tolerance = Eigen::Vector3d::Ones() * 2;
+      Eigen::Vector3d path_pose_tolerance = Eigen::Vector3d::Ones() * 0.01;
+      path_pose_tolerance(2) = 0.02;
+      Eigen::Vector3d path_ori_tolerance = Eigen::Vector3d::Ones() * 0.1;
+      Eigen::Vector3d goal_pose_tolerance = Eigen::Vector3d::Ones() * 0.015;
+      goal_pose_tolerance(2) = 0.025;
+      Eigen::Vector3d goal_ori_tolerance = Eigen::Vector3d::Ones() * 0.05;
+      Eigen::Vector3d force_tolerance = Eigen::Vector3d::Ones() * 20;
+      force_tolerance(0) = 50;
+      force_tolerance(1) = 50;
       traj_config.path_pose_tolerance = tf2::toMsg(path_pose_tolerance, traj_config.path_pose_tolerance);
       traj_config.path_ori_tolerance = tf2::toMsg(path_ori_tolerance, traj_config.path_ori_tolerance);
       traj_config.goal_pose_tolerance = tf2::toMsg(goal_pose_tolerance, traj_config.goal_pose_tolerance);
       traj_config.goal_ori_tolerance = tf2::toMsg(goal_ori_tolerance, traj_config.goal_ori_tolerance);
-      traj_config.target_force = 20;
-      traj_config.target_speed = 0.05;
+      traj_config.force_tolerance = tf2::toMsg(force_tolerance, traj_config.force_tolerance);
+      traj_config.target_force = 50;
+      traj_config.target_speed = 0.15;
       for (size_t j = 0; j < process_plans.size(); ++j)
       {
         if (!rclcpp::ok())
@@ -393,7 +399,7 @@ private:
         {
           trig_req->data = false;
           successful_controller_change = change_controller(trig_req);
-          RCLCPP_INFO(node_->get_logger(), "EXECUTING FIRST FREESPACE");
+          RCLCPP_ERROR(node_->get_logger(), "EXECUTING FIRST FREESPACE");
           if (!successful_controller_change || !execTrajectory(trajectory_exec_client_, node_->get_logger(), start_traj))
           {
             return;
@@ -409,8 +415,10 @@ private:
 //            return;
 //          }
           trig_req->data = true;
+//          trig_req->data = false;
           successful_controller_change = change_controller(trig_req);
           if (!successful_controller_change || !execSurfaceTrajectory(surface_traj_exec_client_, node_->get_logger(), process_motions[i], traj_config))
+//          if (!successful_controller_change || !execTrajectory(trajectory_exec_client_, node_->get_logger(), process_motions[i]))
           {
             return;
           }
@@ -429,8 +437,10 @@ private:
                     process_motions.size(),
                     process_motions.size());
         trig_req->data = true;
+//        trig_req->data = false;
         successful_controller_change = change_controller(trig_req);
         if (!successful_controller_change || !execSurfaceTrajectory(surface_traj_exec_client_, node_->get_logger(), process_motions.back(), traj_config))
+//        if (!successful_controller_change || !execTrajectory(trajectory_exec_client_, node_->get_logger(), process_motions.back()))
         {
           return;
         }
