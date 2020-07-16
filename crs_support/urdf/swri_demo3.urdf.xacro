@@ -30,13 +30,13 @@
       <child link="table"/>
     </joint>
 
-    <link name="${prefix}part"/>
+  <!--  <link name="${prefix}part"/>
 
     <joint name="table_to_part" type="fixed">
       <origin xyz="0.0 -0.875 -0.008" />
       <parent link="table"/>
       <child link="${prefix}part"/>
-    </joint>
+    </joint>-->
 
     <link name="robot_stand">
       <visual>
