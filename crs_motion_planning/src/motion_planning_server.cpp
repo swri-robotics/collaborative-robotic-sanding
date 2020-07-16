@@ -248,7 +248,7 @@ public:
     motion_planner_config_->use_gazebo_sim_timing = this->get_parameter(param_names::GAZEBO_SIM_TIMING).as_bool();
     motion_planner_config_->trajopt_verbose_output = this->get_parameter(param_names::TRAJOPT_VERBOSE).as_bool();
     motion_planner_config_->simplify_start_end_freespace = true;
-    motion_planner_config_->use_trajopt_freespace = true;
+    motion_planner_config_->use_trajopt_freespace = false;
     motion_planner_config_->combine_strips = true;
     motion_planner_config_->global_descartes = true;
   }
@@ -359,6 +359,23 @@ private:
       }
       resulting_process.free_motions = path_plan_results->final_freespace_trajectories;
       resulting_process.process_motions = path_plan_results->final_raster_trajectories;
+
+      crs_motion_planning::cartesianTrajectoryConfig cart_traj_config;
+      cart_traj_config.tcp_frame = motion_planner_config_->tcp_frame;
+      cart_traj_config.base_frame = motion_planner_config_->robot_base_frame;
+      cart_traj_config.manipulator = motion_planner_config_->manipulator;
+      cart_traj_config.tool_frame = motion_planner_config_->tool0_frame;
+      cart_traj_config.tesseract_local = motion_planner_config_->tesseract_local;
+      cart_traj_config.target_force = 50;
+      cart_traj_config.target_speed = motion_planner_config_->tool_speed;
+      motion_planner_config_->tool_speed = request->tool_speed;
+      for (size_t j = 0; j < resulting_process.process_motions.size(); ++j)
+      {
+          cartesian_trajectory_msgs::msg::CartesianTrajectory curr_cart_traj;
+          crs_motion_planning::genCartesianTrajectory(resulting_process.process_motions[j], cart_traj_config, curr_cart_traj);
+          resulting_process.force_controlled_process_motions.push_back(curr_cart_traj);
+      }
+
       returned_plans.push_back(resulting_process);
     }
     // Populate response

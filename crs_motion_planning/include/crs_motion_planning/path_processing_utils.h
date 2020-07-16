@@ -19,7 +19,7 @@
 #include <rclcpp_action/rclcpp_action.hpp>
 #include <control_msgs/action/follow_joint_trajectory.hpp>
 #include <crs_msgs/action/cartesian_compliance_trajectory.hpp>
-#include <cartesian_msgs/action/cartesian_compliance_trajectory.hpp>
+#include <cartesian_trajectory_msgs/action/cartesian_compliance_trajectory.hpp>
 
 #include <Eigen/Eigen>
 #include <vector>
@@ -207,12 +207,23 @@ void findCartPoseArrayFromTraj(const trajectory_msgs::msg::JointTrajectory& join
 
 void genCartesianTrajectory(const trajectory_msgs::msg::JointTrajectory& joint_trajectory,
                             const cartesianTrajectoryConfig traj_config,
-                            cartesian_msgs::action::CartesianComplianceTrajectory::Goal& cartesian_trajectory);
+                            cartesian_trajectory_msgs::msg::CartesianTrajectory& cartesian_trajectory);
+//                            cartesian_trajectory_msgs::action::CartesianComplianceTrajectory::Goal& cartesian_trajectory);
 
-bool execSurfaceTrajectory(rclcpp_action::Client<cartesian_msgs::action::CartesianComplianceTrajectory>::SharedPtr ac,
+void genCartesianTrajectoryGoal(const cartesian_trajectory_msgs::msg::CartesianTrajectory& cartesian_trajectory,
+                                const cartesianTrajectoryConfig traj_config,
+                                cartesian_trajectory_msgs::action::CartesianComplianceTrajectory::Goal& cartesian_trajectory_goal);
+
+bool execSurfaceTrajectory(rclcpp_action::Client<cartesian_trajectory_msgs::action::CartesianComplianceTrajectory>::SharedPtr ac,
                            const rclcpp::Logger& logger,
                            const trajectory_msgs::msg::JointTrajectory& traj,
                            const cartesianTrajectoryConfig& traj_config);
+
+bool execSurfaceTrajectory(rclcpp_action::Client<cartesian_trajectory_msgs::action::CartesianComplianceTrajectory>::SharedPtr ac,
+                           const rclcpp::Logger& logger,
+                           const cartesian_trajectory_msgs::msg::CartesianTrajectory& traj,
+                           const cartesianTrajectoryConfig& traj_config);
+
 
 }  // namespace crs_motion_planning
 

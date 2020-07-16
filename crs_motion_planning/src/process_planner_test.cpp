@@ -144,7 +144,7 @@ public:
 //                                                                                      MOTION_EXECUTION_ACTION_TOPIC,
 //                                                                                      trajectory_exec_client_cbgroup_);
     surface_traj_exec_client_ =
-        rclcpp_action::create_client<cartesian_msgs::action::CartesianComplianceTrajectory>(node_->get_node_base_interface(),
+        rclcpp_action::create_client<cartesian_trajectory_msgs::action::CartesianComplianceTrajectory>(node_->get_node_base_interface(),
                                                                                             node_->get_node_graph_interface(),
                                                                                             node_->get_node_logging_interface(),
                                                                                             node_->get_node_waitables_interface(),
@@ -391,6 +391,7 @@ private:
         trajectory_msgs::msg::JointTrajectory end_traj = process_plans[j].end;
         std::vector<trajectory_msgs::msg::JointTrajectory> process_motions = process_plans[j].process_motions;
         std::vector<trajectory_msgs::msg::JointTrajectory> freespace_motions = process_plans[j].free_motions;
+        std::vector<cartesian_trajectory_msgs::msg::CartesianTrajectory> cart_process_motions = process_plans[j].force_controlled_process_motions;
         if (start_traj.points.size() > 0)
         {
           trig_req->data = false;
@@ -413,7 +414,8 @@ private:
           trig_req->data = true;
 //          trig_req->data = false;
           successful_controller_change = change_controller(trig_req);
-          if (!successful_controller_change || !execSurfaceTrajectory(surface_traj_exec_client_, node_->get_logger(), process_motions[i], traj_config))
+//          if (!successful_controller_change || !execSurfaceTrajectory(surface_traj_exec_client_, node_->get_logger(), process_motions[i], traj_config))
+          if (!successful_controller_change || !execSurfaceTrajectory(surface_traj_exec_client_, node_->get_logger(), cart_process_motions[i], traj_config))
 //          if (!successful_controller_change || !execTrajectory(trajectory_exec_client_, node_->get_logger(), process_motions[i]))
           {
             return;
@@ -435,7 +437,8 @@ private:
         trig_req->data = true;
 //        trig_req->data = false;
         successful_controller_change = change_controller(trig_req);
-        if (!successful_controller_change || !execSurfaceTrajectory(surface_traj_exec_client_, node_->get_logger(), process_motions.back(), traj_config))
+//        if (!successful_controller_change || !execSurfaceTrajectory(surface_traj_exec_client_, node_->get_logger(), process_motions.back(), traj_config))
+        if (!successful_controller_change || !execSurfaceTrajectory(surface_traj_exec_client_, node_->get_logger(), cart_process_motions.back(), traj_config))
 //        if (!successful_controller_change || !execTrajectory(trajectory_exec_client_, node_->get_logger(), process_motions.back()))
         {
           return;
@@ -486,7 +489,7 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_listener_;
   rclcpp::callback_group::CallbackGroup::SharedPtr trajectory_exec_client_cbgroup_;
 
-  rclcpp_action::Client<cartesian_msgs::action::CartesianComplianceTrajectory>::SharedPtr surface_traj_exec_client_;
+  rclcpp_action::Client<cartesian_trajectory_msgs::action::CartesianComplianceTrajectory>::SharedPtr surface_traj_exec_client_;
   rclcpp::callback_group::CallbackGroup::SharedPtr surface_traj_exec_client_cbgroup_;
 
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr test_part_loader_client_;
