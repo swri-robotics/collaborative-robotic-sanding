@@ -24,7 +24,8 @@
     </link>
 
     <joint name="world_to_table_joint" type="fixed">
-      <origin xyz="0 0 -0.363"/>
+<!--      <origin xyz="0 0 -0.363"/>-->
+      <origin xyz="0 0 -0.353"/>
 <!--      <origin xyz="0 0 -0.385"/>-->
       <parent link="world"/>
       <child link="table"/>
@@ -347,8 +348,21 @@
         <child link="${prefix}tool0" />
     </joint>
     <link name="${prefix}eoat_link">
-      <inertial>
-<!--        <origin xyz="8.625E-08 -4.6583E-06 0.03145" rpy="0 0 0" />-->
+      <visual>
+          <geometry>
+              <mesh filename="package://crs_support/meshes/end_effector/visual/full_ee_v4.stl" />
+          </geometry>
+          <material name="Orange">
+              <color rgba="1.0 0.4 0.0 1.0" />
+          </material>
+      </visual>
+      <collision>
+          <geometry>
+              <mesh filename="package://crs_support/meshes/end_effector/collision/full_ee_v4_collision.stl" />
+          </geometry>
+      </collision>
+<!--      <inertial>
+        <origin xyz="8.625E-08 -4.6583E-06 0.03145" rpy="0 0 0" />
         <origin xyz="0 0 0" rpy="0 0 0" />
         <mass value="0.22652" />
         <inertia ixx="0.00020005" ixy="-4.2442E-10" ixz="-2.9069E-10" iyy="0.00017832" iyz="-3.4402E-08" izz="0.00013478" />
@@ -385,14 +399,15 @@
         <geometry>
           <mesh filename="package://crs_support/meshes/end_effector/visual/ee1.stl" />
         </geometry>
-      </collision>
+      </collision>-->
 
     </link>
 
     <joint name="${prefix}tool0_to_eoat_link" type="fixed">
         <parent link="${prefix}tool0" />
         <child link="${prefix}eoat_link" />
-        <origin xyz="0 0 0" rpy="1.57 0 -1.57" />
+<!--        <origin xyz="0 0 0" rpy="1.57 0 -1.57" />-->
+        <origin xyz="0 0 0" rpy="0 0 0" />
     </joint>
 
     <link name="${prefix}sander_center_link" />
@@ -401,8 +416,29 @@
         <parent link="${prefix}eoat_link" />
         <child link="${prefix}sander_center_link" />
 <!--        <origin xyz="0 0.16578 0.01902" rpy="-0.785 0 0" />-->
-        <origin xyz="0 0.162 0.015" rpy="-0.785 0 0" />
+<!--        <origin xyz="0 0.162 0.015" rpy="-0.785 0 0" />-->
 <!--        <origin xyz="0 0.04612 -0.03371" rpy="-2.355 0 0" />-->
+        <origin xyz="0.0 -0.15497 0.17503" rpy="0.7854 0.0 0.0"/>
+    </joint>
+    <link name="${prefix}gazebo_camera_link" />
+    <joint name="${prefix}gazebo_camera_joint" type="fixed">
+        <origin xyz="0.0 0.0 0.0" rpy="1.57 -1.57 0.0"/>
+        <parent link="${prefix}camera_link_optical"/>
+        <child link="${prefix}gazebo_camera_link"/>
+    </joint>
+    <link name="${prefix}camera_link_optical" />
+    <joint name="${prefix}camera_optical_joint" type="fixed">
+        <origin xyz="-0.00345 0.070793 0.077409" rpy="-0.7854 0 0"/>
+        <parent link="${prefix}eoat_link"/>
+        <!-- <parent link="${prefix}gazebo_camera_link"/> -->
+        <child link="${prefix}camera_link_optical"/>
+    </joint>
+    <link name="${prefix}camera_link" />
+    <joint name="${prefix}camera_link_joint" type="fixed">
+<!--        <origin xyz="0.001 0.015 0.0" rpy="-1.57 1.57 0"/>-->
+        <origin xyz="0.0 0.0 0.0" rpy="1.57 -1.57 0"/>
+        <parent link="${prefix}camera_link_optical"/>
+        <child link="${prefix}camera_link"/>
     </joint>
 <!--    <link name="${prefix}part" >
         <visual>
