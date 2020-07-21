@@ -148,6 +148,8 @@ common::ActionResult ScanAcquisitionManager::configure(const config::ScanAcquisi
 
   tool_frame_ = config.tool_frame;
 
+  force_controlled_trajectories_ = config.force_controlled_trajectories;
+
   RCLCPP_INFO(node_->get_logger(), "%s got %lu scan poses", MANAGER_NAME.c_str(), scan_poses_.size());
   return true;
 }
@@ -175,7 +177,7 @@ common::ActionResult ScanAcquisitionManager::moveRobot()
     RCLCPP_ERROR(node_->get_logger(), "%s Freespace Motion is not ready`", MANAGER_NAME.c_str());
     return false;
   }
-  if (!changeActiveController(false))
+  if (force_controlled_trajectories_ && !changeActiveController(false))
   {
     RCLCPP_ERROR(node_->get_logger(), "%s Unable to change controller to joint trajectory", MANAGER_NAME.c_str());
     return false;
