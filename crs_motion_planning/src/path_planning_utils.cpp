@@ -8,6 +8,13 @@ crsMotionPlanner::crsMotionPlanner(pathPlanningConfig::Ptr config, rclcpp::Logge
 {
 }
 
+crsMotionPlanner::crsMotionPlanner(pathPlanningConfig config, rclcpp::Logger logger)
+  : logger_(std::move(logger))
+{
+    config_ = std::make_shared<crs_motion_planning::pathPlanningConfig>();
+    *config_ = config;
+}
+
 void crsMotionPlanner::updateConfiguration(pathPlanningConfig::Ptr config) { config_ = std::move(config); }
 bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray& waypoints_pose_array,
                                              std::vector<std::size_t>& failed_edges,
@@ -598,11 +605,11 @@ bool crsMotionPlanner::generateOMPLSeed(const tesseract_motion_planners::JointWa
             << start_pose->getPositions().matrix() << "\nTO\n"
             << end_pose->getPositions().matrix() << std::endl;
 
-  // Solve
   if (!ompl_planner.setConfiguration(ompl_planner_config))
   {
     return false;
   }
+  RCLCPP_INFO(logger_, "OMPL CONFIGURATION SET");
 
   tesseract_motion_planners::PlannerResponse ompl_planner_response;
   tesseract_common::StatusCode status = ompl_planner.solve(ompl_planner_response);
