@@ -24,7 +24,7 @@
 			<param name="state_machine_file" value="$(var state_machine_file)"/>
 		</node>		
 
-         <!--       <node pkg="realsense_node" exec="realsense_node" name="realsense_node" prefix="xterm -e"
+                <!--<node pkg="realsense_node" exec="realsense_node" name="realsense_node" prefix="xterm -e"
                       output="log" unless="$(var sim_robot)"/>-->
 				
 		<!-- ros2 component standalone crs_perception crs_perception::LocalizeToPart  -->
