@@ -47,6 +47,7 @@ set(SRV_FILES
   srv/PlanProcessMotions.srv
   srv/GetConfiguration.srv
   srv/RobotPositioner.srv
+  srv/CropToolpaths.srv
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}
