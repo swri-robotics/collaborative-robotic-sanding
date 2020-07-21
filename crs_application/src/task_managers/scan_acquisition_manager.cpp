@@ -47,7 +47,7 @@ static const std::string FREESPACE_MOTION_PLAN_SERVICE = "plan_freespace_motion"
 static const std::string MANAGER_NAME = "ScanAcquisitionManager";
 static const std::string SCAN_POSES_TOPIC = "scan_poses";
 static const std::string DEFAULT_WORLD_FRAME_ID = "world";
-static const std::string CONTROLLER_CHANGER_SERVICE = "compliance_controller_on";
+static const std::string CONTROLLER_CHANGER_SERVICE = "test_serv";
 
 namespace crs_application
 {
@@ -149,6 +149,8 @@ common::ActionResult ScanAcquisitionManager::configure(const config::ScanAcquisi
 
   tool_frame_ = config.tool_frame;
 
+  force_controlled_trajectories_ = config.force_controlled_trajectories;
+
   RCLCPP_INFO(node_->get_logger(), "%s got %lu scan poses", MANAGER_NAME.c_str(), scan_poses_.size());
   return true;
 }
@@ -176,7 +178,7 @@ common::ActionResult ScanAcquisitionManager::moveRobot()
     RCLCPP_ERROR(node_->get_logger(), "%s Freespace Motion is not ready`", MANAGER_NAME.c_str());
     return false;
   }
-  if (!changeActiveController(false))
+  if (force_controlled_trajectories_ && !changeActiveController(false))
   {
     RCLCPP_ERROR(node_->get_logger(), "%s Unable to change controller to joint trajectory", MANAGER_NAME.c_str());
     return false;
@@ -286,31 +288,35 @@ common::ActionResult ScanAcquisitionManager::checkPreReqs()
 
 bool ScanAcquisitionManager::changeActiveController(const bool turn_on_cart)
 {
-  RCLCPP_INFO(node_->get_logger(), "Changing controller");
-  using namespace std_srvs::srv;
-  SetBool::Request::SharedPtr req = std::make_shared<std_srvs::srv::SetBool::Request>();
-  req->data = turn_on_cart;
-  if (req->data)
-    RCLCPP_INFO(node_->get_logger(), "Turning on cartesian compliance controller");
-  else
-    RCLCPP_INFO(node_->get_logger(), "Turning on joint trajectory controller");
-  std::shared_future<SetBool::Response::SharedPtr> result_future = controller_changer_client_->async_send_request(req);
+    RCLCPP_INFO(node_->get_logger(), "Changing controller");
+    using namespace std_srvs::srv;
+    SetBool::Request::SharedPtr req = std::make_shared<std_srvs::srv::SetBool::Request>();
+    req->data = turn_on_cart;
+    if (req->data)
+        RCLCPP_INFO(node_->get_logger(), "Turning on cartesian compliance controller");
+    else
+        RCLCPP_INFO(node_->get_logger(), "Turning on joint trajectory controller");
+    std::shared_future<SetBool::Response::SharedPtr> result_future =
+        controller_changer_client_->async_send_request(req);
 
-  std::future_status status = result_future.wait_for(std::chrono::seconds(15));
-  if (status != std::future_status::ready)
-  {
-    RCLCPP_ERROR(node_->get_logger(), "change controller service error or timeout");
-    return false;
-  }
+    std::future_status status = result_future.wait_for(std::chrono::seconds(15));
+    if (status != std::future_status::ready)
+    {
+      RCLCPP_ERROR(node_->get_logger(),
+                   "change controller service error or timeout");
+      return false;
+    }
 
-  if (!result_future.get()->success)
-  {
-    RCLCPP_ERROR(node_->get_logger(), "change controller service failed");
-    return false;
-  }
+    if (!result_future.get()->success)
+    {
+      RCLCPP_ERROR(node_->get_logger(),
+                   "change controller service failed");
+      return false;
+    }
 
-  RCLCPP_INFO(node_->get_logger(), "change controller service succeeded");
-  return true;
+    RCLCPP_INFO(node_->get_logger(), "change controller service succeeded");
+    return true;
+
 }
 
 void ScanAcquisitionManager::handlePointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr msg)
