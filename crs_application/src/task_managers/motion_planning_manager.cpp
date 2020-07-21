@@ -390,6 +390,7 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
     // free space motion planning for return move
     req->start_position.position = media_change_plan.start_traj.points.back().positions;
     req->goal_position.position = media_change_plan.start_traj.points.front().positions;
+    req->goal_position.name = media_change_plan.start_traj.joint_names;
     opt = planFreeSpace("RETURN TO PROCESS", req);
     if (!opt.is_initialized())
     {
