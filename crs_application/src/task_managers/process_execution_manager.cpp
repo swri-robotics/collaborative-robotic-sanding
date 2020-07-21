@@ -113,13 +113,13 @@ common::ActionResult ProcessExecutionManager::execProcess()
   cartesian_traj_config.goal_pose_tolerance = tf2::toMsg(goal_pose_tolerance, cartesian_traj_config.goal_pose_tolerance);
   cartesian_traj_config.goal_ori_tolerance = tf2::toMsg(goal_ori_tolerance, cartesian_traj_config.goal_ori_tolerance);
   cartesian_traj_config.force_tolerance = tf2::toMsg(force_tolerance, cartesian_traj_config.force_tolerance);
-  cartesian_traj_config.target_force = 50;
-  cartesian_traj_config.target_speed = 0.15;
+  cartesian_traj_config.target_force = 70;
+  cartesian_traj_config.target_speed = 0.1;
 
 
   const crs_msgs::msg::ProcessMotionPlan& process_plan = input_->process_plans[current_process_idx_];
   RCLCPP_INFO(node_->get_logger(), "%s Executing process %i", MANAGER_NAME.c_str(), current_process_idx_);
-  ProcessExecutionManager::changeActiveController(false);
+//  ProcessExecutionManager::changeActiveController(false);
   RCLCPP_INFO(node_->get_logger(), "CHANGED CONTROLLER");
   if (!execTrajectory(process_plan.start))
   {
@@ -132,8 +132,8 @@ common::ActionResult ProcessExecutionManager::execProcess()
 
   for (std::size_t i = 0; i < process_plan.process_motions.size(); i++)
   {
-    RCLCPP_INFO(node_->get_logger(), "%s Executing process path %i", MANAGER_NAME.c_str(), i); // TODO: Change controller TYLER
-    if (changeActiveController(true) && !execSurfaceTrajectory(process_plan.force_controlled_process_motions[i], cartesian_traj_config))
+    RCLCPP_INFO(node_->get_logger(), "%s Executing process path %i", MANAGER_NAME.c_str(), i);
+    if (!execSurfaceTrajectory(process_plan.force_controlled_process_motions[i], cartesian_traj_config))
 //    if (!execTrajectory(process_plan.process_motions[i]))
     {
       if (!execSurfaceTrajectory(process_plan.force_controlled_process_motions[i], cartesian_traj_config))
@@ -165,7 +165,7 @@ common::ActionResult ProcessExecutionManager::execProcess()
     }
 
     RCLCPP_INFO(node_->get_logger(), "%s Executing free motion %i", MANAGER_NAME.c_str(), i);
-    if (changeActiveController(false) && !execTrajectory(process_plan.free_motions[i]))
+    if (!execTrajectory(process_plan.free_motions[i]))
     {
       common::ActionResult res;
       res.err_msg = boost::str(boost::format("%s failed to execute free motion %i") % MANAGER_NAME.c_str() % i);
@@ -176,7 +176,7 @@ common::ActionResult ProcessExecutionManager::execProcess()
   }
 
   RCLCPP_INFO(node_->get_logger(), "%s Executing end motion", MANAGER_NAME.c_str());
-  if (changeActiveController(false) && !execTrajectory(process_plan.end))
+  if (!execTrajectory(process_plan.end))
   {
     common::ActionResult res;
     res.err_msg = boost::str(boost::format("%s failed to execute end motion") % MANAGER_NAME.c_str());
@@ -401,7 +401,7 @@ common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_ms
   // rclcpp::Duration traj_dur(traj.points.back().time_from_start);
   common::ActionResult res = false;
 
-  if (config_->force_controlled_trajectories && !ProcessExecutionManager::changeActiveController(false))
+  if (!ProcessExecutionManager::changeActiveController(false))
   {
     res.succeeded = false;
     return res;
@@ -475,6 +475,12 @@ common::ActionResult ProcessExecutionManager::execSurfaceTrajectory(const cartes
 
   // rclcpp::Duration traj_dur(traj.points.back().time_from_start);
   common::ActionResult res = false;
+
+  if (!ProcessExecutionManager::changeActiveController(true))
+  {
+    res.succeeded = false;
+    return res;
+  }
 
   res.succeeded = crs_motion_planning::execSurfaceTrajectory(surface_trajectory_exec_client_, node_->get_logger(), traj, traj_config);
   if (!res)
