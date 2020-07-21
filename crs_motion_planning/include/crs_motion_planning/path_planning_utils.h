@@ -192,6 +192,7 @@ class crsMotionPlanner
 {
 public:
   crsMotionPlanner(pathPlanningConfig::Ptr config, rclcpp::Logger logger);
+  crsMotionPlanner(pathPlanningConfig config, rclcpp::Logger logger);
   ~crsMotionPlanner() = default;
 
   void updateConfiguration(pathPlanningConfig::Ptr config);
