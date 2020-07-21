@@ -122,6 +122,8 @@ protected:
   datatypes::ScanAcquisitionResult current_data_;
   uint scan_index_;
 
+  bool force_controlled_trajectories_;
+
   void handlePointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr msg);
 };
 
