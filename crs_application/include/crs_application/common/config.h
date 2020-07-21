@@ -76,9 +76,13 @@ struct ProcessExecutionConfig
   std::vector<double> joint_tolerance =
       std::vector<double>(6, (3.1416 / 180.0) * 2.0); /** @brief how close the robot needs to be to the last position in
                                                          radians */
-//  double target_force = 20;
-//  double tool_speed = 0.05;
-//  std::string tool_frame = "sander_center_link";
+  Eigen::Vector3d position_tolerance = Eigen::Vector3d::Ones() * 0.01;
+  Eigen::Vector3d orientation_tolerance = Eigen::Vector3d::Ones() * 0.05;
+  double tool_speed = 0.05;
+  double target_force = 20;
+  double force_tolerance = 5;
+
+  bool force_controlled_trajectories = false;
 };
 
 struct ScanAcquisitionConfig
@@ -86,6 +90,8 @@ struct ScanAcquisitionConfig
   std::vector<std::vector<double> > scan_poses;
   std::string tool_frame;
   bool skip_on_failure = false;
+
+  bool force_controlled_trajectories = false;
 };
 
 struct PartRegistrationConfig

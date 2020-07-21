@@ -64,13 +64,11 @@ namespace process_execution
 {
 static const std::string TOP_LEVEL = "process_execution";
 static const std::string TIME_TOLERANCE = "time_tolerance";
-static const std::string JOINT_TOLERANCE = "joint_tolerance";                    // vector<double>
-static const std::string CARTESIAN_PATH_TOLERANCE = "cartesian_path_tolerance";  // vector<double>
-static const std::string CARTESIAN_GOAL_TOLERANCE = "cartesian_goal_tolerance";  // vector<double>
+static const std::string JOINT_TOLERANCE = "joint_tolerance";  // vector<double>
+static const std::string CARTESIAN_TOLERANCE = "cartesian_tolerance";  // vector<double>
+static const std::string TARGET_FORCE = "target_force";
 static const std::string FORCE_TOLERANCE = "force_tolerance";
 static const std::string FORCE_MOTIONS = "force_controlled_trajectories";
-static const std::string TOOL_CHANGE_SCRIPT = "ur_tool_change_script";
-static const std::string EXECUTE_TOOL_CHANGE = "execute_tool_change";
 }  // namespace process_execution
 
 namespace scan_acquistion
@@ -229,27 +227,18 @@ boost::optional<ProcessExecutionConfig> parse(YAML::Node& config, std::string& e
   try
   {
     Node root_node = config[TOP_LEVEL];
-    if (root_node && hasFields(root_node,
-                               TOP_LEVEL,
-                               { TIME_TOLERANCE,
-                                 JOINT_TOLERANCE,
-                                 CARTESIAN_PATH_TOLERANCE,
-                                 CARTESIAN_GOAL_TOLERANCE,
-                                 FORCE_TOLERANCE,
-                                 FORCE_MOTIONS }))
+    if (root_node && hasFields(root_node, TOP_LEVEL, { TIME_TOLERANCE, JOINT_TOLERANCE,
+                                                       CARTESIAN_TOLERANCE, TARGET_FORCE,
+                                                       FORCE_TOLERANCE }))
     {
       cfg.traj_time_tolerance = root_node[TIME_TOLERANCE].as<double>();
       cfg.joint_tolerance = root_node[JOINT_TOLERANCE].as<std::vector<double>>();
-      std::vector<double> xyzrpy_path = root_node[CARTESIAN_PATH_TOLERANCE].as<std::vector<double>>();
-      std::vector<double> xyzrpy_goal = root_node[CARTESIAN_PATH_TOLERANCE].as<std::vector<double>>();
-      cfg.position_path_tolerance = Eigen::Vector3d(xyzrpy_path[0], xyzrpy_path[1], xyzrpy_path[2]);
-      cfg.orientation_path_tolerance = Eigen::Vector3d(xyzrpy_path[3], xyzrpy_path[4], xyzrpy_path[5]);
-      cfg.position_goal_tolerance = Eigen::Vector3d(xyzrpy_goal[0], xyzrpy_goal[1], xyzrpy_goal[2]);
-      cfg.orientation_goal_tolerance = Eigen::Vector3d(xyzrpy_goal[3], xyzrpy_goal[4], xyzrpy_goal[5]);
+      std::vector<double> xyzrpy = root_node[CARTESIAN_TOLERANCE].as<std::vector<double>>();
+      cfg.position_tolerance = Eigen::Vector3d(xyzrpy[0], xyzrpy[1], xyzrpy[2]);
+      cfg.orientation_tolerance = Eigen::Vector3d(xyzrpy[3], xyzrpy[4], xyzrpy[5]);
+      cfg.target_force = root_node[TARGET_FORCE].as<double>();
       cfg.force_tolerance = root_node[FORCE_TOLERANCE].as<double>();
       cfg.force_controlled_trajectories = root_node[FORCE_MOTIONS].as<bool>();
-      cfg.ur_tool_change_script = root_node[TOOL_CHANGE_SCRIPT].as<std::string>();
-      cfg.execute_tool_change = root_node[EXECUTE_TOOL_CHANGE].as<bool>();
     }
     else
     {
@@ -258,12 +247,10 @@ boost::optional<ProcessExecutionConfig> parse(YAML::Node& config, std::string& e
 
     Node mp_root_node = config[config_fields::motion_planning::TOP_LEVEL];
     Node process_path_node = mp_root_node[config_fields::motion_planning::PROCESS_PATH_ROOT];
-    if (process_path_node && hasFields(process_path_node,
-                                       config_fields::motion_planning::PROCESS_PATH_ROOT,
+    if (process_path_node && hasFields(process_path_node, config_fields::motion_planning::PROCESS_PATH_ROOT,
                                        config_fields::motion_planning::PROCESS_PATH_ITEMS))
     {
       cfg.tool_speed = process_path_node[config_fields::motion_planning::PROCESS_PATH_ITEMS[0]].as<double>();
-      cfg.target_force = process_path_node[config_fields::motion_planning::PROCESS_PATH_ITEMS[5]].as<double>();
     }
     else
     {
@@ -332,6 +319,17 @@ boost::optional<ScanAcquisitionConfig> parse(YAML::Node& config, std::string& er
         std::vector<double> pose_vals = item_node[SCAN_POSES_ITEMS[0]].as<std::vector<double>>();
         cfg.scan_poses.push_back(pose_vals);
       }
+    }
+    else
+    {
+      return boost::none;
+    }
+
+    Node pe_root_node = config[config_fields::process_execution::TOP_LEVEL];
+    if (pe_root_node && hasFields(pe_root_node, config_fields::process_execution::TOP_LEVEL,
+                                  {config_fields::process_execution::FORCE_MOTIONS}))
+    {
+      cfg.force_controlled_trajectories = pe_root_node[config_fields::process_execution::FORCE_MOTIONS].as<bool>();
     }
     else
     {

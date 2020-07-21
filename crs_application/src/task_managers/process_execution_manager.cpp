@@ -99,27 +99,18 @@ common::ActionResult ProcessExecutionManager::setInput(const datatypes::ProcessE
 common::ActionResult ProcessExecutionManager::execProcess()
 {
   crs_motion_planning::cartesianTrajectoryConfig cartesian_traj_config;
-  Eigen::Vector3d path_pose_tolerance = Eigen::Vector3d::Ones() * 0.01;
-  path_pose_tolerance(2) = 0.02;
-  Eigen::Vector3d path_ori_tolerance = Eigen::Vector3d::Ones() * 0.2;
-  Eigen::Vector3d goal_pose_tolerance = Eigen::Vector3d::Ones() * 0.015;
-  goal_pose_tolerance(2) = 0.025;
-  Eigen::Vector3d goal_ori_tolerance = Eigen::Vector3d::Ones() * 0.05;
-  Eigen::Vector3d force_tolerance = Eigen::Vector3d::Ones() * 20;
-  force_tolerance(0) = 50;
-  force_tolerance(1) = 50;
-  cartesian_traj_config.path_pose_tolerance = tf2::toMsg(path_pose_tolerance, cartesian_traj_config.path_pose_tolerance);
-  cartesian_traj_config.path_ori_tolerance = tf2::toMsg(path_ori_tolerance, cartesian_traj_config.path_ori_tolerance);
-  cartesian_traj_config.goal_pose_tolerance = tf2::toMsg(goal_pose_tolerance, cartesian_traj_config.goal_pose_tolerance);
-  cartesian_traj_config.goal_ori_tolerance = tf2::toMsg(goal_ori_tolerance, cartesian_traj_config.goal_ori_tolerance);
+  Eigen::Vector3d force_tolerance = Eigen::Vector3d(config_->force_tolerance, 60, 60);
+  cartesian_traj_config.path_pose_tolerance = tf2::toMsg(config_->position_tolerance, cartesian_traj_config.path_pose_tolerance);
+  cartesian_traj_config.path_ori_tolerance = tf2::toMsg(config_->orientation_tolerance, cartesian_traj_config.path_ori_tolerance);
+  cartesian_traj_config.goal_pose_tolerance = tf2::toMsg(config_->position_tolerance, cartesian_traj_config.goal_pose_tolerance);
+  cartesian_traj_config.goal_ori_tolerance = tf2::toMsg(config_->orientation_tolerance, cartesian_traj_config.goal_ori_tolerance);
   cartesian_traj_config.force_tolerance = tf2::toMsg(force_tolerance, cartesian_traj_config.force_tolerance);
-  cartesian_traj_config.target_force = 70;
-  cartesian_traj_config.target_speed = 0.1;
+  cartesian_traj_config.target_force = config_->target_force;
+  cartesian_traj_config.target_speed = config_->tool_speed;
 
 
   const crs_msgs::msg::ProcessMotionPlan& process_plan = input_->process_plans[current_process_idx_];
   RCLCPP_INFO(node_->get_logger(), "%s Executing process %i", MANAGER_NAME.c_str(), current_process_idx_);
-//  ProcessExecutionManager::changeActiveController(false);
   RCLCPP_INFO(node_->get_logger(), "CHANGED CONTROLLER");
   if (!execTrajectory(process_plan.start))
   {
@@ -133,8 +124,7 @@ common::ActionResult ProcessExecutionManager::execProcess()
   for (std::size_t i = 0; i < process_plan.process_motions.size(); i++)
   {
     RCLCPP_INFO(node_->get_logger(), "%s Executing process path %i", MANAGER_NAME.c_str(), i);
-    if (!execSurfaceTrajectory(process_plan.force_controlled_process_motions[i], cartesian_traj_config))
-//    if (!execTrajectory(process_plan.process_motions[i]))
+    if (config_->force_controlled_trajectories)
     {
       if (!execSurfaceTrajectory(process_plan.force_controlled_process_motions[i], cartesian_traj_config))
       {
@@ -401,7 +391,8 @@ common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_ms
   // rclcpp::Duration traj_dur(traj.points.back().time_from_start);
   common::ActionResult res = false;
 
-  if (!ProcessExecutionManager::changeActiveController(false))
+  if (config_->force_controlled_trajectories &&
+      !ProcessExecutionManager::changeActiveController(false))
   {
     res.succeeded = false;
     return res;
@@ -476,7 +467,8 @@ common::ActionResult ProcessExecutionManager::execSurfaceTrajectory(const cartes
   // rclcpp::Duration traj_dur(traj.points.back().time_from_start);
   common::ActionResult res = false;
 
-  if (!ProcessExecutionManager::changeActiveController(true))
+  if (config_->force_controlled_trajectories &&
+      !ProcessExecutionManager::changeActiveController(true))
   {
     res.succeeded = false;
     return res;
