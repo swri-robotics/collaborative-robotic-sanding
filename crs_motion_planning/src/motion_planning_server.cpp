@@ -370,7 +370,7 @@ private:
       cart_traj_config.manipulator = motion_planner_config.manipulator;
       cart_traj_config.tool_frame = motion_planner_config.tool0_frame;
       cart_traj_config.tesseract_local = motion_planner_config.tesseract_local;
-      cart_traj_config.target_force = 75;
+      cart_traj_config.target_force = request->target_force;
       cart_traj_config.target_speed = motion_planner_config.tool_speed;
       motion_planner_config.tool_speed = request->tool_speed;
       for (size_t j = 0; j < resulting_process.process_motions.size(); ++j)
