@@ -53,14 +53,9 @@ set(SRV_FILES
   srv/RunRobotScript.srv
 )
 
-set(ACTION_FILES
-  action/CartesianComplianceTrajectory.action
-)
-
 rosidl_generate_interfaces(${PROJECT_NAME}
   ${MSG_FILES}
   ${SRV_FILES}
-  ${ACTION_FILES}
   DEPENDENCIES ${SRV_DEPS}
 )
 

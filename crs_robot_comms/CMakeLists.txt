@@ -47,25 +47,6 @@ target_link_libraries(${PROJECT_NAME}_ur_comms
   ${ur_dashboard_msgs_LIBRARIES}
   )
 
-add_executable(${PROJECT_NAME}_ur_comms_sim src/ur_comms_sim.cpp)
-target_include_directories(${PROJECT_NAME}_ur_comms_sim PUBLIC
-    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
-    "$<INSTALL_INTERFACE:include>")
-target_include_directories(${PROJECT_NAME}_ur_comms_sim PUBLIC
-  ${rclcpp_INCLUDE_DIRS}
-  ${rclcpp_action_INCLUDE_DIRS}
-  ${crs_msgs_INCLUDE_DIRS}
-  ${std_srvs_INCLUDE_DIRS}
-  ${ur_dashboard_msgs_INCLUDE_DIRS}
-  )
-target_link_libraries(${PROJECT_NAME}_ur_comms_sim
-  ${rclcpp_LIBRARIES}
-  ${rclcpp_action_LIBRARIES}
-  ${crs_msgs_LIBRARIES}
-  ${std_srvs_LIBRARIES}
-  ${ur_dashboard_msgs_LIBRARIES}
-  )
-
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
@@ -84,7 +65,6 @@ set(ROS_INCLUDE_DESTINATION include)
 
 install(TARGETS
   ${PROJECT_NAME}_ur_comms
-  ${PROJECT_NAME}_ur_comms_sim
   EXPORT ${PACKAGE_NAME}-targets
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib

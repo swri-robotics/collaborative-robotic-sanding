@@ -22,8 +22,7 @@ def generate_launch_description():
     
     
 #    xacro = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs.urdf.xacro')
-#    xacro = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'swri_demo.urdf.xacro')
-    xacro = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'swri_demo3.urdf.xacro')
+    xacro = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'swri_demo.urdf.xacro')
     urdf = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs.urdf')
     urdf_preview = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs_preview.urdf')
     srdf = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'ur10e_robot.srdf')
@@ -108,10 +107,31 @@ def generate_launch_description():
         node_name='process_test_server',
         output='screen')
 
-    motion_execution_server = launch_ros.actions.Node(
-        node_executable='crs_motion_execution_motion_execution_server',
-        package='crs_motion_execution',
-        node_name='motion_execution_server',
+    test_process_planner = launch_ros.actions.Node(
+        node_executable='crs_motion_planning_process_planner_test',
+        package='crs_motion_planning',
+        node_name='process_planner_test',
+        output='screen',
+        parameters=[{'urdf_path': urdf,
+        'srdf_path': srdf,
+        'process_planner_service': "plan_process_motion",
+        'freespace_motion_service': "plan_freespace_motion",
+        'trajectory_topic': "set_trajectory_test",
+        'base_link_frame': "base_link",
+        'world_frame': "world",
+        'tool0_frame': "tool0",
+        'manipulator_group': "manipulator",
+        'num_steps': 20,
+        'max_joint_velocity': 0.22,
+        'max_joint_acceleration': 0.7,
+        'min_raster_length': 4,
+        'use_gazebo_simulation_time': False,
+        'set_trajopt_verbose': False}])
+
+    ur_comms_node = launch_ros.actions.Node(
+        node_executable='crs_robot_comms_ur_comms',
+        package='crs_robot_comms',
+        node_name='ur_comms_node',
         output='screen')
         
     return launch.LaunchDescription([
@@ -138,8 +158,6 @@ def generate_launch_description():
 
         # planning
         motion_planning_server,
-        process_planner_test_server,
 
-        # execution
-        motion_execution_server,
+        ur_comms_node,
 ])
