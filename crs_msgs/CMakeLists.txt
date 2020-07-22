@@ -50,6 +50,7 @@ set(SRV_FILES
   srv/GetConfiguration.srv
   srv/RobotPositioner.srv
   srv/CropToolpaths.srv
+  srv/RunRobotScript.srv
 )
 
 set(ACTION_FILES
