@@ -99,7 +99,7 @@ common::ActionResult ProcessExecutionManager::setInput(const datatypes::ProcessE
 common::ActionResult ProcessExecutionManager::execProcess()
 {
   crs_motion_planning::cartesianTrajectoryConfig cartesian_traj_config;
-  Eigen::Vector3d force_tolerance = Eigen::Vector3d(config_->force_tolerance, 60, 60);
+  Eigen::Vector3d force_tolerance = Eigen::Vector3d(60, 60, config_->force_tolerance);
   cartesian_traj_config.path_pose_tolerance = tf2::toMsg(config_->position_tolerance, cartesian_traj_config.path_pose_tolerance);
   cartesian_traj_config.path_ori_tolerance = tf2::toMsg(config_->orientation_tolerance, cartesian_traj_config.path_ori_tolerance);
   cartesian_traj_config.goal_pose_tolerance = tf2::toMsg(config_->position_tolerance, cartesian_traj_config.goal_pose_tolerance);
