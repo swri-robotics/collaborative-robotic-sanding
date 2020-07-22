@@ -5,6 +5,7 @@ geometry_msgs/Pose tool_offset
 float64 approach_dist
 float64 retreat_dist
 float64 tool_speed
+float64 target_force
 crs_msgs/ToolProcessPath[] process_paths
 
 ---

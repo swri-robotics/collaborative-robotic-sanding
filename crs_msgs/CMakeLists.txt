@@ -49,6 +49,7 @@ set(SRV_FILES
   srv/PlanProcessMotions.srv
   srv/GetConfiguration.srv
   srv/RobotPositioner.srv
+  srv/RunRobotScript.srv
 )
 
 set(ACTION_FILES

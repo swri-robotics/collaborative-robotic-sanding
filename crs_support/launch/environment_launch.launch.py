@@ -130,6 +130,12 @@ def generate_launch_description():
         'min_raster_length': 4,
         'use_gazebo_simulation_time': False,
         'set_trajopt_verbose': False}])
+
+    ur_comms_node = launch_ros.actions.Node(
+        node_executable='crs_robot_comms_ur_comms',
+        package='crs_robot_comms',
+        node_name='ur_comms_node',
+        output='screen')
         
     return launch.LaunchDescription([
         # arguments
@@ -156,6 +162,8 @@ def generate_launch_description():
         # planning
         motion_planning_server,
         process_planner_test_server,
+
+        ur_comms_node,
 
         # execution
 #        motion_execution_server,
