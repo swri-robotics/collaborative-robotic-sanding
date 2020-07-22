@@ -58,8 +58,12 @@ static const std::vector<std::string> PROCESS_PATH_ITEMS = { "tool_speed",
                                                              "offset_pose",
                                                              "retreat_dist",
                                                              "approach_dist",
-                                                             "tool_frame" };
-static const std::vector<std::string> MEDIA_CHANGE_ITEMS = { "change_time", "change_pose" };
+                                                             "tool_frame",
+                                                             "target_force" };
+static const std::vector<std::string> MEDIA_CHANGE_ITEMS = { "change_time",
+                                                             "change_pose",
+                                                             "joint_names",
+                                                             "joint_position"};
 static const std::vector<std::string> PREVIEW_ITEMS = { "time_scaling" };
 }  // namespace motion_planning
 
@@ -69,7 +73,6 @@ static const std::string TOP_LEVEL = "process_execution";
 static const std::string TIME_TOLERANCE = "time_tolerance";
 static const std::string JOINT_TOLERANCE = "joint_tolerance";  // vector<double>
 static const std::string CARTESIAN_TOLERANCE = "cartesian_tolerance";  // vector<double>
-static const std::string TARGET_FORCE = "target_force";
 static const std::string FORCE_TOLERANCE = "force_tolerance";
 static const std::string FORCE_MOTIONS = "force_controlled_trajectories";
 }  // namespace process_execution
@@ -135,7 +138,7 @@ boost::optional<MotionPlanningConfig> parse(YAML::Node& config, std::string& err
     Node home_pose_node = root_node[HOME_POS_ROOT];
     if (home_pose_node && hasFields(home_pose_node, HOME_POS_ROOT, HOME_POS_ITEMS))
     {
-      cfg.joint_names = home_pose_node[HOME_POS_ITEMS[0]].as<std::vector<std::string>>();
+      cfg.home_joint_names = home_pose_node[HOME_POS_ITEMS[0]].as<std::vector<std::string>>();
       cfg.joint_home_position = home_pose_node[HOME_POS_ITEMS[1]].as<std::vector<double>>();
     }
     else
@@ -156,6 +159,7 @@ boost::optional<MotionPlanningConfig> parse(YAML::Node& config, std::string& err
                         Eigen::AngleAxisd(xyzrpy[3], Eigen::Vector3d::UnitX()) *
                         Eigen::AngleAxisd(xyzrpy[4], Eigen::Vector3d::UnitY()) *
                         Eigen::AngleAxisd(xyzrpy[5], Eigen::Vector3d::UnitZ());
+      cfg.target_force = process_path_node[PROCESS_PATH_ITEMS[5]].as<double>();
     }
     else
     {
@@ -171,6 +175,8 @@ boost::optional<MotionPlanningConfig> parse(YAML::Node& config, std::string& err
                               Eigen::AngleAxisd(xyzrpy[3], Eigen::Vector3d::UnitX()) *
                               Eigen::AngleAxisd(xyzrpy[4], Eigen::Vector3d::UnitY()) *
                               Eigen::AngleAxisd(xyzrpy[5], Eigen::Vector3d::UnitZ());
+      cfg.media_joint_names = media_change_node[MEDIA_CHANGE_ITEMS[2]].as<std::vector<std::string>>();
+      cfg.joint_media_position = media_change_node[MEDIA_CHANGE_ITEMS[3]].as<std::vector<double>>();
     }
     else
     {
@@ -222,15 +228,14 @@ boost::optional<ProcessExecutionConfig> parse(YAML::Node& config, std::string& e
   {
     Node root_node = config[TOP_LEVEL];
     if (root_node && hasFields(root_node, TOP_LEVEL, { TIME_TOLERANCE, JOINT_TOLERANCE,
-                                                       CARTESIAN_TOLERANCE, TARGET_FORCE,
-                                                       FORCE_TOLERANCE }))
+                                                       CARTESIAN_TOLERANCE, FORCE_TOLERANCE,
+                                                       FORCE_MOTIONS}))
     {
       cfg.traj_time_tolerance = root_node[TIME_TOLERANCE].as<double>();
       cfg.joint_tolerance = root_node[JOINT_TOLERANCE].as<std::vector<double>>();
       std::vector<double> xyzrpy = root_node[CARTESIAN_TOLERANCE].as<std::vector<double>>();
       cfg.position_tolerance = Eigen::Vector3d(xyzrpy[0], xyzrpy[1], xyzrpy[2]);
       cfg.orientation_tolerance = Eigen::Vector3d(xyzrpy[3], xyzrpy[4], xyzrpy[5]);
-      cfg.target_force = root_node[TARGET_FORCE].as<double>();
       cfg.force_tolerance = root_node[FORCE_TOLERANCE].as<double>();
       cfg.force_controlled_trajectories = root_node[FORCE_MOTIONS].as<bool>();
     }
@@ -245,6 +250,7 @@ boost::optional<ProcessExecutionConfig> parse(YAML::Node& config, std::string& e
                                        config_fields::motion_planning::PROCESS_PATH_ITEMS))
     {
       cfg.tool_speed = process_path_node[config_fields::motion_planning::PROCESS_PATH_ITEMS[0]].as<double>();
+      cfg.target_force = process_path_node[config_fields::motion_planning::PROCESS_PATH_ITEMS[5]].as<double>();
     }
     else
     {

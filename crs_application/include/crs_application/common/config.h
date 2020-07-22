@@ -50,7 +50,7 @@ struct MotionPlanningConfig
 {
   // home pose
   bool pre_move_home;
-  std::vector<std::string> joint_names;
+  std::vector<std::string> home_joint_names;
   std::vector<double> joint_home_position;
 
   // process path
@@ -59,10 +59,13 @@ struct MotionPlanningConfig
   double retreat_dist;
   double approac_dist;
   std::string tool_frame;
+  double target_force = 20;
 
   // media change
   double media_change_time;            /** @brief time that needs to elapse for the next media change secs */
   Eigen::Isometry3d media_change_pose; /** @brief in world coordinates */
+  std::vector<std::string> media_joint_names;
+  std::vector<double> joint_media_position;
 
   // preview
   double preview_time_scaling = 1.0; /** @brief preview will be played at a scaled speed */
