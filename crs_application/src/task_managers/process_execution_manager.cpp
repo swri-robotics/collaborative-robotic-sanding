@@ -201,27 +201,30 @@ common::ActionResult ProcessExecutionManager::execMediaChange()
     return res;
   }
 
-  crs_msgs::srv::RunRobotScript::Request::SharedPtr run_robot_script_req = std::make_shared<crs_msgs::srv::RunRobotScript::Request>();
-  run_robot_script_req->filename = "simpleMove.urp";
-  std::shared_future<crs_msgs::srv::RunRobotScript::Response::SharedPtr> run_robot_script_future = run_robot_script_client_->async_send_request(run_robot_script_req);
-  std::future_status run_robot_script_status = run_robot_script_future.wait_for(std::chrono::seconds(30));
-  if (run_robot_script_status != std::future_status::ready)
+  if (config_->execute_tool_change)
   {
-    common::ActionResult res;
-    res.err_msg = boost::str(boost::format("%s failed to execute media change") % MANAGER_NAME.c_str());
-    RCLCPP_ERROR(node_->get_logger(), "run_robot_script UR service error or timeout");
-    res.succeeded = false;
-    return res;
+    crs_msgs::srv::RunRobotScript::Request::SharedPtr run_robot_script_req = std::make_shared<crs_msgs::srv::RunRobotScript::Request>();
+    run_robot_script_req->filename = config_->ur_tool_change_script;
+    std::shared_future<crs_msgs::srv::RunRobotScript::Response::SharedPtr> run_robot_script_future = run_robot_script_client_->async_send_request(run_robot_script_req);
+    std::future_status run_robot_script_status = run_robot_script_future.wait_for(std::chrono::seconds(30));
+    if (run_robot_script_status != std::future_status::ready)
+    {
+      common::ActionResult res;
+      res.err_msg = boost::str(boost::format("%s failed to execute media change") % MANAGER_NAME.c_str());
+      RCLCPP_ERROR(node_->get_logger(), "run_robot_script UR service error or timeout");
+      res.succeeded = false;
+      return res;
+    }
+    if (!run_robot_script_future.get()->success)
+    {
+      common::ActionResult res;
+      res.err_msg = boost::str(boost::format("%s failed to execute media change") % MANAGER_NAME.c_str());
+      RCLCPP_ERROR(node_->get_logger(), "run_robot_script UR service failed");
+      res.succeeded = false;
+      return res;
+    }
+    RCLCPP_INFO(node_->get_logger(), "Media change completed");
   }
-  if (!run_robot_script_future.get()->success)
-  {
-    common::ActionResult res;
-    res.err_msg = boost::str(boost::format("%s failed to execute media change") % MANAGER_NAME.c_str());
-    RCLCPP_ERROR(node_->get_logger(), "run_robot_script UR service failed");
-    res.succeeded = false;
-    return res;
-  }
-  RCLCPP_INFO(node_->get_logger(), "Media change completed");
 
   return true;
 }
