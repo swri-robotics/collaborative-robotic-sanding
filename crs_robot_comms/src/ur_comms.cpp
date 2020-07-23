@@ -49,7 +49,7 @@ private:
       std_srvs::srv::Trigger::Request::SharedPtr remote_control_req = std::make_shared<std_srvs::srv::Trigger::Request>();
       std::shared_future<std_srvs::srv::Trigger::Response::SharedPtr> remote_control_future = restart_robot_control_client_->async_send_request(remote_control_req);
 
-      std::future_status remote_control_status = remote_control_future.wait_for(std::chrono::seconds(20));
+      std::future_status remote_control_status = remote_control_future.wait_for(std::chrono::seconds(5));
       if (remote_control_status != std::future_status::ready)
       {
         RCLCPP_ERROR(node_->get_logger(),
@@ -69,6 +69,8 @@ private:
   void runRobotScriptCB(std::shared_ptr<crs_msgs::srv::RunRobotScript::Request> request,
                         std::shared_ptr<crs_msgs::srv::RunRobotScript::Response> response)
   {
+    rclcpp::Rate r(1);
+
     // Call load service on UR dashboard
     ur_dashboard_msgs::srv::Load::Request::SharedPtr load_script_req = std::make_shared<ur_dashboard_msgs::srv::Load::Request>();
     load_script_req->filename = request->filename;
@@ -92,6 +94,7 @@ private:
       return;
     }
     RCLCPP_INFO(node_->get_logger(), "Load UR dashboard service succeeded");
+    r.sleep();
 
     // Call play service on UR dashboard
     std_srvs::srv::Trigger::Request::SharedPtr play_script_req = std::make_shared<std_srvs::srv::Trigger::Request>();
@@ -115,9 +118,9 @@ private:
       return;
     }
     RCLCPP_INFO(node_->get_logger(), "Play UR dashboard service succeeded");
+    r.sleep();
 
     // Check to see if script has finished playing
-    rclcpp::Rate r(1);
     ur_dashboard_msgs::srv::IsProgramRunning::Request::SharedPtr check_script_req = std::make_shared<ur_dashboard_msgs::srv::IsProgramRunning::Request>();
     bool script_finished = false;
     while (!script_finished)
@@ -143,6 +146,7 @@ private:
         }
         script_finished = !check_script_future.get()->program_running;
     }
+//    r.sleep();
 
     // Return control of UR back to computer
     if (!establishComputerControl())
