@@ -275,7 +275,7 @@ private:
 	  double heigth_limits_min = node_->get_parameter(param_ns + "heigth_limits_min").as_double();
 	  double heigth_limits_max = node_->get_parameter(param_ns + "heigth_limits_max").as_double();
 	  cfg.dir_estimation_method = static_cast<region_detection_core::DirectionEstMethods>(
-	      node_->get_parameter(param_ns + "plane_dist_threshold").as_int());
+	      node_->get_parameter(param_ns + "dir_estimation_method").as_int());
 	  std::vector<double> user_dir = node_->get_parameter(param_ns + "user_dir").as_double_array();
 	  std::vector<double> view_point = node_->get_parameter(param_ns + "view_point").as_double_array();
 
