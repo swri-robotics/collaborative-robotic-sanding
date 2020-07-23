@@ -39,10 +39,8 @@
 #include "crs_application/task_managers/scan_acquisition_manager.h"
 
 static const double WAIT_FOR_SERVICE_PERIOD = 10.0;
-static const double WAIT_MESSAGE_TIMEOUT = 2.0;
 static const double WAIT_ROBOT_STOP = 2.0;
 static const double WAIT_MOTION_COMPLETION = 30.0;
-static const std::size_t POSES_ARRAY_SIZE = 6;
 static const std::string POINT_CLOUD_TOPIC = "camera/pointcloud";
 static const std::string FREESPACE_MOTION_PLAN_SERVICE = "plan_freespace_motion";
 static const std::string MANAGER_NAME = "ScanAcquisitionManager";
@@ -192,7 +190,6 @@ common::ActionResult ScanAcquisitionManager::moveRobot()
 
   if (result->success)
   {
-    // todo(ayoungs): wait for robot to finish moving, for now
     std::chrono::duration<double> sleep_dur(WAIT_ROBOT_STOP);
     rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::seconds>(sleep_dur));
     return true;

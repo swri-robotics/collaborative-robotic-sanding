@@ -94,6 +94,10 @@ struct PartRegistrationConfig
 
 struct PartReworkConfig
 {
+  std::vector<std::vector<double> > scan_poses;
+  std::string tool_frame;
+  double pre_acquisition_pause = 2.0; /** @brief seconds */
+  bool skip_on_failure = false;
 };
 
 template <class T>
