@@ -88,6 +88,17 @@ static const std::string TARGET_FRAME_ID = "target_frame_id";
 static const std::string PART_FILE = "part_file";
 static const std::string TOOLPATH_FILE = "toolpath_file";
 }  // namespace part_registration
+
+namespace part_rework
+{
+static const std::string TOP_LEVEL = "part_rework";
+static const std::string SCAN_POSES_ROOT = "scan_poses";
+static const std::vector<std::string> SCAN_POSES_ITEMS = { "pose" };
+static const std::string TOOL_FRAME = "tool_frame";
+static const std::string PRE_ACQUISITION_PAUSE = "pre_acquisition_pause";
+static const std::string SKIP_ON_FAILURE = "skip_on_failure";
+}  // namespace scan_acquistion
+
 }  // namespace config_fields
 
 static bool hasFields(YAML::Node& n, const std::string& parent_name, const std::vector<std::string>& fields)
@@ -372,6 +383,75 @@ boost::optional<PartRegistrationConfig> parse(YAML::Node& config, std::string& e
   {
     err_msg = boost::str(boost::format("Key not found while parsing %s yaml: %s") %
                          typeid(PartRegistrationConfig).name() % e.what());
+    RCLCPP_ERROR(CONFIG_LOGGER, "%s", err_msg.c_str());
+    return boost::none;
+  }
+  return cfg;
+}
+
+template <>
+boost::optional<PartReworkConfig> parse(YAML::Node& config, std::string& err_msg)
+{
+  using namespace YAML;
+  using namespace config_fields::part_rework;
+  PartReworkConfig cfg;
+  try
+  {
+    Node root_node = config[TOP_LEVEL];
+    if (!root_node)
+    {
+      err_msg = boost::str(boost::format("The '%s' field was not found") % TOP_LEVEL);
+      return boost::none;
+    }
+
+    if (hasFields(root_node, TOP_LEVEL, { SCAN_POSES_ROOT, TOOL_FRAME, SKIP_ON_FAILURE, PRE_ACQUISITION_PAUSE }))
+    {
+      cfg.tool_frame = root_node[TOOL_FRAME].as<std::string>();
+      cfg.skip_on_failure = root_node[SKIP_ON_FAILURE].as<bool>();
+      cfg.pre_acquisition_pause = root_node[PRE_ACQUISITION_PAUSE].as<double>();
+    }
+    else
+    {
+      return boost::none;
+    }
+
+    Node scan_poses_node = root_node[SCAN_POSES_ROOT];
+    if (scan_poses_node.Type() == NodeType::Sequence)
+    {
+      for (std::size_t i = 0; i < scan_poses_node.size(); i++)
+      {
+        Node item_node = scan_poses_node[i];
+        if (!hasFields(item_node, SCAN_POSES_ROOT, SCAN_POSES_ITEMS))
+        {
+          return boost::none;
+        }
+        std::vector<double> pose_vals = item_node[SCAN_POSES_ITEMS[0]].as<std::vector<double>>();
+        cfg.scan_poses.push_back(pose_vals);
+      }
+    }
+    else
+    {
+      return boost::none;
+    }
+  }
+  catch (InvalidNode& e)
+  {
+    err_msg = boost::str(boost::format("Invalid node while parsing %s yaml: %s") %
+                         typeid(ScanAcquisitionConfig).name() % e.what());
+    RCLCPP_ERROR(CONFIG_LOGGER, "%s", err_msg.c_str());
+    return boost::none;
+  }
+  catch (BadConversion& e)
+  {
+    err_msg =
+        boost::str(boost::format("Failed to parse %s yaml: %s") % typeid(ScanAcquisitionConfig).name() % e.what());
+    RCLCPP_ERROR(CONFIG_LOGGER, "%s", err_msg.c_str());
+    return boost::none;
+  }
+  catch (KeyNotFound& e)
+  {
+    err_msg = boost::str(boost::format("Key not found while parsing %s yaml: %s") %
+                         typeid(ScanAcquisitionConfig).name() % e.what());
     RCLCPP_ERROR(CONFIG_LOGGER, "%s", err_msg.c_str());
     return boost::none;
   }

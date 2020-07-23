@@ -115,6 +115,9 @@ boost::optional<ScanAcquisitionConfig> parse(YAML::Node& config, std::string& er
 template <>
 boost::optional<PartRegistrationConfig> parse(YAML::Node& config, std::string& err_msg);
 
+template <>
+boost::optional<PartReworkConfig> parse(YAML::Node& config, std::string& err_msg);
+
 }  // namespace config
 }  // namespace crs_application
 
