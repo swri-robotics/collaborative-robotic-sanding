@@ -86,6 +86,9 @@ struct ProcessExecutionConfig
   double force_tolerance = 5;
 
   bool force_controlled_trajectories = false;
+
+  std::string ur_tool_change_script;
+  bool execute_tool_change;
 };
 
 struct ScanAcquisitionConfig

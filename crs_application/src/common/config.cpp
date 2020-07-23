@@ -76,6 +76,8 @@ static const std::string CARTESIAN_PATH_TOLERANCE = "cartesian_path_tolerance"; 
 static const std::string CARTESIAN_GOAL_TOLERANCE = "cartesian_goal_tolerance";  // vector<double>
 static const std::string FORCE_TOLERANCE = "force_tolerance";
 static const std::string FORCE_MOTIONS = "force_controlled_trajectories";
+static const std::string TOOL_CHANGE_SCRIPT = "ur_tool_change_script";
+static const std::string EXECUTE_TOOL_CHANGE = "execute_tool_change";
 }  // namespace process_execution
 
 namespace scan_acquistion
@@ -242,6 +244,8 @@ boost::optional<ProcessExecutionConfig> parse(YAML::Node& config, std::string& e
       cfg.orientation_goal_tolerance = Eigen::Vector3d(xyzrpy_goal[3], xyzrpy_goal[4], xyzrpy_goal[5]);
       cfg.force_tolerance = root_node[FORCE_TOLERANCE].as<double>();
       cfg.force_controlled_trajectories = root_node[FORCE_MOTIONS].as<bool>();
+      cfg.ur_tool_change_script = root_node[TOOL_CHANGE_SCRIPT].as<std::string>();
+      cfg.execute_tool_change = root_node[EXECUTE_TOOL_CHANGE].as<bool>();
     }
     else
     {
