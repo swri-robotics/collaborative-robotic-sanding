@@ -43,6 +43,7 @@
 #include <rclcpp/rclcpp.hpp>
 #include <crs_motion_planning/path_processing_utils.h>
 #include <std_srvs/srv/set_bool.hpp>
+#include <crs_msgs/srv/run_robot_script.hpp>
 #include "crs_application/common/common.h"
 #include "crs_application/common/datatypes.h"
 #include "crs_application/common/config.h"
@@ -104,6 +105,7 @@ protected:
   rclcpp::callback_group::CallbackGroup::SharedPtr trajectory_exec_client_cbgroup_;
   std::shared_future<GoalHandleT::SharedPtr> trajectory_exec_fut_;
   rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr controller_changer_client_;
+  rclcpp::Client<crs_msgs::srv::RunRobotScript>::SharedPtr run_robot_script_client_;
 
   // process data
   std::shared_ptr<config::ProcessExecutionConfig> config_ = nullptr;
@@ -112,6 +114,7 @@ protected:
   // other
   int current_process_idx_ = 0;
   int current_media_change_idx_ = 0;
+  bool no_more_media_changes_ = false;
 };
 
 } /* namespace task_managers */

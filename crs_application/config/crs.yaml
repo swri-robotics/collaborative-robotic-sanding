@@ -31,7 +31,8 @@ crs:
   process_execution:
     time_tolerance: 5.0 # seconds
     joint_tolerance: [0.035, 0.035, 0.035, 0.035, 0.035, 0.035] # radians
-    cartesian_tolerance: [0.015, 0.015, 0.02, 0.05, 0.05, 0.05]
+    cartesian_path_tolerance: [0.015, 0.015, 0.025, 0.15, 0.15, 0.15]
+    cartesian_goal_tolerance: [0.01, 0.01, 0.01, 0.05, 0.05, 0.05]
     force_tolerance: 5
     force_controlled_trajectories: true
   part_registration:

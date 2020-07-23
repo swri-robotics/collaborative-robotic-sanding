@@ -189,7 +189,7 @@ common::ActionResult MotionPlanningManager::splitToolpaths()
     std::size_t start_idx = 0;
     std::size_t end_idx;
     std::remove_reference<decltype(raster)>::type new_raster;
-    for (std::size_t p_idx = 1; p_idx < breakpoints_indices.size(); p_idx++)
+    for (std::size_t p_idx = 0; p_idx < breakpoints_indices.size(); p_idx++)
     {
       // copy portion of raster leading up to breakpoint into current toolpath
       end_idx = breakpoints_indices[p_idx];

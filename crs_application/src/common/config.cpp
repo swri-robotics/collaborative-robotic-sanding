@@ -72,7 +72,8 @@ namespace process_execution
 static const std::string TOP_LEVEL = "process_execution";
 static const std::string TIME_TOLERANCE = "time_tolerance";
 static const std::string JOINT_TOLERANCE = "joint_tolerance";  // vector<double>
-static const std::string CARTESIAN_TOLERANCE = "cartesian_tolerance";  // vector<double>
+static const std::string CARTESIAN_PATH_TOLERANCE = "cartesian_path_tolerance";  // vector<double>
+static const std::string CARTESIAN_GOAL_TOLERANCE = "cartesian_goal_tolerance";  // vector<double>
 static const std::string FORCE_TOLERANCE = "force_tolerance";
 static const std::string FORCE_MOTIONS = "force_controlled_trajectories";
 }  // namespace process_execution
@@ -228,14 +229,17 @@ boost::optional<ProcessExecutionConfig> parse(YAML::Node& config, std::string& e
   {
     Node root_node = config[TOP_LEVEL];
     if (root_node && hasFields(root_node, TOP_LEVEL, { TIME_TOLERANCE, JOINT_TOLERANCE,
-                                                       CARTESIAN_TOLERANCE, FORCE_TOLERANCE,
-                                                       FORCE_MOTIONS}))
+                                                       CARTESIAN_PATH_TOLERANCE, CARTESIAN_GOAL_TOLERANCE,
+                                                       FORCE_TOLERANCE, FORCE_MOTIONS}))
     {
       cfg.traj_time_tolerance = root_node[TIME_TOLERANCE].as<double>();
       cfg.joint_tolerance = root_node[JOINT_TOLERANCE].as<std::vector<double>>();
-      std::vector<double> xyzrpy = root_node[CARTESIAN_TOLERANCE].as<std::vector<double>>();
-      cfg.position_tolerance = Eigen::Vector3d(xyzrpy[0], xyzrpy[1], xyzrpy[2]);
-      cfg.orientation_tolerance = Eigen::Vector3d(xyzrpy[3], xyzrpy[4], xyzrpy[5]);
+      std::vector<double> xyzrpy_path = root_node[CARTESIAN_PATH_TOLERANCE].as<std::vector<double>>();
+      std::vector<double> xyzrpy_goal = root_node[CARTESIAN_PATH_TOLERANCE].as<std::vector<double>>();
+      cfg.position_path_tolerance = Eigen::Vector3d(xyzrpy_path[0], xyzrpy_path[1], xyzrpy_path[2]);
+      cfg.orientation_path_tolerance = Eigen::Vector3d(xyzrpy_path[3], xyzrpy_path[4], xyzrpy_path[5]);
+      cfg.position_goal_tolerance = Eigen::Vector3d(xyzrpy_goal[0], xyzrpy_goal[1], xyzrpy_goal[2]);
+      cfg.orientation_goal_tolerance = Eigen::Vector3d(xyzrpy_goal[3], xyzrpy_goal[4], xyzrpy_goal[5]);
       cfg.force_tolerance = root_node[FORCE_TOLERANCE].as<double>();
       cfg.force_controlled_trajectories = root_node[FORCE_MOTIONS].as<bool>();
     }
