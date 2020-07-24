@@ -290,35 +290,31 @@ common::ActionResult ScanAcquisitionManager::checkPreReqs()
 
 bool ScanAcquisitionManager::changeActiveController(const bool turn_on_cart)
 {
-    RCLCPP_INFO(node_->get_logger(), "Changing controller");
-    using namespace std_srvs::srv;
-    SetBool::Request::SharedPtr req = std::make_shared<std_srvs::srv::SetBool::Request>();
-    req->data = turn_on_cart;
-    if (req->data)
-        RCLCPP_INFO(node_->get_logger(), "Turning on cartesian compliance controller");
-    else
-        RCLCPP_INFO(node_->get_logger(), "Turning on joint trajectory controller");
-    std::shared_future<SetBool::Response::SharedPtr> result_future =
-        controller_changer_client_->async_send_request(req);
+  RCLCPP_INFO(node_->get_logger(), "Changing controller");
+  using namespace std_srvs::srv;
+  SetBool::Request::SharedPtr req = std::make_shared<std_srvs::srv::SetBool::Request>();
+  req->data = turn_on_cart;
+  if (req->data)
+    RCLCPP_INFO(node_->get_logger(), "Turning on cartesian compliance controller");
+  else
+    RCLCPP_INFO(node_->get_logger(), "Turning on joint trajectory controller");
+  std::shared_future<SetBool::Response::SharedPtr> result_future = controller_changer_client_->async_send_request(req);
 
-    std::future_status status = result_future.wait_for(std::chrono::seconds(15));
-    if (status != std::future_status::ready)
-    {
-      RCLCPP_ERROR(node_->get_logger(),
-                   "change controller service error or timeout");
-      return false;
-    }
+  std::future_status status = result_future.wait_for(std::chrono::seconds(15));
+  if (status != std::future_status::ready)
+  {
+    RCLCPP_ERROR(node_->get_logger(), "change controller service error or timeout");
+    return false;
+  }
 
-    if (!result_future.get()->success)
-    {
-      RCLCPP_ERROR(node_->get_logger(),
-                   "change controller service failed");
-      return false;
-    }
+  if (!result_future.get()->success)
+  {
+    RCLCPP_ERROR(node_->get_logger(), "change controller service failed");
+    return false;
+  }
 
-    RCLCPP_INFO(node_->get_logger(), "change controller service succeeded");
-    return true;
-
+  RCLCPP_INFO(node_->get_logger(), "change controller service succeeded");
+  return true;
 }
 
 void ScanAcquisitionManager::handlePointCloud(const sensor_msgs::msg::PointCloud2::SharedPtr msg)

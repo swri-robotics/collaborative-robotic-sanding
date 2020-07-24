@@ -189,14 +189,13 @@ public:
     trajopt_surface_config.surface_coeffs = surface_coeffs;
     trajopt_surface_config.waypoints_critical = false;
     trajopt_surface_config.longest_valid_segment_fraction = 0.1;
-//    trajopt_surface_config.special_collision_constraint.push_back({ "eoat_link", LOADED_PART_LINK_NAME, -0.02, 15.0 });
-//    trajopt_surface_config.special_collision_constraint.push_back(
-//        { "sander_center_link", LOADED_PART_LINK_NAME, -0.02, 15.0 });
+    //    trajopt_surface_config.special_collision_constraint.push_back({ "eoat_link", LOADED_PART_LINK_NAME,
+    //    -0.02, 15.0 }); trajopt_surface_config.special_collision_constraint.push_back(
+    //        { "sander_center_link", LOADED_PART_LINK_NAME, -0.02, 15.0 });
     trajopt_surface_config.special_collision_constraint.push_back({ "eoat_link", "table", -0.05, 15.0 });
-    trajopt_surface_config.special_collision_constraint.push_back(
-        { "sander_center_link", "table", -0.05, 15.0 });
-//    trajopt_surface_config.special_collision_constraint.push_back(
-//        { "wrist_3_link", "table", -0.05, 15.0 });
+    trajopt_surface_config.special_collision_constraint.push_back({ "sander_center_link", "table", -0.05, 15.0 });
+    //    trajopt_surface_config.special_collision_constraint.push_back(
+    //        { "wrist_3_link", "table", -0.05, 15.0 });
 
     crs_motion_planning::omplConfig ompl_config;
     ompl_config.collision_safety_margin = 0.0075;
@@ -285,7 +284,8 @@ private:
           request->end_position.position, request->end_position.name);
     }
     tesseract_rosutils::fromMsg(motion_planner_config.tool_offset, request->tool_offset);
-    motion_planner_config.descartes_config.tool_offset = motion_planner_config.tool_offset * Eigen::Translation3d(0.0, 0.0, 0.03);
+    motion_planner_config.descartes_config.tool_offset =
+        motion_planner_config.tool_offset * Eigen::Translation3d(0.0, 0.0, 0.03);
 
     std::vector<crs_msgs::msg::ProcessMotionPlan> returned_plans;
     bool success;
@@ -302,7 +302,7 @@ private:
 
     for (size_t i = 0; i < request->process_paths.size(); ++i)
     {
-      std::cout << "Planning " << i+1 << " process of " << request->process_paths.size() << std::endl;
+      std::cout << "Planning " << i + 1 << " process of " << request->process_paths.size() << std::endl;
       // Load in current rasters
       motion_planner_config.rasters.clear();
       motion_planner_config.rasters = request->process_paths[i].rasters;
@@ -375,9 +375,10 @@ private:
       motion_planner_config.tool_speed = request->tool_speed;
       for (size_t j = 0; j < resulting_process.process_motions.size(); ++j)
       {
-          cartesian_trajectory_msgs::msg::CartesianTrajectory curr_cart_traj;
-          crs_motion_planning::genCartesianTrajectory(resulting_process.process_motions[j], cart_traj_config, curr_cart_traj);
-          resulting_process.force_controlled_process_motions.push_back(curr_cart_traj);
+        cartesian_trajectory_msgs::msg::CartesianTrajectory curr_cart_traj;
+        crs_motion_planning::genCartesianTrajectory(
+            resulting_process.process_motions[j], cart_traj_config, curr_cart_traj);
+        resulting_process.force_controlled_process_motions.push_back(curr_cart_traj);
       }
 
       returned_plans.push_back(resulting_process);

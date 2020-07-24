@@ -8,11 +8,10 @@ crsMotionPlanner::crsMotionPlanner(pathPlanningConfig::Ptr config, rclcpp::Logge
 {
 }
 
-crsMotionPlanner::crsMotionPlanner(pathPlanningConfig config, rclcpp::Logger logger)
-  : logger_(std::move(logger))
+crsMotionPlanner::crsMotionPlanner(pathPlanningConfig config, rclcpp::Logger logger) : logger_(std::move(logger))
 {
-    config_ = std::make_shared<crs_motion_planning::pathPlanningConfig>();
-    *config_ = config;
+  config_ = std::make_shared<crs_motion_planning::pathPlanningConfig>();
+  *config_ = config;
 }
 
 void crsMotionPlanner::updateConfiguration(pathPlanningConfig::Ptr config) { config_ = std::move(config); }
@@ -1062,6 +1061,5 @@ bool crsMotionPlanner::findClosestJointOrientation(const tesseract_motion_planne
 
   return true;
 }
-
 
 }  // namespace crs_motion_planning
