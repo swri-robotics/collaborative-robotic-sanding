@@ -173,24 +173,24 @@ public:
     part_filepath_ = ament_index_cpp::get_package_share_directory("crs_support") + "/meshes/Parts/visual/"
                                                                                    "part1_ch.stl";
     // waiting for server
-    if (!trajectory_exec_client_->wait_for_action_server(std::chrono::duration<double>(WAIT_SERVER_TIMEOUT)))
-    {
-      std::string err_msg =
-          boost::str(boost::format("Failed to find action server %s") % FOLLOW_JOINT_TRAJECTORY_ACTION);
-      RCLCPP_ERROR(node_->get_logger(), "%s", err_msg.c_str());
-      throw std::runtime_error(err_msg);
-    }
-    RCLCPP_INFO(node_->get_logger(), "%s action client found2", FOLLOW_JOINT_TRAJECTORY_ACTION.c_str());
+//    if (!trajectory_exec_client_->wait_for_action_server(std::chrono::duration<double>(WAIT_SERVER_TIMEOUT)))
+//    {
+//      std::string err_msg =
+//          boost::str(boost::format("Failed to find action server %s") % FOLLOW_JOINT_TRAJECTORY_ACTION);
+//      RCLCPP_ERROR(node_->get_logger(), "%s", err_msg.c_str());
+//      throw std::runtime_error(err_msg);
+//    }
+//    RCLCPP_INFO(node_->get_logger(), "%s action client found2", FOLLOW_JOINT_TRAJECTORY_ACTION.c_str());
 
-    // waiting for server
-    if (!surface_traj_exec_client_->wait_for_action_server(std::chrono::duration<double>(WAIT_SERVER_TIMEOUT)))
-    {
-      std::string err_msg =
-          boost::str(boost::format("Failed to find surface action server %s") % MOTION_EXECUTION_ACTION_TOPIC);
-      RCLCPP_ERROR(node_->get_logger(), "%s", err_msg.c_str());
-      throw std::runtime_error(err_msg);
-    }
-    RCLCPP_INFO(node_->get_logger(), "%s surface action client found", MOTION_EXECUTION_ACTION_TOPIC.c_str());
+//    // waiting for server
+//    if (!surface_traj_exec_client_->wait_for_action_server(std::chrono::duration<double>(WAIT_SERVER_TIMEOUT)))
+//    {
+//      std::string err_msg =
+//          boost::str(boost::format("Failed to find surface action server %s") % MOTION_EXECUTION_ACTION_TOPIC);
+//      RCLCPP_ERROR(node_->get_logger(), "%s", err_msg.c_str());
+//      throw std::runtime_error(err_msg);
+//    }
+//    RCLCPP_INFO(node_->get_logger(), "%s surface action client found", MOTION_EXECUTION_ACTION_TOPIC.c_str());
 
     // openning files
     std::string urdf_path, srdf_path;
