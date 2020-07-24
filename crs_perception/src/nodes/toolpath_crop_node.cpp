@@ -234,8 +234,8 @@ private:
 	  cfg.opencv_cfg.canny.upper_threshold = node_->get_parameter(opencv_param_ns + "canny.upper_threshold").as_int();
 	  cfg.opencv_cfg.canny.aperture_size = node_->get_parameter(opencv_param_ns + "canny.aperture_size").as_int();
 
-	  cfg.opencv_cfg.contour.mode = node_->get_parameter(opencv_param_ns + "canny.mode").as_int();
-	  cfg.opencv_cfg.contour.method = node_->get_parameter(opencv_param_ns + "canny.method").as_int();
+	  cfg.opencv_cfg.contour.mode = node_->get_parameter(opencv_param_ns + "contour.mode").as_int();
+	  cfg.opencv_cfg.contour.method = node_->get_parameter(opencv_param_ns + "contour.method").as_int();
 
 	  // pcl 2d parameters
 	  const std::string pcl2d_param_ns = "config_pcl2d.";
@@ -416,8 +416,8 @@ int main(int argc, char** argv)
 
   rclcpp::init(argc,argv);
   rclcpp::NodeOptions options;
-  options.automatically_declare_parameters_from_overrides();
-  std::shared_ptr<rclcpp::Node> node = std::make_shared<rclcpp::Node>("toolpath_crop",options);
+  options.automatically_declare_parameters_from_overrides(true);
+  std::shared_ptr<rclcpp::Node> node = std::make_shared<rclcpp::Node>("toolpath_crop_node",options);
   ToolpathCrop toolpath_crop(node);
   rclcpp::spin(node);
   return 0;
