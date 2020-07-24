@@ -22,8 +22,7 @@ def generate_launch_description():
     
     
 #    xacro = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs.urdf.xacro')
-#    xacro = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'swri_demo.urdf.xacro')
-    xacro = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'swri_demo3.urdf.xacro')
+    xacro = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'swri_demo.urdf.xacro')
     urdf = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs.urdf')
     urdf_preview = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs_preview.urdf')
     srdf = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'ur10e_robot.srdf')
@@ -108,10 +107,6 @@ def generate_launch_description():
         node_name='process_test_server',
         output='screen')
 
-#    motion_execution_server = launch_ros.actions.Node(
-#        node_executable='crs_motion_execution_motion_execution_server',
-#        package='crs_motion_execution',
-#        node_name='motion_execution_server',
     test_process_planner = launch_ros.actions.Node(
         node_executable='crs_motion_planning_process_planner_test',
         package='crs_motion_planning',
@@ -163,8 +158,6 @@ def generate_launch_description():
 
         # planning
         motion_planning_server,
-        process_planner_test_server,
 
         ur_comms_node,
-
 ])

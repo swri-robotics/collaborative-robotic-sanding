@@ -244,7 +244,6 @@ common::ActionResult ProcessExecutionManager::checkQueue()
   {
     current_media_change_idx_ = current_process_idx_;
     current_process_idx_++;
-    RCLCPP_ERROR(node_->get_logger(), "pp_size: %i, current_process_idx: %i, curr media change id: %i, media change size: %i", input_->process_plans.size(), current_process_idx_, current_media_change_idx_, input_->media_change_plans.size());
     if (current_media_change_idx_ < input_->media_change_plans.size())
     {
       res.succeeded = true;
