@@ -23,12 +23,12 @@ sac:
   inlier_fraction: 0.25
 crop_boxes:
   box1:
-    xyz: [0.0, -0.875, -0.25]
-    size: [2.0, 0.4, 0.2]
+    xyz: [0.0, -1.0, -0.25]
+    size: [2.5, 0.6, 0.3]
     reverse: True
   box2:
-    xyz: [0.0, -0.875, -0.45]
-    size: [2.0, 3.0, 0.2]
+    xyz: [0.0, -0.875, -0.48]
+    size: [2.5, 3.0, 0.2]
     reverse: False # deletes what's inside the box
   #box3:
   #  xyz: [0.25, -0.8, 1.3]

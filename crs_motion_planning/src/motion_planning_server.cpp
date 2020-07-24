@@ -249,7 +249,7 @@ public:
     motion_planner_config_->trajopt_verbose_output = this->get_parameter(param_names::TRAJOPT_VERBOSE).as_bool();
     motion_planner_config_->simplify_start_end_freespace = true;
     motion_planner_config_->use_trajopt_freespace = false;
-    motion_planner_config_->combine_strips = true;
+    motion_planner_config_->combine_strips = false;
     motion_planner_config_->global_descartes = true;
   }
 

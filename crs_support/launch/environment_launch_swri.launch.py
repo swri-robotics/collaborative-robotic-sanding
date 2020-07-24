@@ -131,13 +131,6 @@ def generate_launch_description():
         node_name='ur_comms_node',
         output='screen',
         condition = launch.conditions.UnlessCondition(launch.substitutions.LaunchConfiguration('sim_robot')))
-
-    ur_comms_node_sim = launch_ros.actions.Node(
-        node_executable='crs_robot_comms_ur_comms_sim',
-        package='crs_robot_comms',
-        node_name='ur_comms_sim_node',
-        output='screen',
-        condition = launch.conditions.IfCondition(launch.substitutions.LaunchConfiguration('sim_robot')))
         
     return launch.LaunchDescription([
         # arguments
@@ -165,5 +158,4 @@ def generate_launch_description():
         motion_planning_server,
 
         ur_comms_node,
-        ur_comms_node_sim,
 ])
