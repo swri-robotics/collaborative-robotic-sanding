@@ -190,7 +190,8 @@ public:
     trajopt_surface_config.waypoints_critical = false;
     trajopt_surface_config.longest_valid_segment_fraction = 0.1;
     trajopt_surface_config.special_collision_constraint.push_back({ "eoat_link", LOADED_PART_LINK_NAME,
-        -0.02, 15.0 }); trajopt_surface_config.special_collision_constraint.push_back(
+        -0.02, 15.0 });
+    trajopt_surface_config.special_collision_constraint.push_back(
             { "sander_intermediate_link", LOADED_PART_LINK_NAME, -0.02, 15.0 });
     trajopt_surface_config.special_collision_constraint.push_back({ "eoat_link", "table", -0.05, 15.0 });
     trajopt_surface_config.special_collision_constraint.push_back({ "sander_center_link", "table", -0.05, 15.0 });

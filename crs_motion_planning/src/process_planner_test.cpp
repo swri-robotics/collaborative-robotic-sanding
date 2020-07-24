@@ -58,14 +58,14 @@ void generateFakeToolPath(const double length_x,
                           const double spacing_y,
                           std::vector<geometry_msgs::msg::PoseArray>& toolpath)
 {
-  double curr_x = -length_x/2;
+  double curr_x = -length_x / 2;
   int side_mult = 1;
-  while (curr_x < length_x/2)
+  while (curr_x < length_x / 2)
   {
     geometry_msgs::msg::PoseArray curr_tp;
     curr_tp.header.frame_id = "part";
-    double curr_y = -length_y/2;
-    while (curr_y < length_y/2)
+    double curr_y = -length_y / 2;
+    while (curr_y < length_y / 2)
     {
       geometry_msgs::msg::Pose curr_pose;
       curr_pose.position.y = curr_x;
@@ -85,21 +85,20 @@ void generateFakeToolPath(const double length_x,
   std::cout << "Vec length: " << toolpath.size() << std::endl;
 }
 
-
-class ProcessPlannerTestServer// : public rclcpp::Node
+class ProcessPlannerTestServer  // : public rclcpp::Node
 {
 public:
   ProcessPlannerTestServer(std::shared_ptr<rclcpp::Node> node)
-//  ProcessPlannerTestServer()
+    //  ProcessPlannerTestServer()
     : node_(node)
     , pnode_(std::make_shared<rclcpp::Node>(std::string(node_->get_name()) + "_private"))
     , clock_(std::make_shared<rclcpp::Clock>(RCL_SYSTEM_TIME))
     , tf_buffer_(clock_)
     , tf_listener_(tf_buffer_)
   {
-//    call_process_plan_client_ = second_server.call_process_plan_client_;
-//    second_server_ = second_server;
-//    private_node_ = std::make_shared<rclcpp::Node>("private_node");
+    //    call_process_plan_client_ = second_server.call_process_plan_client_;
+    //    second_server_ = second_server;
+    //    private_node_ = std::make_shared<rclcpp::Node>("private_node");
 
     namespace fs = boost::filesystem;
 
@@ -136,26 +135,29 @@ public:
 
     surface_traj_exec_client_cbgroup_ =
         node_->create_callback_group(rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);
-//    surface_traj_exec_client_ =
-//        rclcpp_action::create_client<crs_msgs::action::CartesianComplianceTrajectory>(this->get_node_base_interface(),
-//                                                                                      this->get_node_graph_interface(),
-//                                                                                      this->get_node_logging_interface(),
-//                                                                                      this->get_node_waitables_interface(),
-//                                                                                      MOTION_EXECUTION_ACTION_TOPIC,
-//                                                                                      trajectory_exec_client_cbgroup_);
+    //    surface_traj_exec_client_ =
+    //        rclcpp_action::create_client<crs_msgs::action::CartesianComplianceTrajectory>(this->get_node_base_interface(),
+    //                                                                                      this->get_node_graph_interface(),
+    //                                                                                      this->get_node_logging_interface(),
+    //                                                                                      this->get_node_waitables_interface(),
+    //                                                                                      MOTION_EXECUTION_ACTION_TOPIC,
+    //                                                                                      trajectory_exec_client_cbgroup_);
     surface_traj_exec_client_ =
-        rclcpp_action::create_client<cartesian_trajectory_msgs::action::CartesianComplianceTrajectory>(node_->get_node_base_interface(),
-                                                                                            node_->get_node_graph_interface(),
-                                                                                            node_->get_node_logging_interface(),
-                                                                                            node_->get_node_waitables_interface(),
-                                                                                            MOTION_EXECUTION_ACTION_TOPIC,
-                                                                                            trajectory_exec_client_cbgroup_);
+        rclcpp_action::create_client<cartesian_trajectory_msgs::action::CartesianComplianceTrajectory>(
+            node_->get_node_base_interface(),
+            node_->get_node_graph_interface(),
+            node_->get_node_logging_interface(),
+            node_->get_node_waitables_interface(),
+            MOTION_EXECUTION_ACTION_TOPIC,
+            trajectory_exec_client_cbgroup_);
 
     joint_state_listener_ = node_->create_subscription<sensor_msgs::msg::JointState>(
         "joint_states", 1, std::bind(&ProcessPlannerTestServer::jointCallback, this, std::placeholders::_1));
 
     env_state_sub_ = node_->create_subscription<tesseract_msgs::msg::TesseractState>(
-        ENVIRONMENT_UPDATE_TOPIC_NAME, 10, std::bind(&ProcessPlannerTestServer::envCallback, this, std::placeholders::_1));
+        ENVIRONMENT_UPDATE_TOPIC_NAME,
+        10,
+        std::bind(&ProcessPlannerTestServer::envCallback, this, std::placeholders::_1));
 
     call_process_plan_client_ = pnode_->create_client<crs_msgs::srv::PlanProcessMotions>("plan_process_motion");
 
@@ -173,24 +175,24 @@ public:
     part_filepath_ = ament_index_cpp::get_package_share_directory("crs_support") + "/meshes/Parts/visual/"
                                                                                    "part1_ch.stl";
     // waiting for server
-//    if (!trajectory_exec_client_->wait_for_action_server(std::chrono::duration<double>(WAIT_SERVER_TIMEOUT)))
-//    {
-//      std::string err_msg =
-//          boost::str(boost::format("Failed to find action server %s") % FOLLOW_JOINT_TRAJECTORY_ACTION);
-//      RCLCPP_ERROR(node_->get_logger(), "%s", err_msg.c_str());
-//      throw std::runtime_error(err_msg);
-//    }
-//    RCLCPP_INFO(node_->get_logger(), "%s action client found2", FOLLOW_JOINT_TRAJECTORY_ACTION.c_str());
+    //    if (!trajectory_exec_client_->wait_for_action_server(std::chrono::duration<double>(WAIT_SERVER_TIMEOUT)))
+    //    {
+    //      std::string err_msg =
+    //          boost::str(boost::format("Failed to find action server %s") % FOLLOW_JOINT_TRAJECTORY_ACTION);
+    //      RCLCPP_ERROR(node_->get_logger(), "%s", err_msg.c_str());
+    //      throw std::runtime_error(err_msg);
+    //    }
+    //    RCLCPP_INFO(node_->get_logger(), "%s action client found2", FOLLOW_JOINT_TRAJECTORY_ACTION.c_str());
 
-//    // waiting for server
-//    if (!surface_traj_exec_client_->wait_for_action_server(std::chrono::duration<double>(WAIT_SERVER_TIMEOUT)))
-//    {
-//      std::string err_msg =
-//          boost::str(boost::format("Failed to find surface action server %s") % MOTION_EXECUTION_ACTION_TOPIC);
-//      RCLCPP_ERROR(node_->get_logger(), "%s", err_msg.c_str());
-//      throw std::runtime_error(err_msg);
-//    }
-//    RCLCPP_INFO(node_->get_logger(), "%s surface action client found", MOTION_EXECUTION_ACTION_TOPIC.c_str());
+    //    // waiting for server
+    //    if (!surface_traj_exec_client_->wait_for_action_server(std::chrono::duration<double>(WAIT_SERVER_TIMEOUT)))
+    //    {
+    //      std::string err_msg =
+    //          boost::str(boost::format("Failed to find surface action server %s") % MOTION_EXECUTION_ACTION_TOPIC);
+    //      RCLCPP_ERROR(node_->get_logger(), "%s", err_msg.c_str());
+    //      throw std::runtime_error(err_msg);
+    //    }
+    //    RCLCPP_INFO(node_->get_logger(), "%s surface action client found", MOTION_EXECUTION_ACTION_TOPIC.c_str());
 
     // openning files
     std::string urdf_path, srdf_path;
@@ -218,37 +220,31 @@ public:
     tesseract_local_->init(urdf_content, srdf_content, locator);
   }
 
-  void get_priv_node(rclcpp::Node::SharedPtr& priv_node)
-  {
-    priv_node = pnode_;
-  }
+  void get_priv_node(rclcpp::Node::SharedPtr& priv_node) { priv_node = pnode_; }
 
   void get_priv_node(rclcpp::Node::SharedPtr& priv_node) { priv_node = pnode_; }
 
 private:
-
   bool change_controller(const std_srvs::srv::SetBool::Request::SharedPtr req)
   {
     using namespace std_srvs::srv;
     if (req->data)
-        RCLCPP_ERROR(node_->get_logger(), "REQUESTING CART");
+      RCLCPP_ERROR(node_->get_logger(), "REQUESTING CART");
     else
-        RCLCPP_ERROR(node_->get_logger(), "REQUESTING JOINT");
+      RCLCPP_ERROR(node_->get_logger(), "REQUESTING JOINT");
     std::shared_future<SetBool::Response::SharedPtr> result_future =
         controller_changer_client_->async_send_request(req);
 
     std::future_status status = result_future.wait_for(std::chrono::seconds(15));
     if (status != std::future_status::ready)
     {
-      RCLCPP_ERROR(node_->get_logger(),
-                   "change controller service error or timeout");
+      RCLCPP_ERROR(node_->get_logger(), "change controller service error or timeout");
       return false;
     }
 
     if (!result_future.get()->success)
     {
-      RCLCPP_ERROR(node_->get_logger(),
-                   "change controller service failed");
+      RCLCPP_ERROR(node_->get_logger(), "change controller service failed");
       return false;
     }
 
@@ -272,7 +268,7 @@ private:
     std::string waypoint_origin_frame = "part";
     std::vector<geometry_msgs::msg::PoseArray> raster_strips;
     generateFakeToolPath(0.06, 0.5, 0.05, 0.025, raster_strips);
-//    crs_motion_planning::parsePathFromFile(toolpath_filepath_, waypoint_origin_frame, raster_strips);
+    //    crs_motion_planning::parsePathFromFile(toolpath_filepath_, waypoint_origin_frame, raster_strips);
     geometry_msgs::msg::PoseArray strip_of_interset;
     for (auto strip : raster_strips)
     {
@@ -334,14 +330,12 @@ private:
     std::future_status status = result_future.wait_for(std::chrono::seconds(20));
     if (status != std::future_status::ready)
     {
-      RCLCPP_ERROR(node_->get_logger(),
-                   "plan service error or timeout");
+      RCLCPP_ERROR(node_->get_logger(), "plan service error or timeout");
     }
 
     if (!result_future.get()->succeeded)
     {
-      RCLCPP_ERROR(node_->get_logger(),
-                   "plan service failed");
+      RCLCPP_ERROR(node_->get_logger(), "plan service failed");
     }
 
     RCLCPP_INFO(node_->get_logger(), "plan service succeeded");
@@ -393,32 +387,37 @@ private:
         trajectory_msgs::msg::JointTrajectory end_traj = process_plans[j].end;
         std::vector<trajectory_msgs::msg::JointTrajectory> process_motions = process_plans[j].process_motions;
         std::vector<trajectory_msgs::msg::JointTrajectory> freespace_motions = process_plans[j].free_motions;
-        std::vector<cartesian_trajectory_msgs::msg::CartesianTrajectory> cart_process_motions = process_plans[j].force_controlled_process_motions;
+        std::vector<cartesian_trajectory_msgs::msg::CartesianTrajectory> cart_process_motions =
+            process_plans[j].force_controlled_process_motions;
         if (start_traj.points.size() > 0)
         {
           trig_req->data = false;
           successful_controller_change = change_controller(trig_req);
           RCLCPP_ERROR(node_->get_logger(), "EXECUTING FIRST FREESPACE");
-          if (!successful_controller_change || !execTrajectory(trajectory_exec_client_, node_->get_logger(), start_traj))
+          if (!successful_controller_change ||
+              !execTrajectory(trajectory_exec_client_, node_->get_logger(), start_traj))
           {
             return;
           }
         }
 
-
         for (size_t i = 0; i < freespace_motions.size(); ++i)
         {
           RCLCPP_INFO(node_->get_logger(), "EXECUTING SURFACE TRAJECTORY\t%i OF %i", i + 1, process_motions.size());
-//          if (!execTrajectory(trajectory_exec_client_, this->get_logger(), process_motions[i]))
-//          {
-//            return;
-//          }
+          //          if (!execTrajectory(trajectory_exec_client_, this->get_logger(), process_motions[i]))
+          //          {
+          //            return;
+          //          }
           trig_req->data = true;
-//          trig_req->data = false;
+          //          trig_req->data = false;
           successful_controller_change = change_controller(trig_req);
-//          if (!successful_controller_change || !execSurfaceTrajectory(surface_traj_exec_client_, node_->get_logger(), process_motions[i], traj_config))
-          if (!successful_controller_change || !execSurfaceTrajectory(surface_traj_exec_client_, node_->get_logger(), cart_process_motions[i], traj_config))
-//          if (!successful_controller_change || !execTrajectory(trajectory_exec_client_, node_->get_logger(), process_motions[i]))
+          //          if (!successful_controller_change || !execSurfaceTrajectory(surface_traj_exec_client_,
+          //          node_->get_logger(), process_motions[i], traj_config))
+          if (!successful_controller_change ||
+              !execSurfaceTrajectory(
+                  surface_traj_exec_client_, node_->get_logger(), cart_process_motions[i], traj_config))
+          //          if (!successful_controller_change || !execTrajectory(trajectory_exec_client_, node_->get_logger(),
+          //          process_motions[i]))
           {
             return;
           }
@@ -426,7 +425,8 @@ private:
           trig_req->data = false;
           successful_controller_change = change_controller(trig_req);
           RCLCPP_INFO(node_->get_logger(), "EXECUTING FREESPACE TRAJECTORY\t%i OF %i", i + 1, freespace_motions.size());
-          if (!successful_controller_change || !execTrajectory(trajectory_exec_client_, node_->get_logger(), freespace_motions[i]))
+          if (!successful_controller_change ||
+              !execTrajectory(trajectory_exec_client_, node_->get_logger(), freespace_motions[i]))
           {
             return;
           }
@@ -437,11 +437,15 @@ private:
                     process_motions.size(),
                     process_motions.size());
         trig_req->data = true;
-//        trig_req->data = false;
+        //        trig_req->data = false;
         successful_controller_change = change_controller(trig_req);
-//        if (!successful_controller_change || !execSurfaceTrajectory(surface_traj_exec_client_, node_->get_logger(), process_motions.back(), traj_config))
-        if (!successful_controller_change || !execSurfaceTrajectory(surface_traj_exec_client_, node_->get_logger(), cart_process_motions.back(), traj_config))
-//        if (!successful_controller_change || !execTrajectory(trajectory_exec_client_, node_->get_logger(), process_motions.back()))
+        //        if (!successful_controller_change || !execSurfaceTrajectory(surface_traj_exec_client_,
+        //        node_->get_logger(), process_motions.back(), traj_config))
+        if (!successful_controller_change ||
+            !execSurfaceTrajectory(
+                surface_traj_exec_client_, node_->get_logger(), cart_process_motions.back(), traj_config))
+        //        if (!successful_controller_change || !execTrajectory(trajectory_exec_client_, node_->get_logger(),
+        //        process_motions.back()))
         {
           return;
         }
@@ -491,7 +495,8 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_listener_;
   rclcpp::callback_group::CallbackGroup::SharedPtr trajectory_exec_client_cbgroup_;
 
-  rclcpp_action::Client<cartesian_trajectory_msgs::action::CartesianComplianceTrajectory>::SharedPtr surface_traj_exec_client_;
+  rclcpp_action::Client<cartesian_trajectory_msgs::action::CartesianComplianceTrajectory>::SharedPtr
+      surface_traj_exec_client_;
   rclcpp::callback_group::CallbackGroup::SharedPtr surface_traj_exec_client_cbgroup_;
 
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr test_part_loader_client_;
@@ -526,17 +531,17 @@ int main(int argc, char** argv)
   std::shared_ptr<rclcpp::Node> pnode;
   exec.get_priv_node(pnode);
   executor.add_node(pnode);
-//  ProcessPlannerTestServer::SharedPtr node_test = std::make_shared<ProcessPlannerTestServer>();
-//  rclcpp::Node::SharedPtr node_private;
-//  get_priv_node(node_private);
-//  rclcpp::Node::SharedPtr node = std::make_shared<ProcessPlannerTestServer>();
-//  executor.add_node(node_test);
+  //  ProcessPlannerTestServer::SharedPtr node_test = std::make_shared<ProcessPlannerTestServer>();
+  //  rclcpp::Node::SharedPtr node_private;
+  //  get_priv_node(node_private);
+  //  rclcpp::Node::SharedPtr node = std::make_shared<ProcessPlannerTestServer>();
+  //  executor.add_node(node_test);
   executor.spin();
-//  while (rclcpp::ok())
-//  {
-//    executor.spin_some(rclcpp::Duration::from_seconds(15.0).to_chrono<std::chrono::nanoseconds>());
-//    executor.spin_some();
-//  }
+  //  while (rclcpp::ok())
+  //  {
+  //    executor.spin_some(rclcpp::Duration::from_seconds(15.0).to_chrono<std::chrono::nanoseconds>());
+  //    executor.spin_some();
+  //  }
   rclcpp::shutdown();
   return 0;
 }

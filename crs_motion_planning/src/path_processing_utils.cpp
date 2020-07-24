@@ -672,13 +672,12 @@ bool crs_motion_planning::timeParameterizeFreespace(
   return true;
 }
 
-
-
 void crs_motion_planning::findCartPoseArrayFromTraj(const trajectory_msgs::msg::JointTrajectory& joint_trajectory,
                                                     const cartesianTrajectoryConfig traj_config,
                                                     geometry_msgs::msg::PoseArray& cartesian_poses)
 {
-  const std::shared_ptr<const tesseract_environment::Environment> env = traj_config.tesseract_local->getEnvironmentConst();
+  const std::shared_ptr<const tesseract_environment::Environment> env =
+      traj_config.tesseract_local->getEnvironmentConst();
   tesseract_common::TransformMap curr_transforms = env->getCurrentState()->link_transforms;
 
   tesseract_kinematics::ForwardKinematics::ConstPtr kin =
@@ -692,30 +691,29 @@ void crs_motion_planning::findCartPoseArrayFromTraj(const trajectory_msgs::msg::
 
   for (auto joint_pose : joint_trajectory.points)
   {
-      Eigen::VectorXd joint_positions(joint_pose.positions.size());
-      for (size_t i = 0; i < joint_pose.positions.size(); i++)
-      {
-          joint_positions[static_cast<int>(i)] = joint_pose.positions[i];
-      }
-      Eigen::Isometry3d eig_pose;
-      kin->calcFwdKin(eig_pose, joint_positions);
-      Eigen::Isometry3d world_to_base_link = Eigen::Isometry3d::Identity();
-      eig_pose = world_to_base_link * eig_pose * Eigen::Quaterniond(-0.5, 0.5, -0.5, 0.5) * tool0_to_sander; // Fwd kin switches to x forward instead of z
-      geometry_msgs::msg::Pose curr_cart_pose = tf2::toMsg(eig_pose);
-      cartesian_poses.poses.push_back(curr_cart_pose);
+    Eigen::VectorXd joint_positions(joint_pose.positions.size());
+    for (size_t i = 0; i < joint_pose.positions.size(); i++)
+    {
+      joint_positions[static_cast<int>(i)] = joint_pose.positions[i];
+    }
+    Eigen::Isometry3d eig_pose;
+    kin->calcFwdKin(eig_pose, joint_positions);
+    Eigen::Isometry3d world_to_base_link = Eigen::Isometry3d::Identity();
+    eig_pose = world_to_base_link * eig_pose * Eigen::Quaterniond(-0.5, 0.5, -0.5, 0.5) *
+               tool0_to_sander;  // Fwd kin switches to x forward instead of z
+    geometry_msgs::msg::Pose curr_cart_pose = tf2::toMsg(eig_pose);
+    cartesian_poses.poses.push_back(curr_cart_pose);
   }
   cartesian_poses.header.frame_id = traj_config.base_frame;
 }
 
-
-void crs_motion_planning::genCartesianTrajectory(const trajectory_msgs::msg::JointTrajectory& joint_trajectory,
-                                                 const crs_motion_planning::cartesianTrajectoryConfig traj_config,
-                                                 cartesian_trajectory_msgs::msg::CartesianTrajectory& cartesian_trajectory)
+void crs_motion_planning::genCartesianTrajectory(
+    const trajectory_msgs::msg::JointTrajectory& joint_trajectory,
+    const crs_motion_planning::cartesianTrajectoryConfig traj_config,
+    cartesian_trajectory_msgs::msg::CartesianTrajectory& cartesian_trajectory)
 {
   geometry_msgs::msg::PoseArray cartesian_poses;
-  crs_motion_planning::findCartPoseArrayFromTraj(joint_trajectory,
-                                                 traj_config,
-                                                 cartesian_poses);
+  crs_motion_planning::findCartPoseArrayFromTraj(joint_trajectory, traj_config, cartesian_poses);
 
   Eigen::Vector3d tcp_force_vec = Eigen::Vector3d::Zero();
   tcp_force_vec.z() = traj_config.target_force;
@@ -740,10 +738,10 @@ void crs_motion_planning::genCartesianTrajectory(const trajectory_msgs::msg::Joi
   cartesian_trajectory.points.back().wrench.force.z = -target_wrench.force.z;
 }
 
-
-void crs_motion_planning::genCartesianTrajectoryGoal(const cartesian_trajectory_msgs::msg::CartesianTrajectory& cartesian_trajectory,
-                                                     const cartesianTrajectoryConfig traj_config,
-                                                     cartesian_trajectory_msgs::action::CartesianComplianceTrajectory::Goal& cartesian_trajectory_goal)
+void crs_motion_planning::genCartesianTrajectoryGoal(
+    const cartesian_trajectory_msgs::msg::CartesianTrajectory& cartesian_trajectory,
+    const cartesianTrajectoryConfig traj_config,
+    cartesian_trajectory_msgs::action::CartesianComplianceTrajectory::Goal& cartesian_trajectory_goal)
 {
   Eigen::Vector3d tcp_force_vec = Eigen::Vector3d::Zero();
   tcp_force_vec.z() = traj_config.target_force;
@@ -763,7 +761,6 @@ void crs_motion_planning::genCartesianTrajectoryGoal(const cartesian_trajectory_
   cartesian_trajectory_goal.path_tolerance.wrench_error.force = traj_config.force_tolerance;
   cartesian_trajectory_goal.trajectory = cartesian_trajectory;
 }
-
 
 bool crs_motion_planning::execSurfaceTrajectory(
     rclcpp_action::Client<cartesian_trajectory_msgs::action::CartesianComplianceTrajectory>::SharedPtr ac,
@@ -840,7 +837,6 @@ bool crs_motion_planning::execSurfaceTrajectory(
   RCLCPP_INFO(logger, "Trajectory completed");
   return true;
 }
-
 
 bool crs_motion_planning::execSurfaceTrajectory(
     rclcpp_action::Client<cartesian_trajectory_msgs::action::CartesianComplianceTrajectory>::SharedPtr ac,
