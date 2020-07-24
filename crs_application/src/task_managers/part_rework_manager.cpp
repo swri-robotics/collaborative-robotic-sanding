@@ -41,6 +41,7 @@ static const double WAIT_FOR_MSG_TIMEOUT = 5.0;
 static const double WAIT_ROBOT_STOP = 2.0;
 static const double WAIT_MOTION_COMPLETION = 30.0;
 static const double WAIT_FOR_SERVICE_PERIOD = 10.0;
+static const double WAIT_SERVICE_COMPLETION_TIMEOUT = 10.0;
 
 static const std::string FREESPACE_MOTION_PLAN_SERVICE = "plan_freespace_motion";
 static const std::string CROP_TOOLPATH_SERVICE = "crop_toolpaths";
@@ -104,6 +105,7 @@ common::ActionResult PartReworkManager::init()
       }))
   {
     RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
+    return false;
   }
   return true;
 }
@@ -211,6 +213,15 @@ common::ActionResult PartReworkManager::trimToolpaths()
 {
   using namespace crs_msgs;
 
+  // check if input has been set
+  if(!input_)
+  {
+    common::ActionResult res = false;
+    res.err_msg = "Input trajectory for part rework has not been set";
+    RCLCPP_INFO_STREAM(node_->get_logger(), res.err_msg);
+    return res;
+  }
+
   crs_msgs::msg::ToolProcessPath process_path;
   for (const geometry_msgs::msg::PoseArray& raster : input_->rasters)
   {
@@ -226,7 +237,6 @@ common::ActionResult PartReworkManager::trimToolpaths()
   std::shared_future<crs_msgs::srv::CropToolpaths::Response::SharedPtr> result_future =
       crop_toolpaths_client_->async_send_request(process_data_);
 
-  static const double WAIT_SERVICE_COMPLETION_TIMEOUT = 10.0;
   common::ActionResult res;
   if (result_future.wait_for(std::chrono::duration<double>(WAIT_SERVICE_COMPLETION_TIMEOUT)) != std::future_status::ready)
   {
@@ -339,6 +349,7 @@ common::ActionResult PartReworkManager::acquireScan()
     RCLCPP_ERROR_STREAM(node_->get_logger(),res.err_msg);
     return res;
   }
+  RCLCPP_INFO_STREAM(node_->get_logger(),"Acquired scan data");
   process_data_->clouds.push_back(*cloud_msg);
   process_data_->images.push_back(*image_msg);
 
