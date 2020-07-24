@@ -101,7 +101,8 @@ protected:
   using GoalHandleT = rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::GoalHandle;
   std::shared_ptr<rclcpp::Node> node_;
   rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::SharedPtr trajectory_exec_client_;
-  rclcpp_action::Client<cartesian_trajectory_msgs::action::CartesianComplianceTrajectory>::SharedPtr surface_trajectory_exec_client_;
+  rclcpp_action::Client<cartesian_trajectory_msgs::action::CartesianComplianceTrajectory>::SharedPtr
+      surface_trajectory_exec_client_;
   rclcpp::callback_group::CallbackGroup::SharedPtr trajectory_exec_client_cbgroup_;
   std::shared_future<GoalHandleT::SharedPtr> trajectory_exec_fut_;
   rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr controller_changer_client_;

@@ -54,16 +54,12 @@ static const std::string MEDIA_CHANGE_ROOT = "media_change";
 static const std::string PREVIEW_ROOT = "preview";
 
 static const std::vector<std::string> HOME_POS_ITEMS = { "joint_names", "joint_position" };
-static const std::vector<std::string> PROCESS_PATH_ITEMS = { "tool_speed",
-                                                             "offset_pose",
-                                                             "retreat_dist",
-                                                             "approach_dist",
-                                                             "tool_frame",
-                                                             "target_force" };
+static const std::vector<std::string> PROCESS_PATH_ITEMS = { "tool_speed",    "offset_pose", "retreat_dist",
+                                                             "approach_dist", "tool_frame",  "target_force" };
 static const std::vector<std::string> MEDIA_CHANGE_ITEMS = { "change_time",
                                                              "change_pose",
                                                              "joint_names",
-                                                             "joint_position"};
+                                                             "joint_position" };
 static const std::vector<std::string> PREVIEW_ITEMS = { "time_scaling" };
 }  // namespace motion_planning
 
@@ -71,7 +67,7 @@ namespace process_execution
 {
 static const std::string TOP_LEVEL = "process_execution";
 static const std::string TIME_TOLERANCE = "time_tolerance";
-static const std::string JOINT_TOLERANCE = "joint_tolerance";  // vector<double>
+static const std::string JOINT_TOLERANCE = "joint_tolerance";                    // vector<double>
 static const std::string CARTESIAN_PATH_TOLERANCE = "cartesian_path_tolerance";  // vector<double>
 static const std::string CARTESIAN_GOAL_TOLERANCE = "cartesian_goal_tolerance";  // vector<double>
 static const std::string FORCE_TOLERANCE = "force_tolerance";
@@ -241,9 +237,14 @@ boost::optional<ProcessExecutionConfig> parse(YAML::Node& config, std::string& e
   try
   {
     Node root_node = config[TOP_LEVEL];
-    if (root_node && hasFields(root_node, TOP_LEVEL, { TIME_TOLERANCE, JOINT_TOLERANCE,
-                                                       CARTESIAN_PATH_TOLERANCE, CARTESIAN_GOAL_TOLERANCE,
-                                                       FORCE_TOLERANCE, FORCE_MOTIONS}))
+    if (root_node && hasFields(root_node,
+                               TOP_LEVEL,
+                               { TIME_TOLERANCE,
+                                 JOINT_TOLERANCE,
+                                 CARTESIAN_PATH_TOLERANCE,
+                                 CARTESIAN_GOAL_TOLERANCE,
+                                 FORCE_TOLERANCE,
+                                 FORCE_MOTIONS }))
     {
       cfg.traj_time_tolerance = root_node[TIME_TOLERANCE].as<double>();
       cfg.joint_tolerance = root_node[JOINT_TOLERANCE].as<std::vector<double>>();
@@ -265,7 +266,8 @@ boost::optional<ProcessExecutionConfig> parse(YAML::Node& config, std::string& e
 
     Node mp_root_node = config[config_fields::motion_planning::TOP_LEVEL];
     Node process_path_node = mp_root_node[config_fields::motion_planning::PROCESS_PATH_ROOT];
-    if (process_path_node && hasFields(process_path_node, config_fields::motion_planning::PROCESS_PATH_ROOT,
+    if (process_path_node && hasFields(process_path_node,
+                                       config_fields::motion_planning::PROCESS_PATH_ROOT,
                                        config_fields::motion_planning::PROCESS_PATH_ITEMS))
     {
       cfg.tool_speed = process_path_node[config_fields::motion_planning::PROCESS_PATH_ITEMS[0]].as<double>();
@@ -345,8 +347,9 @@ boost::optional<ScanAcquisitionConfig> parse(YAML::Node& config, std::string& er
     }
 
     Node pe_root_node = config[config_fields::process_execution::TOP_LEVEL];
-    if (pe_root_node && hasFields(pe_root_node, config_fields::process_execution::TOP_LEVEL,
-                                  {config_fields::process_execution::FORCE_MOTIONS}))
+    if (pe_root_node && hasFields(pe_root_node,
+                                  config_fields::process_execution::TOP_LEVEL,
+                                  { config_fields::process_execution::FORCE_MOTIONS }))
     {
       cfg.force_controlled_trajectories = pe_root_node[config_fields::process_execution::FORCE_MOTIONS].as<bool>();
     }
