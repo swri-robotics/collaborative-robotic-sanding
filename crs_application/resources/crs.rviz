@@ -7,6 +7,7 @@ Panels:
         - /RobotMotionPreview1/Description Topic1
         - /TF1/Frames1
         - /Scan Poses1/Topic1
+        - /Axes1
       Splitter Ratio: 0.44999998807907104
     Tree Height: 802
   - Class: rviz_common/Selection
@@ -177,7 +178,8 @@ Visualization Manager:
       Enabled: true
       Name: Part Registration Preview
       Namespaces:
-        {}
+        part: true
+        toolpath: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -209,7 +211,7 @@ Visualization Manager:
       Color: 255; 255; 255
       Color Transformer: RGB8
       Decay Time: 0
-      Enabled: false
+      Enabled: true
       Invert Rainbow: false
       Max Color: 255; 255; 255
       Max Intensity: 4096
@@ -229,7 +231,7 @@ Visualization Manager:
         Value: /crs/camera/pointcloud
       Use Fixed Frame: true
       Use rainbow: true
-      Value: false
+      Value: true
     - Alpha: 1
       Arrow Length: 0.30000001192092896
       Axes Length: 0.20000000298023224
@@ -466,6 +468,13 @@ Visualization Manager:
         Reliability Policy: Reliable
         Value: /crs/fixed_raster_paths
       Value: true
+    - Class: rviz_default_plugins/Axes
+      Enabled: true
+      Length: 1
+      Name: Axes
+      Radius: 0.10000000149011612
+      Reference Frame: world
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 48; 48; 48
@@ -524,10 +533,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.23539867997169495
+      Pitch: 0.2903984487056732
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.1822028160095215
+      Yaw: 4.938567161560059
     Saved: ~
 Window Geometry:
   ApplicationPanel:
