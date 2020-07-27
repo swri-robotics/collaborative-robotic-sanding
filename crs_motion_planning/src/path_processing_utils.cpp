@@ -2,7 +2,7 @@
 #include <boost/format.hpp>
 #include <crs_motion_planning/path_processing_utils.h>
 
-static const double TRAJECTORY_TIME_TOLERANCE = 5.0;  // seconds
+static const double TRAJECTORY_TIME_TOLERANCE = 15.0;  // seconds
 static const double WAIT_RESULT_TIMEOUT = 1.0;        // seconds
 static const rclcpp::Logger LOGGER = rclcpp::get_logger("PATH_PROCESSING_UTILS");
 
