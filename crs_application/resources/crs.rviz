@@ -195,7 +195,8 @@ Visualization Manager:
       Enabled: true
       Name: Part Registration Preview
       Namespaces:
-        {}
+        part: true
+        toolpath: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -247,7 +248,7 @@ Visualization Manager:
         Value: /crs/camera/pointcloud
       Use Fixed Frame: true
       Use rainbow: true
-      Value: false
+      Value: true
     - Alpha: 1
       Arrow Length: 0.30000001192092896
       Axes Length: 0.20000000298023224
@@ -537,6 +538,13 @@ Visualization Manager:
       Show Axes: true
       Show Descriptions: true
       Show Visual Aids: false
+      Value: true
+    - Class: rviz_default_plugins/Axes
+      Enabled: true
+      Length: 1
+      Name: Axes
+      Radius: 0.10000000149011612
+      Reference Frame: world
       Value: true
   Enabled: true
   Global Options:
