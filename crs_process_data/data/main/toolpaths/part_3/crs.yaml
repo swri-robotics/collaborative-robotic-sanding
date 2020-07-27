@@ -11,12 +11,9 @@ crs:
       retreat_dist: 0.03
       approach_dist: 0.03
       tool_frame: sander_center_link
-      target_force: 15
     media_change:
       change_time: 300.0
       change_pose: [-0.381, -0.202, 1.5, 0.0, -0.786, 1.57]
-      joint_names: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
-      joint_position: []
     preview:
       time_scaling: 4.0
   scan_acquisition:
