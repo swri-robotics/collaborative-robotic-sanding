@@ -1,0 +1,37 @@
+crs:
+  general: {}
+  motion_planning:
+    pre_move_home: true
+    home_position:
+      joint_names: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
+      joint_position: [-0.9644, -1.3617, 2.0724, -0.7108, -0.9640, 0.7994]
+    process_path:
+      tool_speed: 0.1
+      offset_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      retreat_dist: 0.03
+      approach_dist: 0.03
+      tool_frame: sander_center_link
+    media_change:
+      change_time: 300.0
+      change_pose: [-0.381, -0.202, 1.5, 0.0, -0.786, 1.57]
+    preview:
+      time_scaling: 4.0
+  scan_acquisition:
+    scan_poses:
+      - pose: [0.0, -0.50, 1.7, 0.0, -2.35619, 1.57]
+      - pose: [0.0, -0.25, 1.7, 0.0, -2.35619, 1.57]
+      - pose: [0.0, -0.10, 1.7, 0.5, -2.35619, 1.57]
+      - pose: [0.0, 0.0, 1.7, 0.0, -2.35619, 1.57]
+      - pose: [0.0, 0.1, 1.7, -0.8, -2.35619, 1.57]
+    tool_frame: camera_link_optical
+    skip_on_failure: true
+  process_execution:
+    time_tolerance: 5.0
+    joint_tolerance: [0.035, 0.035, 0.035, 0.035, 0.035, 0.035]
+  part_registration:
+    simulation_pose: [-0.7, 0.0, 1.1, 0.0, 0.0, 1.57]
+    seed_pose: [-0.68, 0.0, 1.0, 0.0, 0.0, 1.57]
+    target_frame_id: world
+    part_file: /home/jnicho/crs_data/part_2/part_2.stl
+    toolpath_file: /home/jnicho/crs_data/part_2/job_0_degrees_20200520T192241.997282.yaml
+  part_rework: {}
