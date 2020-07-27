@@ -47,7 +47,7 @@ static const std::string FREESPACE_MOTION_PLAN_SERVICE = "plan_freespace_motion"
 static const std::string MANAGER_NAME = "ScanAcquisitionManager";
 static const std::string SCAN_POSES_TOPIC = "scan_poses";
 static const std::string DEFAULT_WORLD_FRAME_ID = "world";
-static const std::string CONTROLLER_CHANGER_SERVICE = "test_serv";
+static const std::string CONTROLLER_CHANGER_SERVICE = "compliance_controller_on";
 
 namespace crs_application
 {
@@ -224,8 +224,8 @@ common::ActionResult ScanAcquisitionManager::capture()
     geometry_msgs::msg::TransformStamped transform;
     try
     {
-      transform = tf_buffer_.lookupTransform(
-          DEFAULT_WORLD_FRAME_ID, captured_cloud.header.frame_id, tf2::TimePointZero, tf2::Duration(5));
+      transform =
+          tf_buffer_.lookupTransform(DEFAULT_WORLD_FRAME_ID, captured_cloud.header.frame_id, tf2::TimePointZero, tf2::Duration(5));
     }
     catch (tf2::TransformException ex)
     {
