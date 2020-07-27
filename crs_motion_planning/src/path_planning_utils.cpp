@@ -972,7 +972,7 @@ bool crsMotionPlanner::generateFreespacePlan(const tesseract_motion_planners::Jo
   tesseract_motion_planners::JointWaypoint::Ptr goal_waypoint;
   if (!findClosestJointOrientation(start_pose, end_pose, goal_waypoint))
   {
-    RCLCPP_ERROR(logger_, "FAILED TO FIND A FEASIBLE SOLUTION");
+    RCLCPP_ERROR(logger_, "FAILED TO FIND A FEASIBLE IK SOLUTION");
     return false;
   }
   RCLCPP_INFO(logger_, "PLANNING OMPL VIA JOINT WAYPOINTS");

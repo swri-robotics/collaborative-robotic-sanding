@@ -171,7 +171,7 @@ public:
     crs_motion_planning::descartesConfig descartes_config;
     descartes_config.axial_step = 0.075;
     descartes_config.collision_safety_margin = 0.015;
-    //    descartes_config.tool_offset.translation().z() = 0.025;
+    descartes_config.tool_offset.translation().z() = 0.0;
 
     crs_motion_planning::trajoptSurfaceConfig trajopt_surface_config;
     trajopt_surface_config.smooth_velocities = false;
