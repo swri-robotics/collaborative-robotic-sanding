@@ -17,6 +17,7 @@
 #include "ui_crs_application.h"
 
 #include <atomic>
+
 #include <QMessageBox>
 #include <QStateMachine>
 #include <QProgressBar>
@@ -41,21 +42,20 @@
 
 #include <crs_motion_planning/path_processing_utils.h>
 
+#include<boost/format.hpp>
 #include <boost/filesystem.hpp>
 
 // general
-const static std::string CURRENT_STATE_TOPIC = "current_state";
-const static std::string GET_AVAILABLE_ACTIONS = "get_available_actions";
 const static std::string GET_CONFIGURATION_SERVICE = "get_configuration";
-const static std::string EXECUTE_ACTION = "execute_action";
 const static std::string MESH_MARKER_TOPIC = "mesh_marker";
 const static std::string TOOLPATH_MARKER_TOPIC = "toolpath_marker";
-const static double WAIT_FOR_SERVICE_PERIOD = 1.0;
 static const std::string TOOLPATH_FILE_EXT = ".yaml";
 static const std::string CONFIG_FILES_DIR = "configs";
 static const std::string CONFIG_FILE_SUFFIX = "_config.yaml";
 static const std::string DEFAULT_CONFIG_FILE = "crs.yaml";  // in part directory
 static const std::string WORLD_FRAME = "world";
+static const std::string CACHE_DIR = std::string(getenv("HOME")) + std::string("/.crs");
+static const std::string TEMP_CONFIG_FILE_NAME = "crs.yaml";
 
 // configuration variables
 static const std::vector<std::string> PART_SELECTION_STATES = { "Ready::Wait_Config", "Ready::Wait_User_Cmd" };
@@ -77,6 +77,7 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node, QWidget
   , area_selection_widget_(new PolygonAreaSelectionWidget(support_widgets_node_, WORLD_FRAME, WORLD_FRAME))
   , state_machine_interface_widget_(new StateMachineInterfaceWidget(support_widgets_node_))
 {
+  namespace fs = boost::filesystem;
   ui_->setupUi(this);
 
   // Set up ROS Interfaces to crs_application
@@ -84,6 +85,18 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node, QWidget
       std::bind(&CRSApplicationWidget::getConfigurationCb, this, std::placeholders::_1, std::placeholders::_2);
   get_configuration_srv_ =
       node_->create_service<crs_msgs::srv::GetConfiguration>(GET_CONFIGURATION_SERVICE, get_configuration_cb);
+
+  // creating cache directory
+  if(!fs::exists(fs::path(CACHE_DIR)))
+  {
+    if(!fs::create_directories(fs::path(CACHE_DIR)))
+    {
+      std::string err_msg = boost::str(boost::format("Failed to create cached directory in location %s") % CACHE_DIR);
+      throw std::runtime_error(err_msg);
+    }
+    RCLCPP_WARN(node_->get_logger(),"Created cached directory %s", CACHE_DIR.c_str());
+  }
+  RCLCPP_INFO(node_->get_logger(),"Found cached directory %s", CACHE_DIR.c_str());
 
   // load parameters
   const std::vector<std::string> parameter_names = { "default_config_file", "database_dir" };
@@ -311,7 +324,8 @@ bool CRSApplicationWidget::loadConfig(const std::string config_file)
     RCLCPP_ERROR(node_->get_logger(), "Failed to parse config file %s with msg: %S", config_file.c_str(), e.what());
   }
   config_yaml_node_ = std::make_shared<YAML::Node>(YAML::Clone(config_node));
-  config_file_path_ = config_file;
+
+  config_file_path_ = (fs::path(CACHE_DIR) / fs::path(TEMP_CONFIG_FILE_NAME)).string();
   return true;
 }
 
