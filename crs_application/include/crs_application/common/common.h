@@ -180,6 +180,7 @@ static typename Srv::Response::SharedPtr waitForResponse(typename rclcpp::Client
 template <class Msg>
 static std::shared_ptr<Msg> waitForMessage(std::shared_ptr<rclcpp::Node> node,
                                            const std::string& topic_name,
+                                           bool spin_node,
                                            double timeout)
 {
   std::shared_ptr<Msg> msg = nullptr;
@@ -194,25 +195,39 @@ static std::shared_ptr<Msg> waitForMessage(std::shared_ptr<rclcpp::Node> node,
 
   std::atomic<bool> done;
   done = false;
-  auto spinner_fut = std::async([&done, node, subs]() mutable -> bool {
-    while (!done)
-    {
-      rclcpp::spin_some(node);
-    }
-    /** @warning there's no clean way to close a subscription but according to this issue
-                             https://github.com/ros2/rclcpp/issues/205, destroying the subscription
-                             should accomplish the same */
-    subs.reset();
-    return true;
-  });
+  std::future<bool> spinner_fut;
+  if(spin_node)
+  {
+    spinner_fut = std::async(std::launch::async,[&done, node, subs]() mutable -> bool {
+      while (!done)
+      {
+        rclcpp::spin_some(node);
+      }
+
+      return true;
+    });
+  }
 
   std::future_status sts = fut_obj.wait_for(std::chrono::duration<double>(timeout));
-  done = true;
-  spinner_fut.get();
+  done = true; // should stop the spining thread
+
+  /** @warning there's no clean way to close a subscription but according to this issue
+                           https://github.com/ros2/rclcpp/issues/205, destroying the subscription
+                           should accomplish the same */
+  std::string true_topic_name = subs->get_topic_name();
+  subs.reset(); // stopping subscriber
+
+  // waiting for spinning thread to exit
+  if(spinner_fut.valid())
+  {
+    spinner_fut.get();
+  }
+
   if (sts != std::future_status::ready)
   {
     std::string err_code = sts == std::future_status::timeout ? std::string("Timeout") : std::string("Deferred");
-    RCLCPP_ERROR(node->get_logger(), "%s error while waiting for message", err_code.c_str());
+    RCLCPP_ERROR(node->get_logger(), "%s error while waiting for message in topic %s", err_code.c_str(),
+                 true_topic_name.c_str());
     return nullptr;
   }
   msg = std::make_shared<Msg>(fut_obj.get());

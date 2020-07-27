@@ -22,11 +22,19 @@ def load_yaml(package_name, file_path):
     
 def generate_launch_description():
     
-    localization_config= load_yaml('crs_application', 'config/localization.yaml')
+    # Part Localization Config
+    localization_config= load_yaml('crs_application', 'config/part_localization.yaml')
     general_params = {'general' : localization_config['general']}
     icp_params = {'icp':localization_config['icp']}
     sac_params = {'sac':localization_config['sac']}
     crop_boxes_params = {'crop_boxes': localization_config['crop_boxes']}
+    
+    # Toolpath Crop Config
+    region_detection_opencv_cfg = load_yaml('crs_application','config/toolpath_crop/region_detection_opencv_split_imgs.yaml')
+    region_detection_pcl2d_cfg = load_yaml('crs_application','config/toolpath_crop/region_detection_pcl2d.yaml')
+    region_detection_pcl_cfg = load_yaml('crs_application','config/toolpath_crop/region_detection_pcl.yaml')
+    region_crop_cfg = load_yaml('crs_application','config/toolpath_crop/region_crop.yaml')    
+    
    
     # ComposableNodeContainer not used because it fails to load parameters, using node instead
     '''
@@ -63,6 +71,22 @@ def generate_launch_description():
                     crop_boxes_params
                     ])   
     
+    print('config_opencv %s' % str(region_detection_opencv_cfg))
+    
+    toolpath_crop_node = Node(
+        node_executable='toolpath_crop_node',
+        package='crs_perception',
+        node_name='toolpath_crop_node',
+        node_namespace = GLOBAL_NS ,
+        output='screen',
+        #prefix= 'xterm -e gdb --args',
+        parameters=[{'config_opencv': region_detection_opencv_cfg},
+                    {'config_pcl2d': region_detection_pcl2d_cfg},
+                    {'config_pcl': region_detection_pcl_cfg},
+                    {'region_crop': region_crop_cfg}
+                    ])  
+    
     return launch.LaunchDescription([
-        part_localization_node])
+        part_localization_node,
+        toolpath_crop_node])
     

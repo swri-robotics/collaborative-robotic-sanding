@@ -37,10 +37,20 @@
 #define INCLUDE_CRS_APPLICATION_TASK_MANAGERS_PART_REWORK_MANAGER_H_
 
 #include <memory>
+
 #include <rclcpp/rclcpp.hpp>
+
 #include "crs_application/common/common.h"
 #include "crs_application/common/datatypes.h"
 #include "crs_application/common/config.h"
+
+#include <tf2_ros/buffer.h>
+#include <tf2_ros/transform_listener.h>
+
+#include <visualization_msgs/msg/marker_array.hpp>
+
+#include <crs_msgs/srv/call_freespace_motion.hpp>
+#include <crs_msgs/srv/crop_toolpaths.hpp>
 
 namespace crs_application
 {
@@ -58,17 +68,50 @@ public:
   common::ActionResult setInput(const datatypes::ProcessToolpathData& input);
 
   // Process Actions
-  common::ActionResult getUserSelection();
+  common::ActionResult reset();
+  common::ActionResult moveRobot();
+  common::ActionResult acquireScan();
+  common::ActionResult doneScanning();
   common::ActionResult trimToolpaths();
   common::ActionResult showPreview();
+  common::ActionResult hidePreview();
 
   // Results
   const datatypes::ProcessToolpathData& getResult() { return result_; }
 
 protected:
   std::shared_ptr<rclcpp::Node> node_;
+  std::shared_ptr<rclcpp::Node> private_node_;
+  rclcpp::executors::MultiThreadedExecutor pnode_executor_;
+
+  // tf
+  tf2_ros::Buffer tf_buffer_;
+  tf2_ros::TransformListener tf_listener_;
+
+  // publishers
+  rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr scan_poses_pub_;
+  rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr cropped_toolpath_markers_pub_;
+
+  // service clients
+  rclcpp::Client<crs_msgs::srv::CallFreespaceMotion>::SharedPtr call_freespace_motion_client_;
+  rclcpp::Client<crs_msgs::srv::CropToolpaths>::SharedPtr crop_toolpaths_client_;
+
+  // timers
+  rclcpp::TimerBase::SharedPtr scan_poses_pub_timer_;
+  rclcpp::TimerBase::SharedPtr preview_markers_publish_timer_;
+
+  // config parameters
+  std::shared_ptr<config::PartReworkConfig> config_;
+  std::vector<geometry_msgs::msg::Transform> scan_poses_;
+
+  // inputs and outputs
   std::shared_ptr<datatypes::ProcessToolpathData> input_ = nullptr;
   datatypes::ProcessToolpathData result_;
+
+  // process data
+  bool proceed_next_scan; /** @brief will be set to false if previous robot move failed*/
+  crs_msgs::srv::CropToolpaths::Request::Ptr process_data_;
+  int scan_index_;
 };
 
 } /* namespace task_managers */

@@ -94,6 +94,10 @@ struct PartRegistrationConfig
 
 struct PartReworkConfig
 {
+  std::vector<std::vector<double> > scan_poses;
+  std::string tool_frame;
+  double pre_acquisition_pause = 2.0; /** @brief seconds */
+  bool skip_on_failure = false;
 };
 
 template <class T>
@@ -110,6 +114,9 @@ boost::optional<ScanAcquisitionConfig> parse(YAML::Node& config, std::string& er
 
 template <>
 boost::optional<PartRegistrationConfig> parse(YAML::Node& config, std::string& err_msg);
+
+template <>
+boost::optional<PartReworkConfig> parse(YAML::Node& config, std::string& err_msg);
 
 }  // namespace config
 }  // namespace crs_application

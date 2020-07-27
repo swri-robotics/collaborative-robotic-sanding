@@ -72,6 +72,10 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        preview/camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         preview/camera_link_optical:
           Alpha: 1
           Show Axes: false
@@ -104,6 +108,7 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+          Value: true
         preview/shoulder_link:
           Alpha: 1
           Show Axes: false
@@ -143,133 +148,19 @@ Visualization Manager:
       Value: true
       Visual Enabled: true
     - Class: rviz_default_plugins/TF
-      Enabled: true
+      Enabled: false
       Frame Timeout: 15
       Frames:
         All Enabled: false
-        base:
-          Value: false
-        base_link:
-          Value: false
-        camera_link_optical:
-          Value: true
-        ee_link:
-          Value: false
-        eoat_link:
-          Value: false
-        forearm_link:
-          Value: false
-        gazebo_camera_link:
-          Value: false
-        part:
-          Value: true
-        preview/base:
-          Value: false
-        preview/base_link:
-          Value: false
-        preview/camera_link_optical:
-          Value: false
-        preview/ee_link:
-          Value: false
-        preview/eoat_link:
-          Value: false
-        preview/forearm_link:
-          Value: false
-        preview/gazebo_camera_link:
-          Value: false
-        preview/robot_stand:
-          Value: false
-        preview/sander_center_link:
-          Value: false
-        preview/shoulder_link:
-          Value: false
-        preview/tool0:
-          Value: false
-        preview/upper_arm_link:
-          Value: false
-        preview/wrist_1_link:
-          Value: false
-        preview/wrist_2_link:
-          Value: false
-        preview/wrist_3_link:
-          Value: false
-        robot_stand:
-          Value: false
-        sander_center_link:
-          Value: false
-        shoulder_link:
-          Value: false
-        tool0:
-          Value: false
-        upper_arm_link:
-          Value: false
-        world:
-          Value: true
-        wrist_1_link:
-          Value: false
-        wrist_2_link:
-          Value: false
-        wrist_3_link:
-          Value: false
       Marker Scale: 1
       Name: TF
       Show Arrows: true
       Show Axes: true
       Show Names: false
       Tree:
-        world:
-          base:
-            {}
-          base_link:
-            {}
-          camera_link_optical:
-            {}
-          ee_link:
-            {}
-          eoat_link:
-            {}
-          forearm_link:
-            {}
-          gazebo_camera_link:
-            {}
-          part:
-            {}
-          preview/robot_stand:
-            preview/base:
-              preview/base_link:
-                preview/shoulder_link:
-                  preview/upper_arm_link:
-                    preview/forearm_link:
-                      preview/wrist_1_link:
-                        preview/wrist_2_link:
-                          preview/wrist_3_link:
-                            preview/ee_link:
-                              {}
-                            preview/tool0:
-                              preview/eoat_link:
-                                preview/camera_link_optical:
-                                  preview/gazebo_camera_link:
-                                    {}
-                                preview/sander_center_link:
-                                  {}
-          robot_stand:
-            {}
-          sander_center_link:
-            {}
-          shoulder_link:
-            {}
-          tool0:
-            {}
-          upper_arm_link:
-            {}
-          wrist_1_link:
-            {}
-          wrist_2_link:
-            {}
-          wrist_3_link:
-            {}
+        {}
       Update Interval: 0
-      Value: true
+      Value: false
     - Class: rviz_default_plugins/MarkerArray
       Enabled: true
       Name: MarkerArray
@@ -286,8 +177,7 @@ Visualization Manager:
       Enabled: true
       Name: Part Registration Preview
       Namespaces:
-        part: true
-        toolpath: true
+        {}
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -339,7 +229,7 @@ Visualization Manager:
         Value: /crs/camera/pointcloud
       Use Fixed Frame: true
       Use rainbow: true
-      Value: true
+      Value: false
     - Alpha: 1
       Arrow Length: 0.30000001192092896
       Axes Length: 0.20000000298023224
@@ -387,6 +277,10 @@ Visualization Manager:
           Show Axes: false
           Show Trail: false
           Value: true
+        camera_link:
+          Alpha: 1
+          Show Axes: false
+          Show Trail: false
         camera_link_optical:
           Alpha: 1
           Show Axes: false
@@ -419,6 +313,7 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
+          Value: true
         shoulder_link:
           Alpha: 1
           Show Axes: false
@@ -629,10 +524,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.20039890706539154
+      Pitch: 0.23539867997169495
       Target Frame: <Fixed Frame>
       Value: Orbit (rviz)
-      Yaw: 1.0122027397155762
+      Yaw: 1.1822028160095215
     Saved: ~
 Window Geometry:
   ApplicationPanel:

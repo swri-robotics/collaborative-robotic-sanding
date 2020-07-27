@@ -606,7 +606,7 @@
             -->
             <ros>
               <namespace>custom_ns</namespace>
-              <argument>camera/image_raw:=camera/custom_image</argument>
+              <argument>camera/image_raw:=camera/image</argument>
               <argument>camera/image_depth:=camera/custom_image_depth</argument>
               <argument>camera/camera_info:=camera/custom_info_raw</argument>
               <argument>camera/camera_info_depth:=camera/custom_info_depth</argument>

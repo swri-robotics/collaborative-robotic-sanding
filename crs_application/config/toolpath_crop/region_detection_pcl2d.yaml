@@ -1,0 +1,5 @@
+downsampling_radius: 4.0 #  pixel units
+split_dist: 6.0 #  pixel units
+closed_curve_max_dist: 6.0 #  pixel units
+simplification_min_points: 10 #  applies simplification only if the closed curve has 10 points or more
+simplification_alpha: 24.0 #  pixel units, used in concave hull step
