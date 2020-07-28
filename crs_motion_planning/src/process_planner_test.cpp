@@ -529,17 +529,7 @@ int main(int argc, char** argv)
   std::shared_ptr<rclcpp::Node> pnode;
   exec.get_priv_node(pnode);
   executor.add_node(pnode);
-  //  ProcessPlannerTestServer::SharedPtr node_test = std::make_shared<ProcessPlannerTestServer>();
-  //  rclcpp::Node::SharedPtr node_private;
-  //  get_priv_node(node_private);
-  //  rclcpp::Node::SharedPtr node = std::make_shared<ProcessPlannerTestServer>();
-  //  executor.add_node(node_test);
   executor.spin();
-  //  while (rclcpp::ok())
-  //  {
-  //    executor.spin_some(rclcpp::Duration::from_seconds(15.0).to_chrono<std::chrono::nanoseconds>());
-  //    executor.spin_some();
-  //  }
   rclcpp::shutdown();
   return 0;
 }
