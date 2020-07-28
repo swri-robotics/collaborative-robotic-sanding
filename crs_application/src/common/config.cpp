@@ -345,18 +345,6 @@ boost::optional<ScanAcquisitionConfig> parse(YAML::Node& config, std::string& er
     {
       return boost::none;
     }
-
-    Node pe_root_node = config[config_fields::process_execution::TOP_LEVEL];
-    if (pe_root_node && hasFields(pe_root_node,
-                                  config_fields::process_execution::TOP_LEVEL,
-                                  { config_fields::process_execution::FORCE_MOTIONS }))
-    {
-      cfg.force_controlled_trajectories = pe_root_node[config_fields::process_execution::FORCE_MOTIONS].as<bool>();
-    }
-    else
-    {
-      return boost::none;
-    }
   }
   catch (InvalidNode& e)
   {

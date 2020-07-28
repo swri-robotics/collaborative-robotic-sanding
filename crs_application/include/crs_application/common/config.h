@@ -96,8 +96,6 @@ struct ScanAcquisitionConfig
   std::vector<std::vector<double> > scan_poses;
   std::string tool_frame;
   bool skip_on_failure = false;
-
-  bool force_controlled_trajectories = false;
 };
 
 struct PartRegistrationConfig
