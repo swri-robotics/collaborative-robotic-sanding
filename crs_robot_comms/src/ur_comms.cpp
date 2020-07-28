@@ -36,7 +36,7 @@ public:
     restart_robot_control_client_ = pnode_->create_client<std_srvs::srv::Trigger>(UR_RESTART_CONTROL_SERVICE);
   }
 
-  void get_priv_node(rclcpp::Node::SharedPtr& priv_node) { priv_node = pnode_; }
+  void getPrivNode(rclcpp::Node::SharedPtr& priv_node) { priv_node = pnode_; }
 
 private:
   bool establishComputerControl()
@@ -189,7 +189,7 @@ int main(int argc, char** argv)
   executor.add_node(node);
   URRobotComms exec(node);
   std::shared_ptr<rclcpp::Node> pnode;
-  exec.get_priv_node(pnode);
+  exec.getPrivNode(pnode);
   executor.add_node(pnode);
   executor.spin();
   rclcpp::shutdown();
