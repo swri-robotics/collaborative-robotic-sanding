@@ -62,7 +62,7 @@ struct MotionPlanningConfig
   double target_force = 20;
 
   // media change
-  double media_change_time;            /** @brief time that needs to elapse for the next media change secs */
+  double media_change_time; /** @brief time that needs to elapse for the next media change secs */
   std::vector<std::string> media_joint_names;
   std::vector<double> joint_media_position;
 

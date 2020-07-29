@@ -56,9 +56,7 @@ static const std::string PREVIEW_ROOT = "preview";
 static const std::vector<std::string> HOME_POS_ITEMS = { "joint_names", "joint_position" };
 static const std::vector<std::string> PROCESS_PATH_ITEMS = { "tool_speed",    "offset_pose", "retreat_dist",
                                                              "approach_dist", "tool_frame",  "target_force" };
-static const std::vector<std::string> MEDIA_CHANGE_ITEMS = { "change_time",
-                                                             "joint_names",
-                                                             "joint_position" };
+static const std::vector<std::string> MEDIA_CHANGE_ITEMS = { "change_time", "joint_names", "joint_position" };
 static const std::vector<std::string> PREVIEW_ITEMS = { "time_scaling" };
 }  // namespace motion_planning
 
