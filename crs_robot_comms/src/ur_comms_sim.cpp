@@ -14,6 +14,7 @@ public:
         CONTROLLER_CHANGER_SERVICE,
         std::bind(&URRobotCommsSim::simControllerChangeCB, this, std::placeholders::_1, std::placeholders::_2));
   }
+
 private:
   void simControllerChangeCB(std::shared_ptr<std_srvs::srv::SetBool::Request> request,
                              std::shared_ptr<std_srvs::srv::SetBool::Response> response)

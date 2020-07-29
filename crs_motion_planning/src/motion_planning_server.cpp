@@ -171,7 +171,7 @@ public:
     crs_motion_planning::descartesConfig descartes_config;
     descartes_config.axial_step = 0.075;
     descartes_config.collision_safety_margin = 0.015;
-//    descartes_config.tool_offset.translation().z() = 0.025;
+    //    descartes_config.tool_offset.translation().z() = 0.025;
 
     crs_motion_planning::trajoptSurfaceConfig trajopt_surface_config;
     trajopt_surface_config.smooth_velocities = false;
@@ -189,10 +189,9 @@ public:
     trajopt_surface_config.surface_coeffs = surface_coeffs;
     trajopt_surface_config.waypoints_critical = false;
     trajopt_surface_config.longest_valid_segment_fraction = 0.1;
-    trajopt_surface_config.special_collision_constraint.push_back({ "eoat_link", LOADED_PART_LINK_NAME,
-        -0.02, 15.0 });
+    trajopt_surface_config.special_collision_constraint.push_back({ "eoat_link", LOADED_PART_LINK_NAME, -0.02, 15.0 });
     trajopt_surface_config.special_collision_constraint.push_back(
-            { "sander_intermediate_link", LOADED_PART_LINK_NAME, -0.02, 15.0 });
+        { "sander_intermediate_link", LOADED_PART_LINK_NAME, -0.02, 15.0 });
     trajopt_surface_config.special_collision_constraint.push_back({ "eoat_link", "table", -0.05, 15.0 });
     trajopt_surface_config.special_collision_constraint.push_back({ "sander_center_link", "table", -0.05, 15.0 });
     //    trajopt_surface_config.special_collision_constraint.push_back(
@@ -310,8 +309,11 @@ private:
 
       // Create marker array for original raster visualization
       visualization_msgs::msg::MarkerArray mark_array_msg;
-      crs_motion_planning::rasterStripsToMarkerArray(
-          motion_planner_config.rasters, motion_planner_config.world_frame, mark_array_msg, { 1.0, 0.0, 0.0, 1.0 }, -0.01);
+      crs_motion_planning::rasterStripsToMarkerArray(motion_planner_config.rasters,
+                                                     motion_planner_config.world_frame,
+                                                     mark_array_msg,
+                                                     { 1.0, 0.0, 0.0, 1.0 },
+                                                     -0.01);
       original_path_publisher_->publish(mark_array_msg);
 
       // Create crsMotionPlanner class
