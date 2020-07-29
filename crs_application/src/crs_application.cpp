@@ -135,9 +135,9 @@ int main(int argc, char** argv)
           }
         }
         RCLCPP_DEBUG_EXPRESSION(node->get_logger(),
-                               res->action_ids.empty(),
-                               "No action ids matched the '%s' search pattern",
-                               req->search_pattern.c_str());
+                                res->action_ids.empty(),
+                                "No action ids matched the '%s' search pattern",
+                                req->search_pattern.c_str());
       });
 
   rclcpp::TimerBase::SharedPtr pub_timer =

@@ -20,6 +20,7 @@ set(SRV_DEPS
   std_msgs
   geometry_msgs
   trajectory_msgs
+  cartesian_trajectory_msgs
 )
 
 # find dependencies
@@ -30,6 +31,7 @@ find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(trajectory_msgs REQUIRED)
+find_package(cartesian_trajectory_msgs REQUIRED)
 
 set(MSG_FILES
   msg/ProcessConfiguration.msg
@@ -48,6 +50,7 @@ set(SRV_FILES
   srv/GetConfiguration.srv
   srv/RobotPositioner.srv
   srv/CropToolpaths.srv
+  srv/RunRobotScript.srv
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}

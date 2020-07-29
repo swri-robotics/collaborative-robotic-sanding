@@ -207,7 +207,7 @@ void CRSApplicationWidget::onPartPathSelected(const QString qselected_part, cons
       RCLCPP_WARN(
           node_->get_logger(), "config file '%s' not found, loading default '%s'", config_file.c_str(), df.c_str());
       RCLCPP_WARN(
-          node_->get_logger(),"In order to use a path specific config then create one at \"%s\"",config_file.c_str());
+          node_->get_logger(), "In order to use a path specific config then create one at \"%s\"", config_file.c_str());
       config_file = df.string();
       default_config_found = true;
       break;

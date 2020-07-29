@@ -51,6 +51,7 @@
 #include <geometry_msgs/msg/transform.hpp>
 #include <geometry_msgs/msg/pose_array.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
+#include <std_srvs/srv/set_bool.hpp>
 
 namespace crs_application
 {
@@ -87,6 +88,7 @@ public:
 protected:
   // support methods
   common::ActionResult checkPreReqs();
+  bool changeActiveController(const bool turn_on_cart);
 
   std::shared_ptr<rclcpp::Node> node_;
   std::shared_ptr<rclcpp::Node> private_node_;
@@ -107,6 +109,7 @@ protected:
 
   // service clients
   rclcpp::Client<crs_msgs::srv::CallFreespaceMotion>::SharedPtr call_freespace_motion_client_;
+  rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr controller_changer_client_;
 
   // tf
   tf2_ros::Buffer tf_buffer_;

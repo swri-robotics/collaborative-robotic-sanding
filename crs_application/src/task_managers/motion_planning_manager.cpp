@@ -92,7 +92,7 @@ common::ActionResult MotionPlanningManager::configure(const config::MotionPlanni
 {
   config_ = std::make_shared<config::MotionPlanningConfig>(config);
   home_js_.reset();
-  if (config_->joint_home_position.empty() || config_->joint_names.empty())
+  if (config_->joint_home_position.empty() || config_->home_joint_names.empty())
   {
     common::ActionResult res;
     res.succeeded = false;
@@ -103,7 +103,7 @@ common::ActionResult MotionPlanningManager::configure(const config::MotionPlanni
 
   // constructing home position
   home_js_ = std::make_shared<sensor_msgs::msg::JointState>();
-  home_js_->name = config_->joint_names;
+  home_js_->name = config_->home_joint_names;
   home_js_->position = config_->joint_home_position;
   home_js_->velocity.resize(home_js_->position.size(), 0.0);
   home_js_->effort.resize(home_js_->position.size(), 0.0);
@@ -189,7 +189,7 @@ common::ActionResult MotionPlanningManager::splitToolpaths()
     std::size_t start_idx = 0;
     std::size_t end_idx;
     std::remove_reference<decltype(raster)>::type new_raster;
-    for (std::size_t p_idx = 1; p_idx < breakpoints_indices.size(); p_idx++)
+    for (std::size_t p_idx = 0; p_idx < breakpoints_indices.size(); p_idx++)
     {
       // copy portion of raster leading up to breakpoint into current toolpath
       end_idx = breakpoints_indices[p_idx];
@@ -277,6 +277,7 @@ common::ActionResult MotionPlanningManager::planProcessPaths()
   req->retreat_dist = config_->retreat_dist;
   req->tool_speed = config_->tool_speed;
   req->tool_offset = tf2::toMsg(config_->offset_pose);
+  req->target_force = config_->target_force;
   req->start_position = start_position;
   req->end_position = start_position;
 
@@ -365,10 +366,8 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
 
   CallFreespaceMotion::Request::SharedPtr req = std::make_shared<CallFreespaceMotion::Request>();
   req->target_link = config_->tool_frame;
-  geometry_msgs::msg::Pose pose_msg = tf2::toMsg(config_->media_change_pose);
-  std::tie(req->goal_pose.translation.x, req->goal_pose.translation.y, req->goal_pose.translation.z) =
-      std::make_tuple(pose_msg.position.x, pose_msg.position.y, pose_msg.position.z);
-  req->goal_pose.rotation = pose_msg.orientation;
+  req->goal_position.position = config_->joint_media_position;
+  req->goal_position.name = config_->media_joint_names;
   req->execute = false;
   req->num_steps = 0;  // planner should use default
 
@@ -390,6 +389,7 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
     // free space motion planning for return move
     req->start_position.position = media_change_plan.start_traj.points.back().positions;
     req->goal_position.position = media_change_plan.start_traj.points.front().positions;
+    req->goal_position.name = media_change_plan.start_traj.joint_names;
     opt = planFreeSpace("RETURN TO PROCESS", req);
     if (!opt.is_initialized())
     {
