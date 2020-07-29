@@ -1,8 +1,31 @@
 #include <crs_motion_planning/path_planning_utils.h>
 #include <tesseract_rosutils/conversions.h>
 
+static const rclcpp::Logger LOGGER = rclcpp::get_logger("PATH_PLANNING_UTILS");
+
 namespace crs_motion_planning
 {
+
+bool loadPathPlanningConfig(const std::string& yaml_fp,
+                            pathPlanningConfig::Ptr& motion_planner_config)
+{
+  descartesConfig descartes_config;
+  trajoptSurfaceConfig trajopt_surface_config;
+  crs_motion_planning::omplConfig ompl_config;
+  crs_motion_planning::trajoptFreespaceConfig trajopt_freespace_config;
+  motion_planner_config = std::make_shared<crs_motion_planning::pathPlanningConfig>();;
+
+  YAML::Node full_yaml_node = YAML::LoadFile(yaml_fp);
+  if (!full_yaml_node)
+  {
+    RCLCPP_ERROR(LOGGER, "Failed to load into YAML from file %s", yaml_fp.c_str());
+    return false;
+  }
+
+
+
+}
+
 crsMotionPlanner::crsMotionPlanner(pathPlanningConfig::Ptr config, rclcpp::Logger logger)
   : config_(std::move(config)), logger_(std::move(logger))
 {

@@ -194,8 +194,6 @@ public:
         { "sander_intermediate_link", LOADED_PART_LINK_NAME, -0.02, 15.0 });
     trajopt_surface_config.special_collision_constraint.push_back({ "eoat_link", "table", -0.05, 15.0 });
     trajopt_surface_config.special_collision_constraint.push_back({ "sander_center_link", "table", -0.05, 15.0 });
-    //    trajopt_surface_config.special_collision_constraint.push_back(
-    //        { "wrist_3_link", "table", -0.05, 15.0 });
 
     crs_motion_planning::omplConfig ompl_config;
     ompl_config.collision_safety_margin = 0.0075;
