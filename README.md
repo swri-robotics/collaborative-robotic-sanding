@@ -42,6 +42,19 @@ The CRS (Collaborative Robotic Sanding) Application buit in ROS2 eloquent
 colcon build --symlink-install
 ```
 
+--
+### Setup
+#### Data Directory
+Create a soft link (shortcut) in the home directory as follows
+1. cd into the `crs_process_data` package
+	```
+	cd crs_process_data/data/main/toolpaths
+	```
+  > The **main** directory holds the toolpaths for the main workcell, choose **surrogate1** if that workcell is to be used instead.
+
+2. Create soft link
+	```
+	ln -s  $(pwd) $HOME/crs_data
 
 ---
 ### Running Application
