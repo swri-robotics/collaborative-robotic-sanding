@@ -63,7 +63,6 @@ struct MotionPlanningConfig
 
   // media change
   double media_change_time;            /** @brief time that needs to elapse for the next media change secs */
-  Eigen::Isometry3d media_change_pose; /** @brief in world coordinates */
   std::vector<std::string> media_joint_names;
   std::vector<double> joint_media_position;
 

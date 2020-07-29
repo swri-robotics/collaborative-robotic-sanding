@@ -14,7 +14,6 @@ crs:
       target_force: 50
     media_change:
       change_time: 300.0 # seconds
-      change_pose: [-0.381, -0.202, 1.5, 0.0, -0.786, 1.57] # [px, py, pz, rx, ry, rz] in world coordinates
       joint_names: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
       joint_position: [-0.02467, -1.7719, -1.8680, -0.6212, 0.90265, -2.2430]
     preview:
