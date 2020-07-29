@@ -42,7 +42,7 @@
 
 #include <crs_motion_planning/path_processing_utils.h>
 
-#include<boost/format.hpp>
+#include <boost/format.hpp>
 #include <boost/filesystem.hpp>
 
 // general
@@ -87,16 +87,16 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node, QWidget
       node_->create_service<crs_msgs::srv::GetConfiguration>(GET_CONFIGURATION_SERVICE, get_configuration_cb);
 
   // creating cache directory
-  if(!fs::exists(fs::path(CACHE_DIR)))
+  if (!fs::exists(fs::path(CACHE_DIR)))
   {
-    if(!fs::create_directories(fs::path(CACHE_DIR)))
+    if (!fs::create_directories(fs::path(CACHE_DIR)))
     {
       std::string err_msg = boost::str(boost::format("Failed to create cached directory in location %s") % CACHE_DIR);
       throw std::runtime_error(err_msg);
     }
-    RCLCPP_WARN(node_->get_logger(),"Created cached directory %s", CACHE_DIR.c_str());
+    RCLCPP_WARN(node_->get_logger(), "Created cached directory %s", CACHE_DIR.c_str());
   }
-  RCLCPP_INFO(node_->get_logger(),"Found cached directory %s", CACHE_DIR.c_str());
+  RCLCPP_INFO(node_->get_logger(), "Found cached directory %s", CACHE_DIR.c_str());
 
   // load parameters
   const std::vector<std::string> parameter_names = { "default_config_file", "database_dir" };
