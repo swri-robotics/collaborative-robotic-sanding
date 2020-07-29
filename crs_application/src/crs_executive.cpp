@@ -440,19 +440,19 @@ bool CRSExecutive::setupPartRegistrationStates()
   };
 
   st_callbacks_map[part_reg::SAVE_RESULTS] = StateCallbackInfo{
-    entry_cb :
-        [this]() -> common::ActionResult {
-          common::ActionResult res = motion_planning_mngr_->setInput(part_regt_mngr_->getResult());
-          if(!res)
-          {
-            return res;
-          }
-          res = part_rework_mngr_->setInput(part_regt_mngr_->getResult());
-          if(!res)
-          {
-            return res;
-          }
-          return true; },
+    entry_cb : [this]() -> common::ActionResult {
+      common::ActionResult res = motion_planning_mngr_->setInput(part_regt_mngr_->getResult());
+      if (!res)
+      {
+        return res;
+      }
+      res = part_rework_mngr_->setInput(part_regt_mngr_->getResult());
+      if (!res)
+      {
+        return res;
+      }
+      return true;
+    },
     async : false
   };
 
