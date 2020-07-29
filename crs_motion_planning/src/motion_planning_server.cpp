@@ -227,27 +227,29 @@ public:
     trajopt_freespace_config.special_collision_cost.push_back({ "eoat_link", "forearm_link", 0.03, 10.0 });
 
     motion_planner_config_ = std::make_shared<crs_motion_planning::pathPlanningConfig>();
-    motion_planner_config_->tesseract_local = tesseract_local_;
-    motion_planner_config_->descartes_config = descartes_config;
-    motion_planner_config_->trajopt_surface_config = trajopt_surface_config;
-    motion_planner_config_->ompl_config = ompl_config;
-    motion_planner_config_->trajopt_freespace_config = trajopt_freespace_config;
-    motion_planner_config_->manipulator = this->get_parameter(param_names::MANIPULATOR_GROUP).as_string();
-    motion_planner_config_->robot_base_frame = this->get_parameter(param_names::ROOT_LINK_FRAME).as_string();
-    motion_planner_config_->world_frame = this->get_parameter(param_names::WORLD_FRAME).as_string();
-    motion_planner_config_->tool0_frame = this->get_parameter(param_names::TOOL0_FRAME).as_string();
-    motion_planner_config_->max_joint_vel =
-        this->get_parameter(param_names::MAX_JOINT_VELOCITY).as_double();  // 5.0;//1.5;
-    motion_planner_config_->max_joint_acc = this->get_parameter(param_names::MAX_JOINT_ACCELERATION).as_double();
-    motion_planner_config_->minimum_raster_length = this->get_parameter(param_names::MIN_RASTER_LENGTH).as_int();
-    motion_planner_config_->add_approach_and_retreat = true;
-    motion_planner_config_->required_tool_vel = true;
-    motion_planner_config_->use_gazebo_sim_timing = this->get_parameter(param_names::GAZEBO_SIM_TIMING).as_bool();
-    motion_planner_config_->trajopt_verbose_output = this->get_parameter(param_names::TRAJOPT_VERBOSE).as_bool();
-    motion_planner_config_->simplify_start_end_freespace = true;
-    motion_planner_config_->use_trajopt_freespace = false;
-    motion_planner_config_->combine_strips = false;
-    motion_planner_config_->global_descartes = true;
+    std::string config_fp = (fs::path(ament_index_cpp::get_package_share_directory("crs_application")) / fs::path("config/motion_planning/MP_config.yaml")).string();
+    crs_motion_planning::loadPathPlanningConfig(config_fp, motion_planner_config_);
+//    motion_planner_config_->tesseract_local = tesseract_local_;
+//    motion_planner_config_->descartes_config = descartes_config;
+//    motion_planner_config_->trajopt_surface_config = trajopt_surface_config;
+//    motion_planner_config_->ompl_config = ompl_config;
+//    motion_planner_config_->trajopt_freespace_config = trajopt_freespace_config;
+//    motion_planner_config_->manipulator = this->get_parameter(param_names::MANIPULATOR_GROUP).as_string();
+//    motion_planner_config_->robot_base_frame = this->get_parameter(param_names::ROOT_LINK_FRAME).as_string();
+//    motion_planner_config_->world_frame = this->get_parameter(param_names::WORLD_FRAME).as_string();
+//    motion_planner_config_->tool0_frame = this->get_parameter(param_names::TOOL0_FRAME).as_string();
+//    motion_planner_config_->max_joint_vel =
+//        this->get_parameter(param_names::MAX_JOINT_VELOCITY).as_double();  // 5.0;//1.5;
+//    motion_planner_config_->max_joint_acc = this->get_parameter(param_names::MAX_JOINT_ACCELERATION).as_double();
+//    motion_planner_config_->minimum_raster_length = this->get_parameter(param_names::MIN_RASTER_LENGTH).as_int();
+//    motion_planner_config_->add_approach_and_retreat = true;
+//    motion_planner_config_->required_tool_vel = true;
+//    motion_planner_config_->use_gazebo_sim_timing = this->get_parameter(param_names::GAZEBO_SIM_TIMING).as_bool();
+//    motion_planner_config_->trajopt_verbose_output = this->get_parameter(param_names::TRAJOPT_VERBOSE).as_bool();
+//    motion_planner_config_->simplify_start_end_freespace = true;
+//    motion_planner_config_->use_trajopt_freespace = false;
+//    motion_planner_config_->combine_strips = false;
+//    motion_planner_config_->global_descartes = true;
   }
 
 private:
@@ -283,7 +285,7 @@ private:
     }
     tesseract_rosutils::fromMsg(motion_planner_config.tool_offset, request->tool_offset);
     motion_planner_config.descartes_config.tool_offset =
-        motion_planner_config.tool_offset * Eigen::Translation3d(0.0, 0.0, 0.03);
+        Eigen::Isometry3d::Identity() * Eigen::Translation3d(0.0, 0.0, 0.03);
 
     std::vector<crs_msgs::msg::ProcessMotionPlan> returned_plans;
     bool success;
