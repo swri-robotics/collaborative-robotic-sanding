@@ -53,7 +53,6 @@ static const std::string POINT_CLOUD_TOPIC = "camera/pointcloud";
 static const std::string IMAGE_TOPIC = "camera/image";
 static const std::string MARKER_NS_TOOLPATH = "toolpath";
 
-
 namespace crs_application
 {
 namespace task_managers
@@ -70,20 +69,16 @@ PartReworkManager::PartReworkManager(std::shared_ptr<rclcpp::Node> node)
 {
   // spinning the node asynchronously
   pnode_executor_.add_node(private_node_);
-  std::thread([this](){
-    pnode_executor_.spin();
-  }).detach();
+  std::thread([this]() { pnode_executor_.spin(); }).detach();
 }
 
-PartReworkManager::~PartReworkManager()
-{
-  pnode_executor_.cancel();
-}
+PartReworkManager::~PartReworkManager() { pnode_executor_.cancel(); }
 common::ActionResult PartReworkManager::init()
 {
   // publishers
   scan_poses_pub_ = node_->create_publisher<geometry_msgs::msg::PoseArray>(SCAN_POSES_TOPIC, rclcpp::QoS(1));
-  cropped_toolpath_markers_pub_ = node_->create_publisher<visualization_msgs::msg::MarkerArray>(CROPPED_TOOLPATH_MARKER_TOPIC, rclcpp::QoS(1));
+  cropped_toolpath_markers_pub_ =
+      node_->create_publisher<visualization_msgs::msg::MarkerArray>(CROPPED_TOOLPATH_MARKER_TOPIC, rclcpp::QoS(1));
 
   // service clients
   call_freespace_motion_client_ =
@@ -187,7 +182,7 @@ common::ActionResult PartReworkManager::moveRobot()
   if (!result->success)
   {
     common::ActionResult res;
-    if(config_->skip_on_failure)
+    if (config_->skip_on_failure)
     {
       proceed_next_scan = false;
       res = true;
@@ -197,14 +192,14 @@ common::ActionResult PartReworkManager::moveRobot()
     else
     {
       res = false;
-      res.err_msg = boost::str(boost::format("%s %s") % MANAGER_NAME %  result->message);
+      res.err_msg = boost::str(boost::format("%s %s") % MANAGER_NAME % result->message);
       RCLCPP_ERROR_STREAM(node_->get_logger(), res.err_msg);
     }
     return res;
   }
 
   std::chrono::duration<double> sleep_dur(WAIT_ROBOT_STOP);
-  RCLCPP_INFO(node_->get_logger(),"Waiting %f seconds for robot to fully stop", WAIT_ROBOT_STOP);
+  RCLCPP_INFO(node_->get_logger(), "Waiting %f seconds for robot to fully stop", WAIT_ROBOT_STOP);
   rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::seconds>(sleep_dur));
   return true;
 }
@@ -214,7 +209,7 @@ common::ActionResult PartReworkManager::trimToolpaths()
   using namespace crs_msgs;
 
   // check if input has been set
-  if(!input_)
+  if (!input_)
   {
     common::ActionResult res = false;
     res.err_msg = "Input trajectory for part rework has not been set";
@@ -238,7 +233,8 @@ common::ActionResult PartReworkManager::trimToolpaths()
       crop_toolpaths_client_->async_send_request(process_data_);
 
   common::ActionResult res;
-  if (result_future.wait_for(std::chrono::duration<double>(WAIT_SERVICE_COMPLETION_TIMEOUT)) != std::future_status::ready)
+  if (result_future.wait_for(std::chrono::duration<double>(WAIT_SERVICE_COMPLETION_TIMEOUT)) !=
+      std::future_status::ready)
   {
     res.succeeded = false;
     res.err_msg = boost::str(boost::format("%s process planning service error or timeout") % MANAGER_NAME);
@@ -248,7 +244,7 @@ common::ActionResult PartReworkManager::trimToolpaths()
 
   // saving results
   crs_msgs::srv::CropToolpaths::Response::SharedPtr srv_response = result_future.get();
-  if(srv_response->succeeded)
+  if (srv_response->succeeded)
   {
     res.succeeded = false;
     res.err_msg = boost::str(boost::format("%s crop service failed to complete request") % MANAGER_NAME);
@@ -256,7 +252,7 @@ common::ActionResult PartReworkManager::trimToolpaths()
     return res;
   }
   result_.rasters = srv_response->cropped_toolpaths.front().rasters;
-  RCLCPP_INFO(node_->get_logger(),"%s successfully cropped toolpaths", MANAGER_NAME.c_str());
+  RCLCPP_INFO(node_->get_logger(), "%s successfully cropped toolpaths", MANAGER_NAME.c_str());
 
   return true;
 }
@@ -273,9 +269,8 @@ common::ActionResult PartReworkManager::showPreview()
   {
     preview_markers_publish_timer_->cancel();
   }
-  preview_markers_publish_timer_ = node_->create_wall_timer(500ms, [this, markers]() -> void {
-    cropped_toolpath_markers_pub_->publish(markers);
-  });
+  preview_markers_publish_timer_ =
+      node_->create_wall_timer(500ms, [this, markers]() -> void { cropped_toolpath_markers_pub_->publish(markers); });
   return true;
 }
 
@@ -290,7 +285,7 @@ common::ActionResult PartReworkManager::hidePreview()
     preview_markers_publish_timer_->cancel();
   }
 
-  if(scan_poses_pub_timer_)
+  if (scan_poses_pub_timer_)
   {
     scan_poses_pub_timer_->cancel();
   }
@@ -309,7 +304,7 @@ common::ActionResult PartReworkManager::hidePreview()
   return true;
 }
 
-common::ActionResult PartReworkManager::setInput(const datatypes::ProcessToolpathData &input)
+common::ActionResult PartReworkManager::setInput(const datatypes::ProcessToolpathData& input)
 {
   input_ = std::make_shared<datatypes::ProcessToolpathData>(input);
   return true;
@@ -324,32 +319,29 @@ common::ActionResult PartReworkManager::reset()
 
 common::ActionResult PartReworkManager::acquireScan()
 {
-  if(!proceed_next_scan)
+  if (!proceed_next_scan)
   {
-    common::ActionResult res =true;
-    res.err_msg = boost::str(boost::format("%s skipping scan since previous robot moved failed to complete") % MANAGER_NAME);
-    RCLCPP_WARN_STREAM(node_->get_logger(),res.err_msg);
+    common::ActionResult res = true;
+    res.err_msg =
+        boost::str(boost::format("%s skipping scan since previous robot moved failed to complete") % MANAGER_NAME);
+    RCLCPP_WARN_STREAM(node_->get_logger(), res.err_msg);
     return res;
   }
 
   // grabbing point cloud and image
-  sensor_msgs::msg::PointCloud2::Ptr cloud_msg = common::waitForMessage<sensor_msgs::msg::PointCloud2>(private_node_,
-                                                                                                       POINT_CLOUD_TOPIC,
-                                                                                                       false,
-                                                                                                       WAIT_FOR_MSG_TIMEOUT);
-  sensor_msgs::msg::Image::Ptr image_msg = common::waitForMessage<sensor_msgs::msg::Image>(private_node_,
-                                                                                           IMAGE_TOPIC,
-                                                                                           false,
-                                                                                           WAIT_FOR_MSG_TIMEOUT);
+  sensor_msgs::msg::PointCloud2::Ptr cloud_msg = common::waitForMessage<sensor_msgs::msg::PointCloud2>(
+      private_node_, POINT_CLOUD_TOPIC, false, WAIT_FOR_MSG_TIMEOUT);
+  sensor_msgs::msg::Image::Ptr image_msg =
+      common::waitForMessage<sensor_msgs::msg::Image>(private_node_, IMAGE_TOPIC, false, WAIT_FOR_MSG_TIMEOUT);
 
-  if(!cloud_msg || !image_msg)
+  if (!cloud_msg || !image_msg)
   {
     common::ActionResult res = false;
     res.err_msg = boost::str(boost::format("%s failed to get valid scan images or point clouds") % MANAGER_NAME);
-    RCLCPP_ERROR_STREAM(node_->get_logger(),res.err_msg);
+    RCLCPP_ERROR_STREAM(node_->get_logger(), res.err_msg);
     return res;
   }
-  RCLCPP_INFO_STREAM(node_->get_logger(),"Acquired scan data");
+  RCLCPP_INFO_STREAM(node_->get_logger(), "Acquired scan data");
   process_data_->clouds.push_back(*cloud_msg);
   process_data_->images.push_back(*image_msg);
 
@@ -357,24 +349,23 @@ common::ActionResult PartReworkManager::acquireScan()
   std::string scan_frame_id = cloud_msg->header.frame_id;
   try
   {
-    transform =
-        tf_buffer_.lookupTransform(DEFAULT_WORLD_FRAME_ID, scan_frame_id, tf2::TimePointZero);
+    transform = tf_buffer_.lookupTransform(DEFAULT_WORLD_FRAME_ID, scan_frame_id, tf2::TimePointZero);
     process_data_->transforms.push_back(transform);
   }
   catch (tf2::TransformException& ex)
   {
-    std::string error_msg = "Failed to get transform from '" + scan_frame_id + "' to '" +
-                            DEFAULT_WORLD_FRAME_ID + "' frame";
+    std::string error_msg =
+        "Failed to get transform from '" + scan_frame_id + "' to '" + DEFAULT_WORLD_FRAME_ID + "' frame";
 
     RCLCPP_ERROR(node_->get_logger(), "Cloud Frame error: %s: ", ex.what(), error_msg.c_str());
-    return common::ActionResult(false,error_msg);
+    return common::ActionResult(false, error_msg);
   }
   return true;
 }
 
 common::ActionResult PartReworkManager::doneScanning()
 {
-  if(scan_index_ >= scan_poses_.size())
+  if (scan_index_ >= scan_poses_.size())
   {
     return true;
   }

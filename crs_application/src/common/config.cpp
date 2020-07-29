@@ -103,7 +103,7 @@ static const std::vector<std::string> SCAN_POSES_ITEMS = { "pose" };
 static const std::string TOOL_FRAME = "tool_frame";
 static const std::string PRE_ACQUISITION_PAUSE = "pre_acquisition_pause";
 static const std::string SKIP_ON_FAILURE = "skip_on_failure";
-}  // namespace scan_acquistion
+}  // namespace part_rework
 
 }  // namespace config_fields
 
