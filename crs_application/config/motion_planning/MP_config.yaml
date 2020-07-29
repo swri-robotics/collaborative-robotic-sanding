@@ -1,0 +1,92 @@
+general:
+  use_trajopt_freespace: false
+  simplify_start_end_freespace: true
+  manipulator: "manipulator"
+  world_frame: "world"
+  robot_base_frame: "base_link"
+  tool0_frame: "tool0"
+  required_tool_vel: true
+  max_joint_vel: 0.22
+  max_joint_acc: 0.7
+  add_approach_and_retreat: true
+  minimum_raster_length: 4
+  trajopt_verbose_output: false
+  combine_strips: false
+  global_descartes: true
+descartes:
+  axial_step: 0.1 # Pi/36
+  collision_safety_margin: 0.01
+  additional_tool_offset: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+trajopt_surface:
+  smooth_velocities: true
+  smooth_accelerations: true
+  smooth_jerks: true
+  longest_valid_segment_fraction: 0.01
+  longest_valid_segment_length: 0.5
+  surface_coefficients: [10.0, 10.0, 10.0, 10.0, 10.0, 10.0]
+  waypoints_critical: true
+  collision_cost:
+    enabled: false
+  collision_constraint:
+    enabled: true
+    safety_margin: 0.01
+  special_collision_constraints:
+    - link1: "eoat_link"
+      link2: "part_link"
+      distance: -0.02
+      cost: 15.0
+    - link1: "sander_intermediate_link"
+      link2: "part_link"
+      distance: -0.02
+      cost: 15.0
+    - link1: "eoat_link"
+      link2: "table"
+      distance: -0.02
+      cost: 15.0
+    - link1: "sander_center_link"
+      link2: "part_link"
+      distance: -0.02
+      cost: 15.0
+    - link1: "sander_center_link"
+      link2: "table"
+      distance: -0.02
+      cost: 15.0
+ompl:
+  collision_safety_margin: 0.01
+  planning_time: 120.0
+  simplify: true
+  range: 0.25
+  num_threads: 1
+  max_solutions: 10
+  default_n_output_states: 20
+  longest_valid_segment_fraction: 0.01
+  longest_valid_segment_length: 0.5
+trajopt_freespace:
+  smooth_velocities: true
+  smooth_accelerations: true
+  smooth_jerks: true
+  longest_valid_segment_fraction: 0.01
+  longest_valid_segment_length: 0.5
+  collision_cost:
+    enabled: false
+    buffer_margin: 0.02
+  special_collision_costs:
+    - link1: "eoat_link"
+      link2: "part_link"
+      distance: 0.02
+      cost: 10.0
+    - link1: "eoat_link"
+      link2: "robot_frame"
+      distance: 0.05
+      cost: 10.0
+    - link1: "eoat_link"
+      link2: "forearm_link"
+      distance: 0.05
+      cost: 10.0
+    - link1: "eoat_link"
+      link2: "robot_stand"
+      distance: 0.05
+      cost: 10.0
+  collision_constraint:
+    enabled: true
+    safety_margin: 0.005
