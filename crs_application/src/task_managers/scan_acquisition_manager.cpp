@@ -222,8 +222,8 @@ common::ActionResult ScanAcquisitionManager::capture()
     geometry_msgs::msg::TransformStamped transform;
     try
     {
-      transform =
-          tf_buffer_.lookupTransform(DEFAULT_WORLD_FRAME_ID, captured_cloud.header.frame_id, tf2::TimePointZero, tf2::Duration(5));
+      transform = tf_buffer_.lookupTransform(
+          DEFAULT_WORLD_FRAME_ID, captured_cloud.header.frame_id, tf2::TimePointZero, tf2::Duration(5));
     }
     catch (tf2::TransformException ex)
     {
