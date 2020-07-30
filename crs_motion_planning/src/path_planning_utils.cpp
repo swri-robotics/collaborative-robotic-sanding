@@ -43,21 +43,23 @@ bool loadPathPlanningConfig(const std::string& yaml_fp,
     trajopt_surface_config.longest_valid_segment_fraction = trajopt_surface_yaml["longest_valid_segment_fraction"].as<double>();
     trajopt_surface_config.longest_valid_segment_length = trajopt_surface_yaml["longest_valid_segment_length"].as<double>();
     std::vector<double> xyzrpy_surface_co = trajopt_surface_yaml["surface_coefficients"].as<std::vector<double>>();
-    trajopt_surface_config.surface_coeffs << xyzrpy_surface_co[0], xyzrpy_surface_co[1], xyzrpy_surface_co[2], xyzrpy_surface_co[3], xyzrpy_surface_co[4], xyzrpy_surface_co[5];
+    Eigen::VectorXd surface_coeffs(6);
+    surface_coeffs << xyzrpy_surface_co[0], xyzrpy_surface_co[1], xyzrpy_surface_co[2], xyzrpy_surface_co[3], xyzrpy_surface_co[4], xyzrpy_surface_co[5];
+    trajopt_surface_config.surface_coeffs = surface_coeffs;
     trajopt_surface_config.waypoints_critical = trajopt_surface_yaml["waypoints_critical"].as<bool>();
     // trajopt surface collision configs
     tesseract_motion_planners::CollisionCostConfig coll_cost_config_srfc;
     coll_cost_config_srfc.enabled = trajopt_surface_yaml["collision_cost"]["enabled"].as<bool>();
     if (coll_cost_config_srfc.enabled)
     {
-      coll_cost_config_srfc.buffer_margin = trajopt_surface_yaml["collision_cost"]["buffer_margin"].as<bool>();
+      coll_cost_config_srfc.buffer_margin = trajopt_surface_yaml["collision_cost"]["buffer_margin"].as<double>();
     }
     trajopt_surface_config.coll_cst_cfg = coll_cost_config_srfc;
     tesseract_motion_planners::CollisionConstraintConfig coll_cnt_config_srfc;
     coll_cnt_config_srfc.enabled = trajopt_surface_yaml["collision_constraint"]["enabled"].as<bool>();
     if (coll_cnt_config_srfc.enabled)
     {
-      coll_cnt_config_srfc.safety_margin = trajopt_surface_yaml["collision_constraint"]["safety_margin"].as<bool>();
+      coll_cnt_config_srfc.safety_margin = trajopt_surface_yaml["collision_constraint"]["safety_margin"].as<double>();
     }
     trajopt_surface_config.coll_cnt_cfg = coll_cnt_config_srfc;
     // trajopt surface special collision pairs
@@ -75,7 +77,7 @@ bool loadPathPlanningConfig(const std::string& yaml_fp,
     }
     if (trajopt_surface_yaml["special_collision_constraints"])
     {
-      YAML::Node special_constraints = trajopt_surface_yaml["special_collision_costs"];
+      YAML::Node special_constraints = trajopt_surface_yaml["special_collision_constraints"];
       for (const auto& constraint_node : special_constraints)
       {
         std::string link1 = constraint_node["link1"].as<std::string>();
@@ -110,14 +112,14 @@ bool loadPathPlanningConfig(const std::string& yaml_fp,
     coll_cost_config_fs.enabled = trajopt_freespace_yaml["collision_cost"]["enabled"].as<bool>();
     if (coll_cost_config_fs.enabled)
     {
-      coll_cost_config_fs.buffer_margin = trajopt_freespace_yaml["collision_cost"]["buffer_margin"].as<bool>();
+      coll_cost_config_fs.buffer_margin = trajopt_freespace_yaml["collision_cost"]["buffer_margin"].as<double>();
     }
     trajopt_freespace_config.coll_cst_cfg = coll_cost_config_fs;
     tesseract_motion_planners::CollisionConstraintConfig coll_cnt_config_fs;
     coll_cnt_config_fs.enabled = trajopt_freespace_yaml["collision_constraint"]["enabled"].as<bool>();
     if (coll_cnt_config_fs.enabled)
     {
-      coll_cnt_config_fs.safety_margin = trajopt_freespace_yaml["collision_constraint"]["safety_margin"].as<bool>();
+      coll_cnt_config_fs.safety_margin = trajopt_freespace_yaml["collision_constraint"]["safety_margin"].as<double>();
     }
     trajopt_freespace_config.coll_cnt_cfg = coll_cnt_config_fs;
     // trajopt freespace special collision pairs
@@ -135,7 +137,7 @@ bool loadPathPlanningConfig(const std::string& yaml_fp,
     }
     if (trajopt_freespace_yaml["special_collision_constraints"])
     {
-      YAML::Node special_constraints = trajopt_freespace_yaml["special_collision_costs"];
+      YAML::Node special_constraints = trajopt_freespace_yaml["special_collision_constraints"];
       for (const auto& constraint_node : special_constraints)
       {
         std::string link1 = constraint_node["link1"].as<std::string>();
@@ -153,19 +155,19 @@ bool loadPathPlanningConfig(const std::string& yaml_fp,
     motion_planner_config->manipulator = general_yaml["manipulator"].as<std::string>();
     motion_planner_config->world_frame = general_yaml["world_frame"].as<std::string>();
     motion_planner_config->robot_base_frame = general_yaml["robot_base_frame"].as<std::string>();
+    motion_planner_config->tool0_frame = general_yaml["tool0_frame"].as<std::string>();
     motion_planner_config->required_tool_vel = general_yaml["required_tool_vel"].as<bool>();
     motion_planner_config->max_joint_vel = general_yaml["max_joint_vel"].as<double>();
     motion_planner_config->max_joint_acc = general_yaml["max_joint_acc"].as<double>();
     motion_planner_config->add_approach_and_retreat = general_yaml["add_approach_and_retreat"].as<bool>();
-    motion_planner_config->minimum_raster_length = general_yaml["minimum_raster_lenght"].as<int>();
+    motion_planner_config->minimum_raster_length = general_yaml["minimum_raster_length"].as<std::size_t>();
     motion_planner_config->trajopt_verbose_output = general_yaml["trajopt_verbose_output"].as<bool>();
-    motion_planner_config->combine_strips = general_yaml["combine_strip"].as<bool>();
+    motion_planner_config->combine_strips = general_yaml["combine_strips"].as<bool>();
     motion_planner_config->global_descartes = general_yaml["global_descartes"].as<bool>();
     motion_planner_config->descartes_config = descartes_config;
     motion_planner_config->trajopt_surface_config = trajopt_surface_config;
     motion_planner_config->ompl_config = ompl_config;
     motion_planner_config->trajopt_freespace_config = trajopt_freespace_config;
-
     return true;
   }
   catch (YAML::InvalidNode& e)

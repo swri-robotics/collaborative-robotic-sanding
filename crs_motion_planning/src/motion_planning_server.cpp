@@ -167,89 +167,10 @@ public:
     tesseract_scene_graph::ResourceLocator::Ptr locator = std::make_shared<tesseract_rosutils::ROSResourceLocator>();
     tesseract_local_->init(urdf_content, srdf_content, locator);
 
-    // Set up planning config variable
-    crs_motion_planning::descartesConfig descartes_config;
-    descartes_config.axial_step = 0.075;
-    descartes_config.collision_safety_margin = 0.015;
-    descartes_config.tool_offset.translation().z() = 0.0;
-
-    crs_motion_planning::trajoptSurfaceConfig trajopt_surface_config;
-    trajopt_surface_config.smooth_velocities = false;
-    trajopt_surface_config.smooth_accelerations = false;
-    trajopt_surface_config.smooth_jerks = false;
-    tesseract_motion_planners::CollisionCostConfig coll_cost_config_srfc;
-    coll_cost_config_srfc.enabled = false;
-    trajopt_surface_config.coll_cst_cfg = coll_cost_config_srfc;
-    tesseract_motion_planners::CollisionConstraintConfig coll_cnt_config_srfc;
-    coll_cnt_config_srfc.enabled = true;
-    coll_cnt_config_srfc.safety_margin = 0.01;
-    trajopt_surface_config.coll_cnt_cfg = coll_cnt_config_srfc;
-    Eigen::VectorXd surface_coeffs(6);
-    surface_coeffs << 6, 6, 10, 10, 10, 0;
-    trajopt_surface_config.surface_coeffs = surface_coeffs;
-    trajopt_surface_config.waypoints_critical = false;
-    trajopt_surface_config.longest_valid_segment_fraction = 0.1;
-    trajopt_surface_config.special_collision_constraint.push_back({ "eoat_link", LOADED_PART_LINK_NAME, -0.02, 15.0 });
-    trajopt_surface_config.special_collision_constraint.push_back(
-        { "sander_intermediate_link", LOADED_PART_LINK_NAME, -0.02, 15.0 });
-    trajopt_surface_config.special_collision_constraint.push_back({ "eoat_link", "table", -0.05, 15.0 });
-    trajopt_surface_config.special_collision_constraint.push_back({ "sander_center_link", "table", -0.05, 15.0 });
-
-    crs_motion_planning::omplConfig ompl_config;
-    ompl_config.collision_safety_margin = 0.0075;
-    ompl_config.planning_time = 120;
-    ompl_config.n_output_states = this->get_parameter(param_names::NUM_FREEPSACE_STEPS).as_int();
-    ompl_config.simplify = true;
-    ompl_config.longest_valid_segment_fraction = 0.015;
-    ompl_config.range = 0.25;
-    ompl_config.num_threads = 8;
-
-    crs_motion_planning::trajoptFreespaceConfig trajopt_freespace_config;
-    tesseract_motion_planners::CollisionCostConfig coll_cost_config_fs;
-    coll_cost_config_fs.enabled = true;
-    coll_cost_config_fs.buffer_margin = 0.02;
-    coll_cost_config_fs.coeff = 15;
-    tesseract_motion_planners::CollisionConstraintConfig coll_cnt_config_fs;
-    coll_cnt_config_fs.enabled = true;
-    coll_cnt_config_fs.safety_margin = 0.005;
-    trajopt_freespace_config.coll_cst_cfg = coll_cost_config_fs;
-    trajopt_freespace_config.coll_cnt_cfg = coll_cnt_config_fs;
-    trajopt_freespace_config.longest_valid_segment_length = 0.01;
-    trajopt_freespace_config.contact_test_type = tesseract_collision::ContactTestType::ALL;
-    trajopt_freespace_config.smooth_velocities = true;
-    trajopt_freespace_config.smooth_accelerations = true;
-    trajopt_freespace_config.smooth_jerks = true;
-    trajopt_freespace_config.special_collision_cost.push_back({ "eoat_link", LOADED_PART_LINK_NAME, 0.03, 20.0 });
-    trajopt_freespace_config.special_collision_cost.push_back({ "eoat_link", "robot_frame", 0.05, 15.0 });
-    trajopt_freespace_config.special_collision_cost.push_back({ "shoulder_link", "robot_frame", 0.03, 15.0 });
-    trajopt_freespace_config.special_collision_cost.push_back({ "eoat_link", "table", 0.03, 20.0 });
-    trajopt_freespace_config.special_collision_cost.push_back({ "eoat_link", "robot_stand", 0.03, 10.0 });
-    trajopt_freespace_config.special_collision_cost.push_back({ "eoat_link", "forearm_link", 0.03, 10.0 });
-
-    motion_planner_config_ = std::make_shared<crs_motion_planning::pathPlanningConfig>();
-    std::string config_fp = (fs::path(ament_index_cpp::get_package_share_directory("crs_application")) / fs::path("config/motion_planning/MP_config.yaml")).string();
-    crs_motion_planning::loadPathPlanningConfig(config_fp, motion_planner_config_);
+//    motion_planner_config_ = std::make_shared<crs_motion_planning::pathPlanningConfig>();
+//    std::string config_fp = (fs::path(ament_index_cpp::get_package_share_directory("crs_application")) / fs::path("config/motion_planning/MP_config.yaml")).string();
+//    crs_motion_planning::loadPathPlanningConfig(config_fp, motion_planner_config_);
 //    motion_planner_config_->tesseract_local = tesseract_local_;
-//    motion_planner_config_->descartes_config = descartes_config;
-//    motion_planner_config_->trajopt_surface_config = trajopt_surface_config;
-//    motion_planner_config_->ompl_config = ompl_config;
-//    motion_planner_config_->trajopt_freespace_config = trajopt_freespace_config;
-//    motion_planner_config_->manipulator = this->get_parameter(param_names::MANIPULATOR_GROUP).as_string();
-//    motion_planner_config_->robot_base_frame = this->get_parameter(param_names::ROOT_LINK_FRAME).as_string();
-//    motion_planner_config_->world_frame = this->get_parameter(param_names::WORLD_FRAME).as_string();
-//    motion_planner_config_->tool0_frame = this->get_parameter(param_names::TOOL0_FRAME).as_string();
-//    motion_planner_config_->max_joint_vel =
-//        this->get_parameter(param_names::MAX_JOINT_VELOCITY).as_double();  // 5.0;//1.5;
-//    motion_planner_config_->max_joint_acc = this->get_parameter(param_names::MAX_JOINT_ACCELERATION).as_double();
-//    motion_planner_config_->minimum_raster_length = this->get_parameter(param_names::MIN_RASTER_LENGTH).as_int();
-//    motion_planner_config_->add_approach_and_retreat = true;
-//    motion_planner_config_->required_tool_vel = true;
-//    motion_planner_config_->use_gazebo_sim_timing = this->get_parameter(param_names::GAZEBO_SIM_TIMING).as_bool();
-//    motion_planner_config_->trajopt_verbose_output = this->get_parameter(param_names::TRAJOPT_VERBOSE).as_bool();
-//    motion_planner_config_->simplify_start_end_freespace = true;
-//    motion_planner_config_->use_trajopt_freespace = false;
-//    motion_planner_config_->combine_strips = false;
-//    motion_planner_config_->global_descartes = true;
   }
 
 private:
@@ -264,27 +185,32 @@ private:
   void planProcess(std::shared_ptr<crs_msgs::srv::PlanProcessMotions::Request> request,
                    std::shared_ptr<crs_msgs::srv::PlanProcessMotions::Response> response)
   {
-    crs_motion_planning::pathPlanningConfig motion_planner_config = *motion_planner_config_;
+    namespace fs = boost::filesystem;
+//    crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config = motion_planner_config_;
+    crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config;
+    std::string config_fp = (fs::path(ament_index_cpp::get_package_share_directory("crs_application")) / fs::path("config/motion_planning/MP_config.yaml")).string();
+    crs_motion_planning::loadPathPlanningConfig(config_fp, motion_planner_config);
+    motion_planner_config->tesseract_local = tesseract_local_;
 
     // Setup planner config with requested process planner service request data
-    motion_planner_config.tcp_frame = request->tool_link;
-    motion_planner_config.approach_distance = request->approach_dist;
-    motion_planner_config.retreat_distance = request->retreat_dist;
-    motion_planner_config.tool_speed = request->tool_speed;
+    motion_planner_config->tcp_frame = request->tool_link;
+    motion_planner_config->approach_distance = request->approach_dist;
+    motion_planner_config->retreat_distance = request->retreat_dist;
+    motion_planner_config->tool_speed = request->tool_speed;
     if (request->start_position.position.size() > 0)
     {
-      motion_planner_config.use_start = true;
-      motion_planner_config.start_pose = std::make_shared<tesseract_motion_planners::JointWaypoint>(
+      motion_planner_config->use_start = true;
+      motion_planner_config->start_pose = std::make_shared<tesseract_motion_planners::JointWaypoint>(
           request->start_position.position, request->start_position.name);
     }
     if (request->end_position.position.size() > 0)
     {
-      motion_planner_config.use_end = true;
-      motion_planner_config.end_pose = std::make_shared<tesseract_motion_planners::JointWaypoint>(
+      motion_planner_config->use_end = true;
+      motion_planner_config->end_pose = std::make_shared<tesseract_motion_planners::JointWaypoint>(
           request->end_position.position, request->end_position.name);
     }
-    tesseract_rosutils::fromMsg(motion_planner_config.tool_offset, request->tool_offset);
-    motion_planner_config.descartes_config.tool_offset =
+    tesseract_rosutils::fromMsg(motion_planner_config->tool_offset, request->tool_offset);
+    motion_planner_config->descartes_config.tool_offset =
         Eigen::Isometry3d::Identity() * Eigen::Translation3d(0.0, 0.0, 0.03);
 
     std::vector<crs_msgs::msg::ProcessMotionPlan> returned_plans;
@@ -304,13 +230,13 @@ private:
     {
       std::cout << "Planning " << i + 1 << " process of " << request->process_paths.size() << std::endl;
       // Load in current rasters
-      motion_planner_config.rasters.clear();
-      motion_planner_config.rasters = request->process_paths[i].rasters;
+      motion_planner_config->rasters.clear();
+      motion_planner_config->rasters = request->process_paths[i].rasters;
 
       // Create marker array for original raster visualization
       visualization_msgs::msg::MarkerArray mark_array_msg;
-      crs_motion_planning::rasterStripsToMarkerArray(motion_planner_config.rasters,
-                                                     motion_planner_config.world_frame,
+      crs_motion_planning::rasterStripsToMarkerArray(motion_planner_config->rasters,
+                                                     motion_planner_config->world_frame,
                                                      mark_array_msg,
                                                      { 1.0, 0.0, 0.0, 1.0 },
                                                      -0.01);
@@ -326,17 +252,17 @@ private:
       // Create marker array for processed raster visualization
       visualization_msgs::msg::MarkerArray temp_mark_array_msg, pub_mark_array_msg;
       crs_motion_planning::rasterStripsToMarkerArray(path_plan_results->solved_rasters,
-                                                     motion_planner_config.world_frame,
+                                                     motion_planner_config->world_frame,
                                                      temp_mark_array_msg,
                                                      { 1.0, 0.0, 1.0, 0.0 },
                                                      -0.025);
       crs_motion_planning::rasterStripsToMarkerArray(path_plan_results->failed_rasters,
-                                                     motion_planner_config.world_frame,
+                                                     motion_planner_config->world_frame,
                                                      temp_mark_array_msg,
                                                      { 1.0, 1.0, 0.0, 0.0 },
                                                      -0.025);
       crs_motion_planning::rasterStripsToMarkerArray(path_plan_results->skipped_rasters,
-                                                     motion_planner_config.world_frame,
+                                                     motion_planner_config->world_frame,
                                                      temp_mark_array_msg,
                                                      { 1.0, 1.0, 1.0, 0.0 },
                                                      -0.025);
@@ -347,7 +273,7 @@ private:
       // Create marker array for unreachable vertices
       visualization_msgs::msg::Marker failed_vertex_markers;
       crs_motion_planning::failedEdgesToMarkerArray(path_plan_results->unreachable_waypoints,
-                                                    motion_planner_config.world_frame,
+                                                    motion_planner_config->world_frame,
                                                     failed_vertex_markers,
                                                     { 1.0, 0.0, 1.0, 1.0 },
                                                     0.01);
@@ -368,14 +294,14 @@ private:
       resulting_process.process_motions = path_plan_results->final_raster_trajectories;
 
       crs_motion_planning::cartesianTrajectoryConfig cart_traj_config;
-      cart_traj_config.tcp_frame = motion_planner_config.tcp_frame;
-      cart_traj_config.base_frame = motion_planner_config.robot_base_frame;
-      cart_traj_config.manipulator = motion_planner_config.manipulator;
-      cart_traj_config.tool_frame = motion_planner_config.tool0_frame;
-      cart_traj_config.tesseract_local = motion_planner_config.tesseract_local;
+      cart_traj_config.tcp_frame = motion_planner_config->tcp_frame;
+      cart_traj_config.base_frame = motion_planner_config->robot_base_frame;
+      cart_traj_config.manipulator = motion_planner_config->manipulator;
+      cart_traj_config.tool_frame = motion_planner_config->tool0_frame;
+      cart_traj_config.tesseract_local = motion_planner_config->tesseract_local;
       cart_traj_config.target_force = request->target_force;
-      cart_traj_config.target_speed = motion_planner_config.tool_speed;
-      motion_planner_config.tool_speed = request->tool_speed;
+      cart_traj_config.target_speed = motion_planner_config->tool_speed;
+      motion_planner_config->tool_speed = request->tool_speed;
       for (size_t j = 0; j < resulting_process.process_motions.size(); ++j)
       {
         cartesian_trajectory_msgs::msg::CartesianTrajectory curr_cart_traj;
@@ -405,18 +331,23 @@ private:
                      std::shared_ptr<crs_msgs::srv::CallFreespaceMotion::Response> response)
   {
     using namespace crs_motion_planning;
-    crs_motion_planning::pathPlanningConfig motion_planner_config = *motion_planner_config_;
+    namespace fs = boost::filesystem;
+//    crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config = motion_planner_config_;
+    crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config;
+    std::string config_fp = (fs::path(ament_index_cpp::get_package_share_directory("crs_application")) / fs::path("config/motion_planning/MP_config.yaml")).string();
+    crs_motion_planning::loadPathPlanningConfig(config_fp, motion_planner_config);
+    motion_planner_config->tesseract_local = tesseract_local_;
 
     std::cout << "GOT REQUEST" << std::endl;
-    motion_planner_config.tcp_frame = request->target_link;
+    motion_planner_config->tcp_frame = request->target_link;
     std::cout << "SET TARGET LINK" << std::endl;
     if (request->num_steps != 0)
     {
-      motion_planner_config.ompl_config.n_output_states = request->num_steps;
+      motion_planner_config->ompl_config.n_output_states = request->num_steps;
     }
     else
     {
-      motion_planner_config.ompl_config.n_output_states =
+      motion_planner_config->ompl_config.n_output_states =
           this->get_parameter(param_names::NUM_FREEPSACE_STEPS).as_int();
     }
     std::cout << "SET N STEPS" << std::endl;
@@ -678,7 +609,7 @@ private:
   rclcpp::callback_group::CallbackGroup::SharedPtr trajectory_exec_client_cbgroup_;
 
   tesseract::Tesseract::Ptr tesseract_local_;
-  crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config_;
+//  crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config_;
 
   sensor_msgs::msg::JointState curr_joint_state_;
   std::size_t tesseract_revision_ = 0;
