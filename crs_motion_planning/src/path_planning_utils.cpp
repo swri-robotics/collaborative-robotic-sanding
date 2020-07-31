@@ -231,17 +231,29 @@ bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray
   descartes_light::KinematicsInterfaceD::Ptr kin_interface =
       std::make_shared<ur_ikfast_kinematics::UR10eKinematicsD>(world_to_base_link, tool0_to_sander, nullptr, nullptr);
 
+  if (waypoints_pose_array.poses.size() > 50)
+  {
+    sampler_result.clear();
+  }
+
+
   for (size_t i = 0; i < waypoints_pose_array.poses.size(); ++i)
   {
     Eigen::Isometry3d current_waypoint_pose;
     tf2::fromMsg(waypoints_pose_array.poses[i], current_waypoint_pose);
-    sampler_result.emplace_back(std::make_shared<descartes_light::AxialSymmetricSamplerD>(
-        current_waypoint_pose,
-        kin_interface,
-        axial_step,
-        std::shared_ptr<descartes_light::CollisionInterface<double>>(collision_checker->clone()),
-        allow_collisions));
+    descartes_light::PositionSamplerD::Ptr curr_sampler_result = std::make_shared<descartes_light::AxialSymmetricSamplerD>(
+          current_waypoint_pose,
+          kin_interface,
+          axial_step,
+          std::shared_ptr<descartes_light::CollisionInterface<double>>(collision_checker->clone()),
+          allow_collisions);
+    sampler_result.push_back(curr_sampler_result);
   }
+//  if (waypoints_pose_array.poses.size() > 50)
+//  {
+//    sampler_result.clear();
+//  }
+
 
   auto edge_eval = std::make_shared<descartes_light::EuclideanDistanceEdgeEvaluatorD>(kin_interface->dof());
   auto timing_constraint =
@@ -287,6 +299,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
   std::vector<geometry_msgs::msg::PoseArray> split_reachable_rasters;
   bool any_successes = false;
   size_t count_strips = 1;
+  int count_extra_strips = 0;
   geometry_msgs::msg::PoseArray failed_vertex_poses;
 
   for (auto strip : raster_strips)
@@ -296,6 +309,8 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
     RCLCPP_INFO(logger_, "Running Descartes on Strip %i of %i", count_strips, raster_strips.size());
     gen_preplan = generateDescartesSeed(strip, failed_edges, failed_vertices, joint_traj_msg_out_init);
     RCLCPP_INFO(logger_, "DONE");
+    if (strip.poses.size() > 7)
+      RCLCPP_ERROR(LOGGER, "ANOTHA ONE, %i", ++count_extra_strips);
 
     // Check if all rasters reachable
     if (!gen_preplan)

@@ -14,7 +14,7 @@ general:
   combine_strips: false
   global_descartes: true
 descartes:
-  axial_step: 0.1 # Pi/36
+  axial_step: 1.57 # Pi/36
   collision_safety_margin: 0.01
   additional_tool_offset: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 trajopt_surface:

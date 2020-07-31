@@ -474,7 +474,8 @@ private:
 
     tesseract_msgs::msg::Geometry link_geom;
     //    tesseract_rosutils::toMsg(link_geom, conv_mesh);
-    tesseract_rosutils::toMsg(link_geom, *meshes[0]);
+//    tesseract_rosutils::toMsg(link_geom, *meshes[0]);
+    tesseract_rosutils::toMsg(link_geom, conv_mesh);
 
     std::vector<tesseract_msgs::msg::VisualGeometry> vis_geom_vector;
     tesseract_msgs::msg::VisualGeometry link_vis_geom;
