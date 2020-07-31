@@ -211,7 +211,7 @@ private:
     }
     tesseract_rosutils::fromMsg(motion_planner_config->tool_offset, request->tool_offset);
     motion_planner_config->descartes_config.tool_offset =
-        Eigen::Isometry3d::Identity() * Eigen::Translation3d(0.0, 0.0, 0.03);
+        Eigen::Isometry3d::Identity() * Eigen::Translation3d(0.0, 0.0, 0.005);
 
     std::vector<crs_msgs::msg::ProcessMotionPlan> returned_plans;
     bool success;
@@ -243,10 +243,10 @@ private:
       original_path_publisher_->publish(mark_array_msg);
 
       // Create crsMotionPlanner class
-      crs_motion_planning::crsMotionPlanner crs_motion_planner(motion_planner_config, this->get_logger());
+      crs_motion_planning::crsMotionPlanner crs_motion_planner(*motion_planner_config, this->get_logger());
 
       // Run process planner
-      auto path_plan_results = std::make_shared<crs_motion_planning::pathPlanningResults>();
+      auto path_plan_results = std::make_unique<crs_motion_planning::pathPlanningResults>();
       success = crs_motion_planner.generateProcessPlan(path_plan_results);
 
       // Create marker array for processed raster visualization
@@ -311,6 +311,12 @@ private:
       }
 
       returned_plans.push_back(resulting_process);
+      path_plan_results.reset();
+//      if (path_plan_results.unique())
+//      {
+//        std::cout << "DELETING PATH PLANNING RESULTS" << std::endl;
+//        path_plan_results.reset();
+//      }
     }
     // Populate response
     response->plans = returned_plans;
@@ -325,6 +331,18 @@ private:
       response->succeeded = false;
       response->err_msg = "Failed to generate preplan";
     }
+    motion_planner_config.reset();
+
+//    if (motion_planner_config.unique())
+//    {
+//      std::cout << "DELETING Motion PLANNING CONFIG" << std::endl;
+//      motion_planner_config.reset();
+//    }
+//    else
+//    {
+//      std::cout << "NOT UNIQUE" << std::endl;
+//    }
+
   }
 
   void planFreespace(std::shared_ptr<crs_msgs::srv::CallFreespaceMotion::Request> request,
@@ -353,7 +371,7 @@ private:
     std::cout << "SET N STEPS" << std::endl;
 
     // Create crsMotionPlanner class
-    crs_motion_planning::crsMotionPlanner crs_motion_planner(motion_planner_config, this->get_logger());
+    crs_motion_planning::crsMotionPlanner crs_motion_planner(*motion_planner_config, this->get_logger());
     std::cout << "INITIALIZED CLASS" << std::endl;
 
     // Define initial waypoint
@@ -407,6 +425,17 @@ private:
       success =
           crs_motion_planner.generateFreespacePlan(joint_start_waypoint, goal_waypoint, response->output_trajectory);
     }
+
+//    if (motion_planner_config.unique())
+//    {
+//      std::cout << "DELETING Motion PLANNING CONFIG" << std::endl;
+//      motion_planner_config.reset();
+//    }
+//    else
+//    {
+//      std::cout << "NOT UNIQUE" << std::endl;
+//    }
+    motion_planner_config.reset();
 
     if (success && response->output_trajectory.points.size() > 0)
     {

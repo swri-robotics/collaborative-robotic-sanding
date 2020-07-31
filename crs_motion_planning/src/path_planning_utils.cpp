@@ -13,7 +13,7 @@ bool loadPathPlanningConfig(const std::string& yaml_fp,
   trajoptSurfaceConfig trajopt_surface_config;
   crs_motion_planning::omplConfig ompl_config;
   crs_motion_planning::trajoptFreespaceConfig trajopt_freespace_config;
-  motion_planner_config = std::make_shared<crs_motion_planning::pathPlanningConfig>();;
+  motion_planner_config = std::make_unique<crs_motion_planning::pathPlanningConfig>();;
 
   YAML::Node full_yaml_node = YAML::LoadFile(yaml_fp);
   if (!full_yaml_node)
@@ -151,6 +151,8 @@ bool loadPathPlanningConfig(const std::string& yaml_fp,
     // GENERAL CONFIG
     YAML::Node general_yaml = full_yaml_node["general"];
     motion_planner_config->use_trajopt_freespace = general_yaml["use_trajopt_freespace"].as<bool>();
+    motion_planner_config->use_trajopt_surface = general_yaml["use_trajopt_surface"].as<bool>();
+    motion_planner_config->default_to_descartes = general_yaml["default_to_descartes"].as<bool>();
     motion_planner_config->simplify_start_end_freespace = general_yaml["simplify_start_end_freespace"].as<bool>();
     motion_planner_config->manipulator = general_yaml["manipulator"].as<std::string>();
     motion_planner_config->world_frame = general_yaml["world_frame"].as<std::string>();
@@ -194,7 +196,7 @@ crsMotionPlanner::crsMotionPlanner(pathPlanningConfig::Ptr config, rclcpp::Logge
 
 crsMotionPlanner::crsMotionPlanner(pathPlanningConfig config, rclcpp::Logger logger) : logger_(std::move(logger))
 {
-  config_ = std::make_shared<crs_motion_planning::pathPlanningConfig>();
+  config_ = std::make_unique<crs_motion_planning::pathPlanningConfig>();
   *config_ = config;
 }
 
@@ -231,17 +233,29 @@ bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray
   descartes_light::KinematicsInterfaceD::Ptr kin_interface =
       std::make_shared<ur_ikfast_kinematics::UR10eKinematicsD>(world_to_base_link, tool0_to_sander, nullptr, nullptr);
 
+  if (waypoints_pose_array.poses.size() > 50)
+  {
+    sampler_result.clear();
+  }
+
+
   for (size_t i = 0; i < waypoints_pose_array.poses.size(); ++i)
   {
     Eigen::Isometry3d current_waypoint_pose;
     tf2::fromMsg(waypoints_pose_array.poses[i], current_waypoint_pose);
-    sampler_result.emplace_back(std::make_shared<descartes_light::AxialSymmetricSamplerD>(
-        current_waypoint_pose,
-        kin_interface,
-        axial_step,
-        std::shared_ptr<descartes_light::CollisionInterface<double>>(collision_checker->clone()),
-        allow_collisions));
+    descartes_light::PositionSamplerD::Ptr curr_sampler_result = std::make_shared<descartes_light::AxialSymmetricSamplerD>(
+          current_waypoint_pose,
+          kin_interface,
+          axial_step,
+          std::shared_ptr<descartes_light::CollisionInterface<double>>(collision_checker->clone()),
+          allow_collisions);
+    sampler_result.push_back(curr_sampler_result);
   }
+//  if (waypoints_pose_array.poses.size() > 50)
+//  {
+//    sampler_result.clear();
+//  }
+
 
   auto edge_eval = std::make_shared<descartes_light::EuclideanDistanceEdgeEvaluatorD>(kin_interface->dof());
   auto timing_constraint =
@@ -287,6 +301,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
   std::vector<geometry_msgs::msg::PoseArray> split_reachable_rasters;
   bool any_successes = false;
   size_t count_strips = 1;
+  int count_extra_strips = 0;
   geometry_msgs::msg::PoseArray failed_vertex_poses;
 
   for (auto strip : raster_strips)
@@ -296,6 +311,8 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
     RCLCPP_INFO(logger_, "Running Descartes on Strip %i of %i", count_strips, raster_strips.size());
     gen_preplan = generateDescartesSeed(strip, failed_edges, failed_vertices, joint_traj_msg_out_init);
     RCLCPP_INFO(logger_, "DONE");
+    if (strip.poses.size() > 7)
+      RCLCPP_ERROR(LOGGER, "ANOTHA ONE, %i", ++count_extra_strips);
 
     // Check if all rasters reachable
     if (!gen_preplan)
@@ -343,6 +360,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
       }
     }
   }
+  RCLCPP_ERROR(logger_, "STEP1");
   if (!any_successes)
   {
     RCLCPP_ERROR(logger_, "NO REACHABLE POINTS FOUND OR ALL REACHABLE STRIPS ARE TOO SHORT");
@@ -412,6 +430,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
       second_descartes_trajs.push_back(curr_traj);
     }
   }
+  RCLCPP_ERROR(logger_, "STEP2");
 
   // Check for additional splits required by speed constraint
   std::vector<geometry_msgs::msg::PoseArray> post_speed_split_rasters;
@@ -604,96 +623,113 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
 
   std::vector<trajectory_msgs::msg::JointTrajectory> trajopt_trajectories;
   std::vector<bool> trajopt_solved;
-  bool waypoints_critical = config_->trajopt_surface_config.waypoints_critical;
-  for (size_t i = 0; i < final_split_rasters.size(); ++i)
+  if (config_->use_trajopt_surface)
   {
-    std::vector<tesseract_motion_planners::Waypoint::Ptr> curr_raster;
-    RCLCPP_INFO(logger_, "BUILDING WAYPOINT SET %i OF %i", i + 1, final_split_rasters.size());
-    for (auto waypoint : final_split_rasters[i].poses)
+    bool waypoints_critical = config_->trajopt_surface_config.waypoints_critical;
+    for (size_t i = 0; i < final_split_rasters.size(); ++i)
     {
-      Eigen::Vector3d surface_pose(waypoint.position.x, waypoint.position.y, waypoint.position.z);
-      Eigen::Quaterniond surface_ori(
-          waypoint.orientation.w, waypoint.orientation.x, waypoint.orientation.y, waypoint.orientation.z);
-      tesseract_motion_planners::CartesianWaypoint::Ptr surface_waypoint =
-          std::make_shared<tesseract_motion_planners::CartesianWaypoint>(surface_pose, surface_ori);
-      surface_waypoint->setCoefficients(surface_coeffs);
-      surface_waypoint->setIsCritical(waypoints_critical);
-      curr_raster.push_back(std::move(surface_waypoint));
+      std::vector<tesseract_motion_planners::Waypoint::Ptr> curr_raster;
+      RCLCPP_INFO(logger_, "BUILDING WAYPOINT SET %i OF %i", i + 1, final_split_rasters.size());
+      for (auto waypoint : final_split_rasters[i].poses)
+      {
+        Eigen::Vector3d surface_pose(waypoint.position.x, waypoint.position.y, waypoint.position.z);
+        Eigen::Quaterniond surface_ori(
+            waypoint.orientation.w, waypoint.orientation.x, waypoint.orientation.y, waypoint.orientation.z);
+        tesseract_motion_planners::CartesianWaypoint::Ptr surface_waypoint =
+            std::make_shared<tesseract_motion_planners::CartesianWaypoint>(surface_pose, surface_ori);
+        surface_waypoint->setCoefficients(surface_coeffs);
+        surface_waypoint->setIsCritical(waypoints_critical);
+        curr_raster.push_back(std::move(surface_waypoint));
+      }
+
+      auto traj_pc = std::make_shared<tesseract_motion_planners::TrajOptPlannerDefaultConfig>(
+          config_->tesseract_local, config_->manipulator, config_->tcp_frame, config_->tool_offset);
+
+      traj_pc->optimizer = sco::ModelType::BPMPD;
+
+      traj_pc->collision_cost_config = config_->trajopt_surface_config.coll_cst_cfg;
+      traj_pc->collision_constraint_config = config_->trajopt_surface_config.coll_cnt_cfg;
+
+      traj_pc->init_type = config_->trajopt_surface_config.init_type;
+      traj_pc->longest_valid_segment_fraction = config_->trajopt_surface_config.longest_valid_segment_fraction;
+      traj_pc->longest_valid_segment_length = config_->trajopt_surface_config.longest_valid_segment_length;
+
+      traj_pc->smooth_velocities = config_->trajopt_surface_config.smooth_velocities;
+      traj_pc->smooth_accelerations = config_->trajopt_surface_config.smooth_accelerations;
+      traj_pc->smooth_jerks = config_->trajopt_surface_config.smooth_accelerations;
+      traj_pc->target_waypoints = curr_raster;
+      trajopt::SafetyMarginData::Ptr traj_smd_cost =
+          std::make_shared<trajopt::SafetyMarginData>(config_->trajopt_surface_config.coll_cst_cfg.buffer_margin, 20);
+      for (auto& spec_cost : config_->trajopt_surface_config.special_collision_cost)
+      {
+        traj_smd_cost->setPairSafetyMarginData(
+            std::get<0>(spec_cost), std::get<1>(spec_cost), std::get<2>(spec_cost), std::get<3>(spec_cost));
+      }
+      trajopt::SafetyMarginData::Ptr traj_smd_cnt =
+          std::make_shared<trajopt::SafetyMarginData>(config_->trajopt_surface_config.coll_cnt_cfg.safety_margin, 20);
+      for (auto& spec_cnt : config_->trajopt_surface_config.special_collision_constraint)
+      {
+        traj_smd_cnt->setPairSafetyMarginData(
+            std::get<0>(spec_cnt), std::get<1>(spec_cnt), std::get<2>(spec_cnt), std::get<3>(spec_cnt));
+      }
+
+      if (config_->trajopt_surface_config.special_collision_cost.size() > 0)
+        traj_pc->special_collision_cost = traj_smd_cost;
+      if (config_->trajopt_surface_config.special_collision_constraint.size() > 0)
+        traj_pc->special_collision_constraint = traj_smd_cnt;
+
+      Eigen::MatrixXd joint_eigen_from_jt;
+      joint_eigen_from_jt = tesseract_rosutils::toEigen(results->descartes_trajectory_results[i],
+                                                        results->descartes_trajectory_results[i].joint_names);
+
+      traj_pc->seed_trajectory = joint_eigen_from_jt;
+
+      trajectory_msgs::msg::JointTrajectory trajopt_result_traj;
+      tesseract_motion_planners::PlannerResponse planner_resp;
+      tesseract_motion_planners::TrajOptMotionPlanner traj_surface_planner;
+      traj_surface_planner.setConfiguration(traj_pc);
+      RCLCPP_INFO(logger_, "Solving raster: %i of %i", i + 1, final_split_rasters.size());
+      traj_surface_planner.solve(planner_resp,
+                                 tesseract_motion_planners::PostPlanCheckType::SINGLE_TIMESTEP_COLLISION,
+                                 config_->trajopt_verbose_output);
+
+      if (planner_resp.status.value() < 0)
+      {
+        RCLCPP_WARN(logger_, "FAILED: %s", planner_resp.status.message().c_str());
+        if (config_->default_to_descartes)
+        {
+          trajopt_trajectories.push_back(final_split_trajs[i]);
+          trajopt_solved.push_back(true);
+        }
+        else
+        {
+          trajopt_solved.push_back(false);
+        }
+        results->failed_rasters.push_back(final_split_rasters[i]);
+      }
+      else
+      {
+        RCLCPP_INFO(logger_, "SUCCEEDED");
+        Eigen::MatrixXd result_traj(planner_resp.joint_trajectory.trajectory.rows(),
+                                    planner_resp.joint_trajectory.trajectory.cols());
+        result_traj << planner_resp.joint_trajectory.trajectory;
+        tesseract_rosutils::toMsg(trajopt_result_traj, results->descartes_trajectory_results[i].joint_names, result_traj);
+        results->solved_rasters.push_back(final_split_rasters[i]);
+        trajopt_trajectories.push_back(std::move(trajopt_result_traj));
+        trajopt_solved.push_back(true);
+      }
     }
-
-    auto traj_pc = std::make_shared<tesseract_motion_planners::TrajOptPlannerDefaultConfig>(
-        config_->tesseract_local, config_->manipulator, config_->tcp_frame, config_->tool_offset);
-
-    traj_pc->optimizer = sco::ModelType::BPMPD;
-
-    traj_pc->collision_cost_config = config_->trajopt_surface_config.coll_cst_cfg;
-    traj_pc->collision_constraint_config = config_->trajopt_surface_config.coll_cnt_cfg;
-
-    traj_pc->init_type = config_->trajopt_surface_config.init_type;
-    traj_pc->longest_valid_segment_fraction = config_->trajopt_surface_config.longest_valid_segment_fraction;
-    traj_pc->longest_valid_segment_length = config_->trajopt_surface_config.longest_valid_segment_length;
-
-    traj_pc->smooth_velocities = config_->trajopt_surface_config.smooth_velocities;
-    traj_pc->smooth_accelerations = config_->trajopt_surface_config.smooth_accelerations;
-    traj_pc->smooth_jerks = config_->trajopt_surface_config.smooth_accelerations;
-    traj_pc->target_waypoints = curr_raster;
-    trajopt::SafetyMarginData::Ptr traj_smd_cost =
-        std::make_shared<trajopt::SafetyMarginData>(config_->trajopt_surface_config.coll_cst_cfg.buffer_margin, 20);
-    for (auto& spec_cost : config_->trajopt_surface_config.special_collision_cost)
+    if (trajopt_trajectories.empty())
     {
-      traj_smd_cost->setPairSafetyMarginData(
-          std::get<0>(spec_cost), std::get<1>(spec_cost), std::get<2>(spec_cost), std::get<3>(spec_cost));
-    }
-    trajopt::SafetyMarginData::Ptr traj_smd_cnt =
-        std::make_shared<trajopt::SafetyMarginData>(config_->trajopt_surface_config.coll_cnt_cfg.safety_margin, 20);
-    for (auto& spec_cnt : config_->trajopt_surface_config.special_collision_constraint)
-    {
-      traj_smd_cnt->setPairSafetyMarginData(
-          std::get<0>(spec_cnt), std::get<1>(spec_cnt), std::get<2>(spec_cnt), std::get<3>(spec_cnt));
-    }
-
-    if (config_->trajopt_surface_config.special_collision_cost.size() > 0)
-      traj_pc->special_collision_cost = traj_smd_cost;
-    if (config_->trajopt_surface_config.special_collision_constraint.size() > 0)
-      traj_pc->special_collision_constraint = traj_smd_cnt;
-
-    Eigen::MatrixXd joint_eigen_from_jt;
-    joint_eigen_from_jt = tesseract_rosutils::toEigen(results->descartes_trajectory_results[i],
-                                                      results->descartes_trajectory_results[i].joint_names);
-
-    traj_pc->seed_trajectory = joint_eigen_from_jt;
-
-    trajectory_msgs::msg::JointTrajectory trajopt_result_traj;
-    tesseract_motion_planners::PlannerResponse planner_resp;
-    tesseract_motion_planners::TrajOptMotionPlanner traj_surface_planner;
-    traj_surface_planner.setConfiguration(traj_pc);
-    RCLCPP_INFO(logger_, "Solving raster: %i of %i", i + 1, final_split_rasters.size());
-    traj_surface_planner.solve(planner_resp,
-                               tesseract_motion_planners::PostPlanCheckType::DISCRETE_CONTINUOUS_COLLISION,
-                               config_->trajopt_verbose_output);
-
-    if (planner_resp.status.value() < 0)
-    {
-      RCLCPP_INFO(logger_, "FAILED: %s", planner_resp.status.message().c_str());
-      results->failed_rasters.push_back(final_split_rasters[i]);
-      trajopt_solved.push_back(false);
-    }
-    else
-    {
-      RCLCPP_INFO(logger_, "SUCCEEDED");
-      Eigen::MatrixXd result_traj(planner_resp.joint_trajectory.trajectory.rows(),
-                                  planner_resp.joint_trajectory.trajectory.cols());
-      result_traj << planner_resp.joint_trajectory.trajectory;
-      tesseract_rosutils::toMsg(trajopt_result_traj, results->descartes_trajectory_results[i].joint_names, result_traj);
-      results->solved_rasters.push_back(final_split_rasters[i]);
-      trajopt_trajectories.push_back(std::move(trajopt_result_traj));
-      trajopt_solved.push_back(true);
+      RCLCPP_ERROR(logger_, "NO TRAJECTORIES WERE ABLE TO BE SOLVED");
+      return false;
     }
   }
-  if (trajopt_trajectories.empty())
+  else
   {
-    RCLCPP_ERROR(logger_, "NO TRAJECTORIES WERE ABLE TO BE SOLVED");
-    return false;
+    trajopt_trajectories = final_split_trajs;
+    for (size_t i = 0; i < trajopt_trajectories.size(); ++i)
+      trajopt_solved.push_back(true);
   }
   RCLCPP_INFO(logger_, "SETTING TIMESTAMPS");
   // Assign trajectory timestamps for motion execution

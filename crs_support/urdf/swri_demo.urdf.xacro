@@ -15,12 +15,12 @@
           <color rgba="0.8 0.8 0.8 0.9"/>
         </material>
       </visual>
-      <collision>
+<!--      <collision>
         <origin xyz="0 0 -0.05"/>
         <geometry>
           <box size="$(arg table_size) $(arg table_size) 0.1"/>
         </geometry>
-      </collision>
+      </collision>-->
     </link>
 
     <joint name="world_to_table_joint" type="fixed">
