@@ -13,7 +13,7 @@ bool loadPathPlanningConfig(const std::string& yaml_fp,
   trajoptSurfaceConfig trajopt_surface_config;
   crs_motion_planning::omplConfig ompl_config;
   crs_motion_planning::trajoptFreespaceConfig trajopt_freespace_config;
-  motion_planner_config = std::make_shared<crs_motion_planning::pathPlanningConfig>();;
+  motion_planner_config = std::make_unique<crs_motion_planning::pathPlanningConfig>();;
 
   YAML::Node full_yaml_node = YAML::LoadFile(yaml_fp);
   if (!full_yaml_node)
@@ -194,7 +194,7 @@ crsMotionPlanner::crsMotionPlanner(pathPlanningConfig::Ptr config, rclcpp::Logge
 
 crsMotionPlanner::crsMotionPlanner(pathPlanningConfig config, rclcpp::Logger logger) : logger_(std::move(logger))
 {
-  config_ = std::make_shared<crs_motion_planning::pathPlanningConfig>();
+  config_ = std::make_unique<crs_motion_planning::pathPlanningConfig>();
   *config_ = config;
 }
 
@@ -343,6 +343,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
       }
     }
   }
+  RCLCPP_ERROR(logger_, "STEP1");
   if (!any_successes)
   {
     RCLCPP_ERROR(logger_, "NO REACHABLE POINTS FOUND OR ALL REACHABLE STRIPS ARE TOO SHORT");
@@ -412,6 +413,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
       second_descartes_trajs.push_back(curr_traj);
     }
   }
+  RCLCPP_ERROR(logger_, "STEP2");
 
   // Check for additional splits required by speed constraint
   std::vector<geometry_msgs::msg::PoseArray> post_speed_split_rasters;

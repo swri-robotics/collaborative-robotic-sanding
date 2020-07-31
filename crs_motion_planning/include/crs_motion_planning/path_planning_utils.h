@@ -114,7 +114,7 @@ struct trajoptFreespaceConfig
 
 struct pathPlanningConfig
 {
-  using Ptr = std::shared_ptr<pathPlanningConfig>;
+  using Ptr = std::unique_ptr<pathPlanningConfig>;
 
   descartesConfig descartes_config;
 
@@ -165,7 +165,7 @@ struct pathPlanningConfig
 
 struct pathPlanningResults
 {
-  using Ptr = std::shared_ptr<pathPlanningResults>;
+  using Ptr = std::unique_ptr<pathPlanningResults>;
 
   geometry_msgs::msg::PoseArray reachable_waypoints;
   geometry_msgs::msg::PoseArray unreachable_waypoints;
