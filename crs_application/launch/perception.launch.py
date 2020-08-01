@@ -79,7 +79,8 @@ def generate_launch_description():
         node_name='toolpath_crop_node',
         node_namespace = GLOBAL_NS ,
         output='screen',
-        #prefix= 'xterm -e gdb --args',
+        #prefix= 'xterm -e gdb -ex run --args',
+        prefix= 'xterm -e',
         parameters=[{'config_opencv': region_detection_opencv_cfg},
                     {'config_pcl2d': region_detection_pcl2d_cfg},
                     {'config_pcl': region_detection_pcl_cfg},
@@ -89,4 +90,3 @@ def generate_launch_description():
     return launch.LaunchDescription([
         part_localization_node,
         toolpath_crop_node])
-    

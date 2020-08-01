@@ -2,13 +2,14 @@ debug_mode_enable: false
 max_merge_dist: 0.01
 closed_curve_max_dist: 0.01
 simplification_min_dist: 0.01
+split_dist: 0.1
 min_num_points: 10
 stat_removal:
   enable: true
   kmeans: 100
-  stddev: 5.0
+  stddev: 3.0
 normal_est:
   downsampling_radius: 0.01
   search_radius: 0.02
   kdtree_epsilon: 0.001
-  viewpoint_xyz: [0.0, 0.0, 0.0]
+  viewpoint_xyz: [0.0, 0.0, 100.0]
