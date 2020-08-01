@@ -3,17 +3,17 @@ debug_mode_enable: true
 debug_window_name: "DEBUG_REGION_DETECTION"
 debug_wait_key: false
 threshold:
-  type: 2
-  enable: false
-  value: 200
-canny:
+  type: 3
   enable: true
+  value: 150
+canny:
+  enable: false
   lower_threshold: 100
   upper_threshold: 200
   aperture_size: 1
 dilation:
-  enable: false
-  elem: 2 # 0: Rect, 1: Cross, 2: Ellipse
+  enable: true
+  elem: 1 # 0: Rect, 1: Cross, 2: Ellipse
   kernel_size: 1 # 2n + 1
 contour:
   method: 1

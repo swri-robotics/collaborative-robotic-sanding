@@ -23,7 +23,7 @@ sac:
   inlier_fraction: 0.25
 crop_boxes:
   box1:
-    xyz: [0.0, -1.0, -0.25]
+    xyz: [0.0, -1.0, -0.18]
     size: [2.5, 0.6, 0.3]
     reverse: True
   box2:
