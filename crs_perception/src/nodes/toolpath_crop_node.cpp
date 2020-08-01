@@ -35,9 +35,11 @@
 #include <region_detection_core/region_crop.h>
 
 static const std::string CROP_TOOLPATHS_SERIVCE = "crop_toolpaths";
+static const std::string REGION_MARKERS_TOPIC = "detected_regions";
 static const std::string CLOSED_REGIONS_NS = "closed_regions";
 
 typedef std::vector<Eigen::Isometry3d, Eigen::aligned_allocator<Eigen::Isometry3d> > EigenPose3dVector;
+//typedef std::vector<Eigen::Isometry3d> EigenPose3dVector;
 
 static geometry_msgs::msg::Pose pose3DtoPoseMsg(const std::array<float, 6>& p)
 {
@@ -180,7 +182,10 @@ convertToDottedLineMarker(const std::vector<EigenPose3dVector>& path,
 class ToolpathCrop
 {
 public:
-  ToolpathCrop(std::shared_ptr<rclcpp::Node> node) : node_(node), logger_(node->get_logger())
+  ToolpathCrop(std::shared_ptr<rclcpp::Node> node) :
+      node_(node),
+      logger_(node->get_logger()),
+      marker_pub_timer_(nullptr)
   {
     // load parameters
 
@@ -193,7 +198,6 @@ public:
                                                                      std::placeholders::_2,
                                                                      std::placeholders::_3));
 
-    static const std::string REGION_MARKERS_TOPIC = "detected_regions";
     region_markers_pub_ =
         node->create_publisher<visualization_msgs::msg::MarkerArray>(REGION_MARKERS_TOPIC, rclcpp::QoS(1));
 
@@ -286,6 +290,13 @@ private:
 
   void publishRegions(const std::string& frame_id, const std::string ns, const std::vector<EigenPose3dVector>& regions)
   {
+    using namespace std::chrono_literals;
+
+    if(marker_pub_timer_)
+    {
+      marker_pub_timer_->cancel();
+    }
+
     // create markers to publish
     visualization_msgs::msg::MarkerArray region_markers;
     int id = 0;
@@ -299,8 +310,11 @@ private:
       m = convertToDottedLineMarker({ poses }, frame_id, ns + std::to_string(id));
       region_markers.markers.insert(region_markers.markers.end(), m.markers.begin(), m.markers.end());
     }
+    marker_pub_timer_ = node_->create_wall_timer(500ms, [this, region_markers]() -> void {
+     region_markers_pub_->publish(region_markers);
+    });
 
-    region_markers_pub_->publish(region_markers);
+    //region_markers_pub_->publish(region_markers);
   }
 
   void cropToolpathsCallback(const std::shared_ptr<rmw_request_id_t> request_header,
@@ -314,20 +328,23 @@ private:
     (void)request_header;
 
     // converting to input for region detection
-    std::vector<RegionDetector::DataBundle> data_vec;
+    RegionDetector::DataBundleVec data_vec;
+    //std::vector<RegionDetector::DataBundle, Eigen::aligned_allocator<RegionDetector::DataBundle>> data_vec;
+    const std::string img_name_prefix = "img_input_";
     for (std::size_t i = 0; i < request->clouds.size(); i++)
     {
       RegionDetector::DataBundle data;
       pcl_conversions::toPCL(request->clouds[i], data.cloud_blob);
       cv_bridge::CvImagePtr img = cv_bridge::toCvCopy(request->images[i], sensor_msgs::image_encodings::RGBA8);
       data.image = img->image;
+      cv::imwrite( img_name_prefix + std::to_string(i) + ".jpg", data.image );
       data.transform = tf2::transformToEigen(request->transforms[i]);
       data_vec.push_back(data);
     }
 
     // region detection
     RegionDetectionConfig config = loadRegionDetectionConfig();
-    RegionDetector region_detector(config);
+    RegionDetector region_detector(config, RegionDetector::createDefaultDebugLogger("RD-Debug"));
     RegionDetector::RegionResults region_detection_results;
     if (!region_detector.compute(data_vec, region_detection_results))
     {
@@ -400,10 +417,12 @@ private:
     response->succeeded = true;
   }
 
+  // timers
   rclcpp::Service<crs_msgs::srv::CropToolpaths>::SharedPtr crop_toolpaths_srv_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr region_markers_pub_;
   std::shared_ptr<rclcpp::Node> node_;
-  rclcpp::Logger logger_;
+  rclcpp::Logger logger_;  
+  rclcpp::TimerBase::SharedPtr marker_pub_timer_;
 };
 
 int main(int argc, char** argv)
