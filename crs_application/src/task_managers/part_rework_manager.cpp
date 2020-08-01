@@ -39,9 +39,9 @@
 
 static const double WAIT_FOR_MSG_TIMEOUT = 5.0;
 static const double WAIT_ROBOT_STOP = 2.0;
-static const double WAIT_MOTION_COMPLETION = 30.0;
-static const double WAIT_FOR_SERVICE_PERIOD = 10.0;
-static const double WAIT_SERVICE_COMPLETION_TIMEOUT = 10.0;
+static const double WAIT_MOTION_COMPLETION = 90.0;
+static const double WAIT_FOR_SERVICE_PERIOD = 40.0;
+static const double WAIT_SERVICE_COMPLETION_TIMEOUT = 40.0;
 
 static const std::string FREESPACE_MOTION_PLAN_SERVICE = "plan_freespace_motion";
 static const std::string CROP_TOOLPATH_SERVICE = "crop_toolpaths";
@@ -50,7 +50,7 @@ static const std::string SCAN_POSES_TOPIC = "rework_scan_poses";
 static const std::string CROPPED_TOOLPATH_MARKER_TOPIC = "cropped_toolpaths";
 static const std::string DEFAULT_WORLD_FRAME_ID = "world";
 static const std::string POINT_CLOUD_TOPIC = "camera/pointcloud";
-static const std::string IMAGE_TOPIC = "camera/image";
+static const std::string IMAGE_TOPIC = "camera/color/image_raw";
 static const std::string MARKER_NS_TOOLPATH = "toolpath";
 
 namespace crs_application
@@ -244,7 +244,7 @@ common::ActionResult PartReworkManager::trimToolpaths()
 
   // saving results
   crs_msgs::srv::CropToolpaths::Response::SharedPtr srv_response = result_future.get();
-  if (srv_response->succeeded)
+  if (!srv_response->succeeded)
   {
     res.succeeded = false;
     res.err_msg = boost::str(boost::format("%s crop service failed to complete request") % MANAGER_NAME);

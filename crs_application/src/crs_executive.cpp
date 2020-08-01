@@ -88,7 +88,7 @@ static const std::string SAVE_RESULTS = "MP_Save_Results";
 // part rework
 namespace part_rework
 {
-static const std::string PARENT = "Part_Rework";
+static const std::string RESET = "PR_Reset";
 static const std::string MOVE_ROBOT = "PR_Move_Robot";
 static const std::string ACQUIRE_SCAN = "PR_Acquire_Scan";
 static const std::string CHECK_QUEUE = "PR_Check_Queue";
@@ -579,9 +579,11 @@ bool CRSExecutive::setupPartReworkStates()
 
   std::map<std::string, StateCallbackInfo> st_callbacks_map;
 
-  st_callbacks_map[part_rework::PARENT] = StateCallbackInfo{
+  st_callbacks_map[part_rework::RESET] = StateCallbackInfo{
     entry_cb : std::bind(&task_managers::PartReworkManager::reset, part_rework_mngr_.get()),
-    async : true
+    async : true,
+    exit_cb : nullptr,
+    on_done_action : action_names::SM_DONE,
   };
 
   st_callbacks_map[part_rework::MOVE_ROBOT] = StateCallbackInfo{
@@ -609,8 +611,20 @@ bool CRSExecutive::setupPartReworkStates()
     on_done_action : ""
   };
 
-  st_callbacks_map[part_rework::TRIM_TOOLPATHS] = StateCallbackInfo{
+  /*st_callbacks_map[part_rework::TRIM_TOOLPATHS] = StateCallbackInfo{
     entry_cb : std::bind(&task_managers::PartReworkManager::trimToolpaths, part_rework_mngr_.get()),
+    async : false
+  };*/
+
+  st_callbacks_map[part_rework::TRIM_TOOLPATHS] = StateCallbackInfo{
+    entry_cb : [this]() -> common::ActionResult {
+      common::ActionResult res = part_rework_mngr_->setInput(part_regt_mngr_->getResult());
+      if (!res)
+      {
+        return res;
+      }
+      return part_rework_mngr_->trimToolpaths();
+    },
     async : false
   };
 
