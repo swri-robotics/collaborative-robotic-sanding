@@ -439,7 +439,7 @@
     </joint>
     <link name="${prefix}camera_link_optical" />
     <joint name="${prefix}camera_optical_joint" type="fixed">
-        <origin xyz="-0.00345 0.070793 0.077409" rpy="-0.7854 0 0"/>
+        <origin xyz="-0.022 0.079773 0.065" rpy="-0.7854 0 0"/>
         <parent link="${prefix}eoat_link"/>
         <!-- <parent link="${prefix}gazebo_camera_link"/> -->
         <child link="${prefix}camera_link_optical"/>
