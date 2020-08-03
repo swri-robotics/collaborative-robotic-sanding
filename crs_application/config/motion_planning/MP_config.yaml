@@ -9,48 +9,62 @@ general:
   max_joint_vel: 0.22
   max_joint_acc: 0.7
   add_approach_and_retreat: true
-  minimum_raster_length: 4
+  minimum_raster_length: 2
   trajopt_verbose_output: false
-  combine_strips: false
+  combine_strips: true
   global_descartes: true
 descartes:
   axial_step: 1.57 # Pi/36
-  collision_safety_margin: 0.01
+  collision_safety_margin: 0.001
   additional_tool_offset: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 trajopt_surface:
-  smooth_velocities: true
-  smooth_accelerations: true
-  smooth_jerks: true
-  longest_valid_segment_fraction: 0.01
-  longest_valid_segment_length: 0.5
+  smooth_velocities: false
+  smooth_accelerations: false
+  smooth_jerks: false
+  longest_valid_segment_fraction: 1.0
+  longest_valid_segment_length: 1.0
   surface_coefficients: [10.0, 10.0, 10.0, 10.0, 10.0, 10.0]
   waypoints_critical: true
   collision_cost:
-    enabled: false
-  collision_constraint:
     enabled: true
-    safety_margin: 0.01
+    buffer_margin: 0.02
+  special_collision_costs:
+    - link1: "eoat_link"
+      link2: "part_link"
+      distance: -0.05
+      cost: 10.0
+    - link1: "sander_intermediate_link"
+      link2: "part_link"
+      distance: -0.05
+      cost: 10.0
+    - link1: "robot_stand"
+      link2: "upper_arm_link"
+      distance: 0.03
+      cost: 10.0
+  collision_constraint:
+    enabled: false
+    safety_margin: 0.000
   special_collision_constraints:
     - link1: "eoat_link"
       link2: "part_link"
-      distance: -0.02
-      cost: 15.0
+      distance: -0.05
+      cost: 10.0
     - link1: "sander_intermediate_link"
       link2: "part_link"
-      distance: -0.02
-      cost: 15.0
-    - link1: "eoat_link"
-      link2: "table"
-      distance: -0.02
-      cost: 15.0
-    - link1: "sander_center_link"
-      link2: "part_link"
-      distance: -0.02
-      cost: 15.0
-    - link1: "sander_center_link"
-      link2: "table"
-      distance: -0.02
-      cost: 15.0
+      distance: -0.05
+      cost: 10.0
+  #  - link1: "eoat_link"
+  #    link2: "table"
+  #    distance: -0.05
+  #    cost: 10.0
+  #  - link1: "sander_center_link"
+  #    link2: "part_link"
+  #    distance: -0.05
+  #    cost: 10.0
+  #  - link1: "sander_center_link"
+  #    link2: "table"
+  #   distance: -0.05
+  #    cost: 10.0
 ompl:
   collision_safety_margin: 0.01
   planning_time: 120.0
@@ -68,7 +82,7 @@ trajopt_freespace:
   longest_valid_segment_fraction: 0.01
   longest_valid_segment_length: 0.5
   collision_cost:
-    enabled: false
+    enabled: true
     buffer_margin: 0.02
   special_collision_costs:
     - link1: "eoat_link"

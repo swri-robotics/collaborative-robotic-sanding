@@ -211,7 +211,7 @@ private:
     }
     tesseract_rosutils::fromMsg(motion_planner_config->tool_offset, request->tool_offset);
     motion_planner_config->descartes_config.tool_offset =
-        Eigen::Isometry3d::Identity() * Eigen::Translation3d(0.0, 0.0, 0.03);
+        Eigen::Isometry3d::Identity() * Eigen::Translation3d(0.0, 0.0, 0.005);
 
     std::vector<crs_msgs::msg::ProcessMotionPlan> returned_plans;
     bool success;
@@ -474,8 +474,7 @@ private:
 
     tesseract_msgs::msg::Geometry link_geom;
     //    tesseract_rosutils::toMsg(link_geom, conv_mesh);
-//    tesseract_rosutils::toMsg(link_geom, *meshes[0]);
-    tesseract_rosutils::toMsg(link_geom, conv_mesh);
+    tesseract_rosutils::toMsg(link_geom, *meshes[0]);
 
     std::vector<tesseract_msgs::msg::VisualGeometry> vis_geom_vector;
     tesseract_msgs::msg::VisualGeometry link_vis_geom;

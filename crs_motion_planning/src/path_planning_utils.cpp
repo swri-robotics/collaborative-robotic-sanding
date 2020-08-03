@@ -686,12 +686,12 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
     traj_surface_planner.setConfiguration(traj_pc);
     RCLCPP_INFO(logger_, "Solving raster: %i of %i", i + 1, final_split_rasters.size());
     traj_surface_planner.solve(planner_resp,
-                               tesseract_motion_planners::PostPlanCheckType::DISCRETE_CONTINUOUS_COLLISION,
+                               tesseract_motion_planners::PostPlanCheckType::SINGLE_TIMESTEP_COLLISION,
                                config_->trajopt_verbose_output);
 
     if (planner_resp.status.value() < 0)
     {
-      RCLCPP_INFO(logger_, "FAILED: %s", planner_resp.status.message().c_str());
+      RCLCPP_WARN(logger_, "FAILED: %s", planner_resp.status.message().c_str());
       results->failed_rasters.push_back(final_split_rasters[i]);
       trajopt_solved.push_back(false);
     }
