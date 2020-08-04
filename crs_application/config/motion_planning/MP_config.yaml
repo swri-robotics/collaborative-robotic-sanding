@@ -1,29 +1,31 @@
 general:
   use_trajopt_freespace: false
+  use_trajopt_surface: true
+  default_to_descartes: true
   simplify_start_end_freespace: true
   manipulator: "manipulator"
   world_frame: "world"
   robot_base_frame: "base_link"
   tool0_frame: "tool0"
   required_tool_vel: true
-  max_joint_vel: 0.22
-  max_joint_acc: 0.7
+  max_joint_vel: 0.3
+  max_joint_acc: 0.9
   add_approach_and_retreat: true
-  minimum_raster_length: 2
+  minimum_raster_length: 4
   trajopt_verbose_output: false
   combine_strips: true
   global_descartes: true
 descartes:
   axial_step: 0.5 # Pi/36
-  collision_safety_margin: 0.001
-  additional_tool_offset: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  collision_safety_margin: 0.00
+  additional_tool_offset: [0.0, 0.0, 0.001, 0.0, 0.0, 0.0]
 trajopt_surface:
   smooth_velocities: false
   smooth_accelerations: false
   smooth_jerks: false
   longest_valid_segment_fraction: 1.0
   longest_valid_segment_length: 1.0
-  surface_coefficients: [10.0, 10.0, 10.0, 10.0, 10.0, 10.0]
+  surface_coefficients: [100.0, 100.0, 100.0, 100.0, 100.0, 10.0]
   waypoints_critical: true
   collision_cost:
     enabled: true
@@ -31,11 +33,11 @@ trajopt_surface:
   special_collision_costs:
     - link1: "eoat_link"
       link2: "part_link"
-      distance: -0.05
+      distance: 0.03
       cost: 10.0
     - link1: "sander_intermediate_link"
       link2: "part_link"
-      distance: -0.05
+      distance: 0.03
       cost: 10.0
     - link1: "robot_stand"
       link2: "upper_arm_link"
