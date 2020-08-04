@@ -295,12 +295,12 @@
                 <color rgba="0.7 0.7 0.7 1.0" />
             </material>
         </visual>
-        <collision>
+        <!--<collision>
             <origin rpy="1.57079632679 0 0" xyz="0.20 0 -0.1168" />
             <geometry>
                 <mesh filename="package://crs_support/meshes/Mockup/collision/Mockup3_6_Cart_collision.stl" />
             </geometry>
-        </collision>
+        </collision>-->
         <collision> <!-- Right Wall-->
             <geometry>
                 <box size="3.0 2.14 0.1" />
@@ -373,12 +373,12 @@
             </geometry>
             <origin rpy="0 0.785 0" xyz="-2.06 -2.135 1.38" />
         </collision>
-        <collision> <!-- fake floor -->
+        <!--<collision>  fake floor
             <geometry>
                 <box size="3.0 0.12 3.0" />
             </geometry>
             <origin rpy="0 0 0" xyz="-0.65 -0.82 0" />
-        </collision>
+        </collision>-->
 
         <inertial>
             <mass value="0.1" />
@@ -420,7 +420,10 @@
         <parent link="${prefix}camera_link_optical"/>
         <child link="${prefix}camera_link"/>
     </joint>
-    <link name="${prefix}sander_center_link" >
+
+    <link name="${prefix}sander_center_link" />
+
+    <link name="${prefix}sander_intermediate_link">
       <visual>
           <geometry>
               <cylinder length="0.025" radius="0.06425" />
@@ -433,23 +436,24 @@
           </geometry>
           <origin rpy="0 0 0" xyz="0 0 0" />
       </collision>
-      <collision>
-          <geometry>
-              <cylinder length="0.03" radius="0.115" />
-          </geometry>
-          <origin rpy="0 0 0" xyz="0 0 -0.105" />
-      </collision>
-<!--      <collision>
-          <geometry>
-              <cylinder length="0.025" radius="0.135" />
-          </geometry>
-          <origin rpy="0 0 0" xyz="0 0 -0.035" />
-      </collision>-->
     </link>
-    <joint name="${prefix}sander_joint" type = "fixed">
+
+    <joint name="${prefix}sander_intermediate_to_sander_center_link" type="fixed">
+      <parent link="${prefix}sander_intermediate_link" />
+      <child link="${prefix}sander_center_link" />
+    <!--        <origin xyz="0 0.16578 0.01902" rpy="-0.785 0 0" />-->
+    <!--        <origin xyz="0 0.162 0.015" rpy="-0.785 0 0" />-->
+    <!--        <origin xyz="0 0.04612 -0.03371" rpy="-2.355 0 0" />-->
+      <origin  xyz="0.0 0.0 0.0125" rpy="0.0 0.0 0.0"/>
+    </joint>
+
+    <joint name="${prefix}tool0_to_sander_intermediate_link" type="fixed">
+        <parent link="${prefix}eoat_link" />
+        <child link="${prefix}sander_intermediate_link" />
+    <!--        <origin xyz="0 0.16578 0.01902" rpy="-0.785 0 0" />-->
+    <!--        <origin xyz="0 0.162 0.015" rpy="-0.785 0 0" />-->
+    <!--        <origin xyz="0 0.04612 -0.03371" rpy="-2.355 0 0" />-->
         <origin xyz="0.0 -0.15497 0.17503" rpy="0.7854 0.0 0.0"/>
-        <parent link="${prefix}eoat_link"/>
-        <child link="${prefix}sander_center_link" />
     </joint>
 <!--    <link name="${prefix}part" >
         <visual>
