@@ -31,7 +31,7 @@
         <origin rpy="0 0 3.14159249728" xyz="0 0 0.180920744391" />
         <axis xyz="0 0 1" />
 <!--        <limit effort="330.0" lower="-6.28318530718" upper="6.28318530718" velocity="3.14" />-->
-        <limit effort="330.0" lower="-4" upper="2.28" velocity="3.14" />
+        <limit effort="330.0" lower="-4" upper="3.28" velocity="3.14" />
         <dynamics damping="0.0" friction="0.0" />
     </joint>
     <link name="${prefix}shoulder_link">
@@ -287,7 +287,7 @@
             </material>
         </visual>
         <visual>
-            <origin rpy="1.57079632679 0 0" xyz="0.20 0 -0.1168" />
+            <origin rpy="1.57079632679 0 0" xyz="0.00 0 -0.1168" />
             <geometry>
                 <mesh filename="package://crs_support/meshes/Mockup/visual/mockup_cart_v4.stl" />
             </geometry>

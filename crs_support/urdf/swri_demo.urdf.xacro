@@ -61,7 +61,7 @@
     </joint>
 
     <link name="${prefix}external_walls">
-      <visual>
+      <!--<visual>
         <origin xyz="0 0.765 0"/>
         <geometry>
           <box size="$(arg table_size) 0.1 $(arg table_size)"/>
@@ -72,7 +72,7 @@
         <geometry>
           <box size="$(arg table_size) 0.1 $(arg table_size)"/>
         </geometry>
-      </collision>
+      </collision>-->
     </link>
 
     <joint name="table_to_external_walls" type="fixed">
