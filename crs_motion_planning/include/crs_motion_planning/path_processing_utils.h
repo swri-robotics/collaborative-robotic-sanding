@@ -147,9 +147,11 @@ bool splitRastersByJointDist(const trajectory_msgs::msg::JointTrajectory& given_
                              const geometry_msgs::msg::PoseArray& given_raster,
                              const double& desired_ee_vel,
                              const double& max_joint_vel,
+                             const double& max_dist,
                              std::vector<trajectory_msgs::msg::JointTrajectory>& split_traj,
                              std::vector<geometry_msgs::msg::PoseArray>& split_rasters,
-                             std::vector<std::vector<double>>& time_steps);
+                             std::vector<std::vector<double>>& time_steps,
+                             const double& joint_vel_mult = 1.0);
 
 void addApproachAndRetreat(const geometry_msgs::msg::PoseArray& given_raster,
                            const double& approach_dist,

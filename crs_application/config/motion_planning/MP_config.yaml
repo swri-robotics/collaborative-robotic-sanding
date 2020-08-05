@@ -9,7 +9,9 @@ general:
   tool0_frame: "tool0"
   required_tool_vel: true
   max_joint_vel: 0.3
-  max_joint_acc: 0.9
+  max_joint_vel_mult: 1.5
+  max_surface_dist: 0.1
+  max_joint_acc: 0.8
   add_approach_and_retreat: true
   minimum_raster_length: 4
   trajopt_verbose_output: false
@@ -25,7 +27,7 @@ trajopt_surface:
   smooth_jerks: false
   longest_valid_segment_fraction: 1.0
   longest_valid_segment_length: 1.0
-  surface_coefficients: [100.0, 100.0, 100.0, 100.0, 100.0, 10.0]
+  surface_coefficients: [10.0, 10.0, 10.0, 10.0, 10.0, 0.0]
   waypoints_critical: true
   collision_cost:
     enabled: true
