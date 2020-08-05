@@ -1,0 +1,53 @@
+crs:
+  general: {}
+  motion_planning:
+    pre_move_home: false
+    home_position:
+      joint_names: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
+      joint_position: [-1.8444, -1.85261, -1.6167, -1.6665, 0.8773, -0.9489]
+    process_path:
+      tool_speed: 0.05
+      offset_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      retreat_dist: 0.04
+      approach_dist: 0.04
+      tool_frame: sander_center_link
+      target_force: 15
+    media_change:
+      change_time: 1200.0
+      change_pose: [0.771, -0.279, 0.220, 3.138, -0.005, -0.486]
+      joint_names: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
+      joint_position: [-0.02467, -1.7719, -1.8680, -0.6212, 0.90265, -2.2430]
+    preview:
+      time_scaling: 4.0
+  scan_acquisition:
+    scan_poses:
+      - pose: [0.562, 0.260, 0.396, 1.899, -0.072, 2.897]
+      - pose: [0.543, 0.266, 0.395, 1.901, -0.076, -2.573]
+      - pose: [0.543, 0.242, 0.398, 1.724, 0.034, -2.277]
+    tool_frame: camera_link_optical
+    skip_on_failure: true
+  process_execution:
+    time_tolerance: 120.0
+    joint_tolerance: [0.035, 0.035, 0.035, 0.035, 0.035, 0.035]
+    cartesian_path_tolerance: [0.015, 0.015, 0.035, 0.15, 0.15, 0.15]
+    cartesian_goal_tolerance: [0.01, 0.01, 0.025, 0.05, 0.05, 0.05]
+    force_tolerance: 5
+    force_controlled_trajectories: false
+    ur_tool_change_script: simpleMove.urp
+    execute_tool_change: false
+  part_registration:
+    simulation_pose: [0.45, -1.04, 0.2, 0.0, 0.0, 0.0]
+    seed_pose: [0.0, 0.8, 0.2, -1.57, 3.14, -1.57]
+    target_frame_id: world
+    part_file: /home/tmarr/crs_data/swri_part/swri_part.stl
+    toolpath_file: /home/tmarr/crs_data/swri_part/scan.yaml
+  part_rework:
+    scan_poses:
+      - pose: [0.0, -0.50, 1.7, 0.0, -2.35619, 1.57]
+      - pose: [0.0, -0.25, 1.7, 0.0, -2.35619, 1.57]
+      - pose: [0.0, -0.10, 1.7, 0.5, -2.35619, 1.57]
+      - pose: [0.0, 0.0, 1.7, 0.0, -2.35619, 1.57]
+      - pose: [0.0, 0.1, 1.7, -0.8, -2.35619, 1.57]
+    tool_frame: camera_link_optical
+    pre_acquisition_pause: 2.0
+    skip_on_failure: true
