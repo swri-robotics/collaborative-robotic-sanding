@@ -44,6 +44,9 @@ static const double WAIT_FOR_SERVICE_PERIOD = 40.0;
 static const double WAIT_SERVICE_COMPLETION_TIMEOUT = 40.0;
 
 static const std::string FREESPACE_MOTION_PLAN_SERVICE = "plan_freespace_motion";
+static const std::string DETECT_REGIONS_SERVICE = "detect_regions";
+static const std::string SHOW_SELECTABLE_REGIONS_SERVICE = "show_selectable_regions";
+static const std::string GET_SELECTED_REGIONS = "get_selected_regions";
 static const std::string CROP_TOOLPATH_SERVICE = "crop_toolpaths";
 static const std::string MANAGER_NAME = "PartReworkManager";
 static const std::string SCAN_POSES_TOPIC = "rework_scan_poses";
@@ -60,7 +63,7 @@ namespace task_managers
 PartReworkManager::PartReworkManager(std::shared_ptr<rclcpp::Node> node)
   : node_(node)
   , scan_poses_(std::vector<geometry_msgs::msg::Transform>())
-  , process_data_(std::make_shared<crs_msgs::srv::CropToolpaths::Request>())
+  , scan_data_(std::make_shared<region_detection_msgs::srv::DetectRegions::Request>())
   , scan_index_(0)
   , config_(nullptr)
   , private_node_(std::make_shared<rclcpp::Node>(MANAGER_NAME + "_private"))
@@ -81,13 +84,27 @@ common::ActionResult PartReworkManager::init()
       node_->create_publisher<visualization_msgs::msg::MarkerArray>(CROPPED_TOOLPATH_MARKER_TOPIC, rclcpp::QoS(1));
 
   // service clients
+  detect_regions_client_ = node_->create_client<region_detection_msgs::srv::DetectRegions>(
+      DETECT_REGIONS_SERVICE);
+
+  show_selectable_regions_client_ = node_->create_client<region_detection_msgs::srv::ShowSelectableRegions>(
+      SHOW_SELECTABLE_REGIONS_SERVICE);
+
+  get_selected_regions_client_ = node_->create_client<region_detection_msgs::srv::GetSelectedRegions>(
+      GET_SELECTED_REGIONS);
+
+  crop_toolpaths_client_ = node_->create_client<region_detection_msgs::srv::CropData>(CROP_TOOLPATH_SERVICE);
+
   call_freespace_motion_client_ =
       node_->create_client<crs_msgs::srv::CallFreespaceMotion>(FREESPACE_MOTION_PLAN_SERVICE);
-  crop_toolpaths_client_ = node_->create_client<crs_msgs::srv::CropToolpaths>(CROP_TOOLPATH_SERVICE);
 
   // waiting for services
   common::ActionResult res;
-  std::vector<rclcpp::ClientBase*> srv_clients = { call_freespace_motion_client_.get(), crop_toolpaths_client_.get() };
+  std::vector<rclcpp::ClientBase*> srv_clients = { call_freespace_motion_client_.get(),
+                                                   detect_regions_client_.get(),
+                                                   show_selectable_regions_client_.get(),
+                                                   get_selected_regions_client_.get(),
+                                                   crop_toolpaths_client_.get() };
   RCLCPP_INFO(node_->get_logger(), "%s waiting for services", MANAGER_NAME.c_str());
   if (!std::all_of(srv_clients.begin(), srv_clients.end(), [this, &res](rclcpp::ClientBase* c) {
         if (!c->wait_for_service(std::chrono::duration<double>(WAIT_FOR_SERVICE_PERIOD)))
@@ -204,56 +221,124 @@ common::ActionResult PartReworkManager::moveRobot()
   return true;
 }
 
+common::ActionResult PartReworkManager::detectRegions()
+{
+  using namespace region_detection_msgs::srv;
+
+  // clearing results from previous actions
+  detected_regions_results_ = DetectRegions::Response();
+
+  // calling crop service
+ DetectRegions::Response::SharedPtr srv_res = common::waitForResponse<DetectRegions>(detect_regions_client_,
+                                                                                    scan_data_,
+                                                                                    WAIT_SERVICE_COMPLETION_TIMEOUT);
+  if(!srv_res || !srv_res->succeeded)
+  {
+    common::ActionResult res;
+    res.succeeded = false;
+    res.err_msg = boost::str(boost::format("%s region detection failed with msg: %s") % MANAGER_NAME
+                             % srv_res->err_msg);
+    RCLCPP_ERROR_STREAM(node_->get_logger(), res.err_msg);
+    return res;
+  }
+
+  detected_regions_results_ = *srv_res;
+  return true;
+}
+
+common::ActionResult PartReworkManager::showRegions()
+{
+  using namespace region_detection_msgs::srv;
+
+  ShowSelectableRegions::Request::SharedPtr srv_req = std::make_shared<ShowSelectableRegions::Request>();
+  srv_req->selectable_regions = detected_regions_results_.detected_regions;
+  srv_req->start_selected = true;
+
+  ShowSelectableRegions::Response::SharedPtr srv_res = common::waitForResponse<ShowSelectableRegions>(show_selectable_regions_client_,
+      srv_req,
+      WAIT_SERVICE_COMPLETION_TIMEOUT);
+
+  if(!srv_res)
+  {
+    common::ActionResult res;
+    res.succeeded = false;
+    res.err_msg = boost::str(boost::format("%s service call to show selectable regions failed") % MANAGER_NAME);
+    RCLCPP_ERROR_STREAM(node_->get_logger(), res.err_msg);
+    return res;
+  }
+
+  return true;
+}
+
 common::ActionResult PartReworkManager::trimToolpaths()
 {
   using namespace crs_msgs;
+  using namespace region_detection_msgs::srv;
 
   // check if input has been set
   if (!input_)
   {
     common::ActionResult res = false;
     res.err_msg = "Input trajectory for part rework has not been set";
-    RCLCPP_INFO_STREAM(node_->get_logger(), res.err_msg);
+    RCLCPP_ERROR_STREAM(node_->get_logger(), res.err_msg);
     return res;
   }
 
-  crs_msgs::msg::ToolProcessPath process_path;
+  // get selected regions first
+  GetSelectedRegions::Response::SharedPtr get_selection_res = common::waitForResponse<GetSelectedRegions>(
+      get_selected_regions_client_,
+      std::make_shared<GetSelectedRegions::Request>(),
+      WAIT_SERVICE_COMPLETION_TIMEOUT);
+
+  if(!get_selection_res)
+  {
+    common::ActionResult res = false;
+    res.err_msg = "Failed to get selected regions from service";
+    RCLCPP_ERROR_STREAM(node_->get_logger(), res.err_msg);
+    return res;
+  }
+
+  //crs_msgs::msg::ToolProcessPath process_path;
+  CropData::Request::SharedPtr srv_req = std::make_shared<CropData::Request>();
+
+  // adding rasters to request
   for (const geometry_msgs::msg::PoseArray& raster : input_->rasters)
   {
-    process_path.rasters.push_back(raster);
+    srv_req->input_data.push_back(raster);
   }
-  process_data_->toolpaths.clear();
-  process_data_->toolpaths.push_back(process_path);
+
+  // adding selected regions to request
+  for(std::size_t i = 0; i < get_selection_res->selected_regions_indices.size(); i++)
+  {
+    int idx = get_selection_res->selected_regions_indices[i];
+    srv_req->crop_regions.push_back(detected_regions_results_.detected_regions[idx]);
+  }
 
   // clearing results from previous actions
   result_ = datatypes::ProcessToolpathData();
 
-  // calling crop service
-  std::shared_future<crs_msgs::srv::CropToolpaths::Response::SharedPtr> result_future =
-      crop_toolpaths_client_->async_send_request(process_data_);
+  // sending request
+  CropData::Response::SharedPtr crop_data_res = common::waitForResponse<CropData>(crop_toolpaths_client_,
+                                                                                  srv_req,
+                                                                                  WAIT_SERVICE_COMPLETION_TIMEOUT);
 
-  common::ActionResult res;
-  if (result_future.wait_for(std::chrono::duration<double>(WAIT_SERVICE_COMPLETION_TIMEOUT)) !=
-      std::future_status::ready)
+  if(!crop_data_res)
   {
-    res.succeeded = false;
-    res.err_msg = boost::str(boost::format("%s process planning service error or timeout") % MANAGER_NAME);
+    common::ActionResult res = false;
+    res.err_msg = "Crop data service failed";
     RCLCPP_ERROR_STREAM(node_->get_logger(), res.err_msg);
     return res;
   }
 
-  // saving results
-  crs_msgs::srv::CropToolpaths::Response::SharedPtr srv_response = result_future.get();
-  if (!srv_response->succeeded)
+  if(!crop_data_res->succeeded)
   {
-    res.succeeded = false;
-    res.err_msg = boost::str(boost::format("%s crop service failed to complete request") % MANAGER_NAME);
+    common::ActionResult res = false;
+    res.err_msg = "Cropping failed with error: " + crop_data_res->err_msg;
     RCLCPP_ERROR_STREAM(node_->get_logger(), res.err_msg);
     return res;
   }
-  result_.rasters = srv_response->cropped_toolpaths.front().rasters;
-  RCLCPP_INFO(node_->get_logger(), "%s successfully cropped toolpaths", MANAGER_NAME.c_str());
 
+  result_.rasters = crop_data_res->cropped_data.front().pose_arrays;
   return true;
 }
 
@@ -313,7 +398,7 @@ common::ActionResult PartReworkManager::setInput(const datatypes::ProcessToolpat
 common::ActionResult PartReworkManager::reset()
 {
   scan_index_ = 0;
-  process_data_ = std::make_shared<crs_msgs::srv::CropToolpaths::Request>();
+  scan_data_ = std::make_shared<region_detection_msgs::srv::DetectRegions::Request>();
   return true;
 }
 
@@ -342,15 +427,15 @@ common::ActionResult PartReworkManager::acquireScan()
     return res;
   }
   RCLCPP_INFO_STREAM(node_->get_logger(), "Acquired scan data");
-  process_data_->clouds.push_back(*cloud_msg);
-  process_data_->images.push_back(*image_msg);
+  scan_data_->clouds.push_back(*cloud_msg);
+  scan_data_->images.push_back(*image_msg);
 
   geometry_msgs::msg::TransformStamped transform;
   std::string scan_frame_id = cloud_msg->header.frame_id;
   try
   {
     transform = tf_buffer_.lookupTransform(DEFAULT_WORLD_FRAME_ID, scan_frame_id, tf2::TimePointZero);
-    process_data_->transforms.push_back(transform);
+    scan_data_->transforms.push_back(transform);
   }
   catch (tf2::TransformException& ex)
   {

@@ -375,7 +375,9 @@ common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_ms
     return res;
   }
   /*
-
+    TODO: Somehow this got commented out and the above crs_motion_planning::execTrajectory function
+        was added instead.  Revisit this section and remove the dependency on crs_motion_planning */
+  /*
     FollowJointTrajectory::Goal goal;
     goal.trajectory = traj;
     auto goal_options = rclcpp_action::Client<FollowJointTrajectory>::SendGoalOptions();
@@ -426,7 +428,9 @@ common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_ms
 
     // reset future
     trajectory_exec_fut_ = std::shared_future<GoalHandleT::SharedPtr>();
-    RCLCPP_INFO(node_->get_logger(), "%s Trajectory completed", MANAGER_NAME.c_str());*/
+    RCLCPP_INFO(node_->get_logger(), "%s Trajectory completed", MANAGER_NAME.c_str());
+    */
+
   return true;
 }
 

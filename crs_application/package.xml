@@ -19,6 +19,7 @@
   <depend>yaml_cpp_vendor</depend> 
   <depend>crs_motion_planning</depend>   
   <depend>gazebo_msgs</depend>
+  <depend>region_detection_msgs</depend>
   
   <exec_depend>launch_xml</exec_depend>
 
