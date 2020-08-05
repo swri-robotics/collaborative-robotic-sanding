@@ -222,8 +222,6 @@ public:
 
   void get_priv_node(rclcpp::Node::SharedPtr& priv_node) { priv_node = pnode_; }
 
-  void get_priv_node(rclcpp::Node::SharedPtr& priv_node) { priv_node = pnode_; }
-
 private:
   bool change_controller(const std_srvs::srv::SetBool::Request::SharedPtr req)
   {
