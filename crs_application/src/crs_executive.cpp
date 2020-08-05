@@ -92,8 +92,10 @@ static const std::string RESET = "PR_Reset";
 static const std::string MOVE_ROBOT = "PR_Move_Robot";
 static const std::string ACQUIRE_SCAN = "PR_Acquire_Scan";
 static const std::string CHECK_QUEUE = "PR_Check_Queue";
-static const std::string TRIM_TOOLPATHS = "Trim_ToolPaths";
-static const std::string PREVIEW = "PR_Preview";
+static const std::string DETECT_REGIONS = "PR_Detect_Regions";
+static const std::string USER_REGION_SELECTION = "PR_User_Region_Selection";
+static const std::string TRIM_TOOLPATHS = "PR_Trim_Toolpaths";
+static const std::string PREVIEW_TOOLPATHS = "PR_Preview_Toolpaths";
 static const std::string SAVE_RESULTS = "PR_Save_Results";
 }  // namespace part_rework
 
@@ -604,17 +606,18 @@ bool CRSExecutive::setupPartReworkStates()
     on_failed_action : action_names::SM_NEXT
   };
 
-  st_callbacks_map[part_rework::PREVIEW] = StateCallbackInfo{
-    entry_cb : std::bind(&task_managers::PartReworkManager::showPreview, part_rework_mngr_.get()),
-    async : false,
-    exit_cb : std::bind(&task_managers::PartReworkManager::hidePreview, part_rework_mngr_.get()),
-    on_done_action : ""
+  st_callbacks_map[part_rework::DETECT_REGIONS] = StateCallbackInfo{
+    entry_cb : std::bind(&task_managers::PartReworkManager::detectRegions, part_rework_mngr_.get()),
+    async : true,
   };
 
-  /*st_callbacks_map[part_rework::TRIM_TOOLPATHS] = StateCallbackInfo{
-    entry_cb : std::bind(&task_managers::PartReworkManager::trimToolpaths, part_rework_mngr_.get()),
-    async : false
-  };*/
+  st_callbacks_map[part_rework::USER_REGION_SELECTION] = StateCallbackInfo{
+    entry_cb : std::bind(&task_managers::PartReworkManager::showRegions, part_rework_mngr_.get()),
+    async : false,
+    exit_cb : nullptr,
+    on_done_action : "",
+    on_failed_action : action_names::SM_FAILURE
+  };
 
   st_callbacks_map[part_rework::TRIM_TOOLPATHS] = StateCallbackInfo{
     entry_cb : [this]() -> common::ActionResult {
@@ -626,6 +629,13 @@ bool CRSExecutive::setupPartReworkStates()
       return part_rework_mngr_->trimToolpaths();
     },
     async : false
+  };
+
+  st_callbacks_map[part_rework::PREVIEW_TOOLPATHS] = StateCallbackInfo{
+    entry_cb : std::bind(&task_managers::PartReworkManager::showPreview, part_rework_mngr_.get()),
+    async : false,
+    exit_cb : std::bind(&task_managers::PartReworkManager::hidePreview, part_rework_mngr_.get()),
+    on_done_action : ""
   };
 
   st_callbacks_map[part_rework::SAVE_RESULTS] = StateCallbackInfo{
