@@ -385,10 +385,13 @@ bool crs_motion_planning::splitRastersByJointDist(const trajectory_msgs::msg::Jo
                                                   const geometry_msgs::msg::PoseArray& given_raster,
                                                   const double& desired_ee_vel,
                                                   const double& max_joint_vel,
+                                                  const double& max_dist,
                                                   std::vector<trajectory_msgs::msg::JointTrajectory>& split_traj,
                                                   std::vector<geometry_msgs::msg::PoseArray>& split_rasters,
-                                                  std::vector<std::vector<double>>& time_steps)
+                                                  std::vector<std::vector<double>>& time_steps,
+                                                  const double& joint_vel_mult)
 {
+  double max_vel_adj = max_joint_vel * joint_vel_mult;
   bool split_exists = false;
   geometry_msgs::msg::PoseArray curr_raster_pose_array;
   std::vector<geometry_msgs::msg::PoseStamped> curr_raster;
@@ -421,7 +424,7 @@ bool crs_motion_planning::splitRastersByJointDist(const trajectory_msgs::msg::Jo
     double curr_time_step = dist_traveled / desired_ee_vel;
 
     // If required joint velocity is higher than max allowable then split raster
-    if (req_joint_vel > max_joint_vel)
+    if (req_joint_vel > max_vel_adj || dist_traveled > max_dist)
     {
       split_exists = true;
       split_traj.push_back(curr_traj);

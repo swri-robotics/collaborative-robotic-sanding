@@ -160,6 +160,8 @@ bool loadPathPlanningConfig(const std::string& yaml_fp,
     motion_planner_config->tool0_frame = general_yaml["tool0_frame"].as<std::string>();
     motion_planner_config->required_tool_vel = general_yaml["required_tool_vel"].as<bool>();
     motion_planner_config->max_joint_vel = general_yaml["max_joint_vel"].as<double>();
+    motion_planner_config->max_joint_vel_mult = general_yaml["max_joint_vel_mult"].as<double>();
+    motion_planner_config->max_surface_dist = general_yaml["max_surface_dist"].as<double>();
     motion_planner_config->max_joint_acc = general_yaml["max_joint_acc"].as<double>();
     motion_planner_config->add_approach_and_retreat = general_yaml["add_approach_and_retreat"].as<bool>();
     motion_planner_config->minimum_raster_length = general_yaml["minimum_raster_length"].as<std::size_t>();
@@ -251,10 +253,6 @@ bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray
           allow_collisions);
     sampler_result.push_back(curr_sampler_result);
   }
-//  if (waypoints_pose_array.poses.size() > 50)
-//  {
-//    sampler_result.clear();
-//  }
 
 
   auto edge_eval = std::make_shared<descartes_light::EuclideanDistanceEdgeEvaluatorD>(kin_interface->dof());
@@ -454,9 +452,11 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
                                                        split_reachable_rasters[raster_n],
                                                        desired_ee_val,
                                                        max_joint_vel,
+                                                       config_->max_surface_dist,
                                                        double_split_traj,
                                                        resplit_rasters,
-                                                       time_steps))
+                                                       time_steps,
+                                                       config_->max_joint_vel_mult))
       {
         RCLCPP_INFO(logger_, "FOUND A SPLIT");
         for (size_t i = 0; i < resplit_rasters.size(); ++i)
@@ -508,6 +508,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
     for (size_t i = 0; i < post_speed_split_rasters.size(); ++i)
     {
       // Initialize variables
+      bool ret_app_addable = true;
       geometry_msgs::msg::PoseArray modified_raster;
       trajectory_msgs::msg::JointTrajectory new_raster_traj;
       tesseract_motion_planners::JointWaypoint::Ptr begin_orig, end_orig, begin_new, end_new;
@@ -547,6 +548,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
       trajectory_msgs::msg::JointTrajectoryPoint new_traj_point_begin, new_traj_point_end;
       if (!findClosestJointOrientation(begin_orig, new_raster_begin, begin_new, config_->descartes_config.axial_step))
       {
+        ret_app_addable = false;
         RCLCPP_WARN(logger_, "UNABLE TO ADD APPROACH RASTER POSE");
         Eigen::VectorXd new_begin_eig = begin_orig->getPositions(post_speed_split_trajs[i].joint_names);
         std::vector<double> new_begin_vec(new_begin_eig.data(), new_begin_eig.data() + new_begin_eig.size());
@@ -566,6 +568,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
                                     post_speed_split_trajs[i].points.end());
       if (!findClosestJointOrientation(end_orig, new_raster_end, end_new, config_->descartes_config.axial_step))
       {
+        ret_app_addable = false;
         RCLCPP_WARN(logger_, "UNABLE TO ADD RETREAT RASTER POSE");
         Eigen::VectorXd new_end_eig = end_orig->getPositions(post_speed_split_trajs[i].joint_names);
         std::vector<double> new_end_vec(new_end_eig.data(), new_end_eig.data() + new_end_eig.size());
@@ -584,10 +587,14 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
       new_raster_traj.header = post_speed_split_trajs[i].header;
 
       // Store new raster and trajectory in final vector to pass to trajopt
-      final_split_rasters.push_back(modified_raster);
-      final_split_trajs.push_back(new_raster_traj);
+      if (ret_app_addable)
+      {
+        final_split_rasters.push_back(modified_raster);
+        final_split_trajs.push_back(new_raster_traj);
+      }
+
       // Update time parameterization if required
-      if (config_->required_tool_vel)
+      if (config_->required_tool_vel && ret_app_addable)
       {
         std::vector<double> modified_time_steps = post_speed_split_time_steps[i];
         modified_time_steps.push_back(approach / config_->tool_speed);
@@ -1233,53 +1240,93 @@ bool crsMotionPlanner::findClosestJointOrientation(const tesseract_motion_planne
       std::make_shared<ur_ikfast_kinematics::UR10eKinematicsD>(world_to_base_link, tool0_to_sander, nullptr, nullptr);
 
   Eigen::Isometry3d goal_pose = end_pose->getTransform();
-  descartes_light::PositionSamplerD::Ptr sampler_result;
+  std::vector<descartes_light::PositionSamplerD::Ptr> sampler_result;
+  Eigen::VectorXd start_pose_eig = start_pose->getPositions(kin->getJointNames());
+  std::vector<double> start_pose_vec(start_pose_eig.data(), start_pose_eig.data() + start_pose_eig.size());
+  sampler_result.emplace_back(std::make_shared<descartes_light::FixedJointPoseSampler<double>>(start_pose_vec));
 
   if (axial_step < 0)
   {
-    sampler_result = std::make_shared<descartes_light::CartesianPointSamplerD>(
+    sampler_result.emplace_back(std::make_shared<descartes_light::CartesianPointSamplerD>(
         goal_pose,
         kin_interface,
         std::shared_ptr<descartes_light::CollisionInterface<double>>(collision_checker->clone()),
-        allow_collisions);
+        allow_collisions));
   }
   else
   {
-    sampler_result = std::make_shared<descartes_light::AxialSymmetricSamplerD>(
+    sampler_result.emplace_back(std::make_shared<descartes_light::AxialSymmetricSamplerD>(
         goal_pose,
         kin_interface,
         axial_step,
         std::shared_ptr<descartes_light::CollisionInterface<double>>(collision_checker->clone()),
-        allow_collisions);
+        allow_collisions));
   }
+  auto edge_eval = std::make_shared<descartes_light::EuclideanDistanceEdgeEvaluatorD>(kin_interface->dof());
+  auto timing_constraint =
+      std::vector<descartes_core::TimingConstraintD>(sampler_result.size(), std::numeric_limits<double>::max());
 
-  std::vector<double> soln_set;
-  sampler_result->sample(soln_set);
-  size_t j_num = start_pose->getNames().size();
-  size_t num_sols = soln_set.size() / j_num;
-  if (num_sols < 1)
+  descartes_light::SolverD graph_builder(kin_interface->dof());
+
+  if (!graph_builder.build(std::move(sampler_result), std::move(timing_constraint), std::move(edge_eval)))
   {
     return false;
   }
-  Eigen::VectorXd start_eig = start_pose->getPositions(kin->getJointNames());
-  double min_j_dist = 999999;
-  Eigen::VectorXd end_eig = start_eig;
-  for (size_t i = 0; i < num_sols; ++i)
+
+  std::vector<double> solution;
+  if (!graph_builder.search(solution))
   {
-    Eigen::VectorXd curr_sol(6), start_to_end(6);
-    curr_sol << soln_set[0 + i * j_num], soln_set[1 + i * j_num], soln_set[2 + i * j_num], soln_set[3 + i * j_num],
-        soln_set[4 + i * j_num], soln_set[5 + i * j_num];
-    start_to_end = curr_sol - start_eig;
-    double j_dist = start_to_end.norm();
-    if (j_dist <= min_j_dist)
-    {
-      min_j_dist = j_dist;
-      end_eig = curr_sol;
-    }
+    return false;
   }
+
+  Eigen::Map<Eigen::VectorXd> solution_vec(&solution[0], solution.size());
+  Eigen::VectorXd seed_traj(solution_vec.size());
+  seed_traj << solution_vec;
+
+  int n_rows = seed_traj.size() / kin_interface->dof();
+  Eigen::MatrixXd joint_traj_eigen_out =
+      Eigen::Map<Eigen::MatrixXd>(seed_traj.data(), kin_interface->dof(), n_rows).transpose();
+
+  Eigen::VectorXd end_eig = joint_traj_eigen_out.row(1);
+  std::cout << "jt_r0\n" << joint_traj_eigen_out.row(0).matrix() << std::endl;
+  std::cout << "jt_r1\n" << joint_traj_eigen_out.row(1).matrix() << std::endl;
+  for (auto name : kin->getJointNames())
+  {
+    std::cout << name << ", ";
+  }
+  std::cout << "]" << std::endl;
   returned_pose = std::make_shared<tesseract_motion_planners::JointWaypoint>(end_eig, kin->getJointNames());
 
+//  tesseract_rosutils::toMsg(joint_trajectory, kin->getJointNames(), joint_traj_eigen_out);
   return true;
+
+//  std::vector<double> soln_set;
+//  sampler_result->sample(soln_set);
+//  size_t j_num = start_pose->getNames().size();
+//  size_t num_sols = soln_set.size() / j_num;
+//  if (num_sols < 1)
+//  {
+//    return false;
+//  }
+//  Eigen::VectorXd start_eig = start_pose->getPositions(kin->getJointNames());
+//  double min_j_dist = 999999;
+//  Eigen::VectorXd end_eig = start_eig;
+//  for (size_t i = 0; i < num_sols; ++i)
+//  {
+//    Eigen::VectorXd curr_sol(6), start_to_end(6);
+//    curr_sol << soln_set[0 + i * j_num], soln_set[1 + i * j_num], soln_set[2 + i * j_num], soln_set[3 + i * j_num],
+//        soln_set[4 + i * j_num], soln_set[5 + i * j_num];
+//    start_to_end = curr_sol - start_eig;
+//    double j_dist = start_to_end.norm();
+//    if (j_dist <= min_j_dist)
+//    {
+//      min_j_dist = j_dist;
+//      end_eig = curr_sol;
+//    }
+//  }
+//  returned_pose = std::make_shared<tesseract_motion_planners::JointWaypoint>(end_eig, kin->getJointNames());
+
+//  return true;
 }
 
 }  // namespace crs_motion_planning

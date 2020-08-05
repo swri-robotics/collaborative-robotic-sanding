@@ -26,6 +26,7 @@
 #include <descartes_samplers/evaluators/euclidean_distance_edge_evaluator.h>
 #include <descartes_samplers/samplers/axial_symmetric_sampler.h>
 #include <descartes_samplers/samplers/cartesian_point_sampler.h>
+#include <descartes_samplers/samplers/fixed_joint_pose_sampler.h>
 
 #include <crs_motion_planning/path_processing_utils.h>
 
@@ -153,6 +154,8 @@ struct pathPlanningConfig
   bool required_tool_vel = false;
   double tool_speed = 0.03;    // m/s
   double max_joint_vel = 0.2;  // rad/s
+  double max_joint_vel_mult = 1.0;
+  double max_surface_dist = 0.1;
   double max_joint_acc = 0.5;  // rad/s^2
 
   size_t minimum_raster_length = 2;
