@@ -1,6 +1,6 @@
 general:
   use_trajopt_freespace: false
-  use_trajopt_surface: true
+  use_trajopt_surface: false
   default_to_descartes: true
   simplify_start_end_freespace: true
   manipulator: "manipulator"
@@ -74,7 +74,7 @@ ompl:
   planning_time: 120.0
   simplify: true
   range: 0.25
-  num_threads: 1
+  num_threads: 4
   max_solutions: 10
   default_n_output_states: 20
   longest_valid_segment_fraction: 0.01
