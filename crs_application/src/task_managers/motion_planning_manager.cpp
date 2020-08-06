@@ -366,12 +366,19 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
 
   CallFreespaceMotion::Request::SharedPtr req = std::make_shared<CallFreespaceMotion::Request>();
   req->target_link = config_->tool_frame;
-  geometry_msgs::msg::Pose pose_msg = tf2::toMsg(config_->media_change_pose);
-  //  std::tie(req->goal_pose.translation.x, req->goal_pose.translation.y, req->goal_pose.translation.z) =
-  //      std::make_tuple(pose_msg.position.x, pose_msg.position.y, pose_msg.position.z);
-  //  req->goal_pose.rotation = pose_msg.orientation;
-  req->goal_position.position = config_->joint_media_position;
-  req->goal_position.name = config_->media_joint_names;
+  if(config_->joint_media_position.empty() || config_->media_joint_names.empty())
+  {
+    // use cartesian tool pose when no joint pose is available
+    geometry_msgs::msg::Pose pose_msg = tf2::toMsg(config_->media_change_pose);
+    std::tie(req->goal_pose.translation.x, req->goal_pose.translation.y, req->goal_pose.translation.z) =
+    std::make_tuple(pose_msg.position.x, pose_msg.position.y, pose_msg.position.z);
+    req->goal_pose.rotation = pose_msg.orientation;
+  }
+  else
+  {
+    req->goal_position.position = config_->joint_media_position;
+    req->goal_position.name = config_->media_joint_names;
+  }
   req->execute = false;
   req->num_steps = 0;  // planner should use default
 
