@@ -239,11 +239,6 @@ bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray
   descartes_light::KinematicsInterfaceD::Ptr kin_interface =
       std::make_shared<ur_ikfast_kinematics::UR10eKinematicsD>(world_to_base_link, tool0_to_sander, nullptr, nullptr);
 
-  if (waypoints_pose_array.poses.size() > 50)
-  {
-    sampler_result.clear();
-  }
-
   for (size_t i = 0; i < waypoints_pose_array.poses.size(); ++i)
   {
     Eigen::Isometry3d current_waypoint_pose;
@@ -301,8 +296,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
   bool gen_preplan;
   std::vector<geometry_msgs::msg::PoseArray> split_reachable_rasters;
   bool any_successes = false;
-  size_t count_strips = 1;
-  int count_extra_strips = 0;
+  size_t count_strips = 0;
   geometry_msgs::msg::PoseArray failed_vertex_poses;
 
   for (auto strip : raster_strips)
@@ -312,8 +306,6 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
     RCLCPP_INFO(logger_, "Running Descartes on Strip %i of %i", count_strips, raster_strips.size());
     gen_preplan = generateDescartesSeed(strip, failed_edges, failed_vertices, joint_traj_msg_out_init);
     RCLCPP_INFO(logger_, "DONE");
-    if (strip.poses.size() > 7)
-      RCLCPP_ERROR(LOGGER, "ANOTHA ONE, %i", ++count_extra_strips);
 
     // Check if all rasters reachable
     if (!gen_preplan)
@@ -361,7 +353,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
       }
     }
   }
-  RCLCPP_ERROR(logger_, "STEP1");
+
   if (!any_successes)
   {
     RCLCPP_ERROR(logger_, "NO REACHABLE POINTS FOUND OR ALL REACHABLE STRIPS ARE TOO SHORT");
@@ -431,7 +423,6 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
       second_descartes_trajs.push_back(curr_traj);
     }
   }
-  RCLCPP_ERROR(logger_, "STEP2");
 
   // Check for additional splits required by speed constraint
   std::vector<geometry_msgs::msg::PoseArray> post_speed_split_rasters;
@@ -738,6 +729,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
   }
   else
   {
+    results->failed_rasters = final_split_rasters;
     trajopt_trajectories = final_split_trajs;
     for (size_t i = 0; i < trajopt_trajectories.size(); ++i)
       trajopt_solved.push_back(true);

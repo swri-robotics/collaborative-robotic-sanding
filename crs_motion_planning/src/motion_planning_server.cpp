@@ -182,18 +182,10 @@ private:
   {
     namespace fs = boost::filesystem;
     crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config;
-    std::string config_fp = (fs::path(ament_index_cpp::get_package_share_directory("crs_application")) / fs::path("conf"
-                                                                                                                  "ig/"
-                                                                                                                  "moti"
-                                                                                                                  "on_"
-                                                                                                                  "plan"
-                                                                                                                  "ning"
-                                                                                                                  "/MP_"
-                                                                                                                  "conf"
-                                                                                                                  "ig."
-                                                                                                                  "yam"
-                                                                                                                  "l"))
-                                .string();
+    std::string config_rel_path = "config/motion_planning/MP_config.yaml";
+    std::string config_fp =
+        (fs::path(ament_index_cpp::get_package_share_directory("crs_application")) / fs::path(config_rel_path))
+            .string();
     crs_motion_planning::loadPathPlanningConfig(config_fp, motion_planner_config);
     motion_planner_config->tesseract_local = tesseract_local_;
 
@@ -215,8 +207,6 @@ private:
           request->end_position.position, request->end_position.name);
     }
     tesseract_rosutils::fromMsg(motion_planner_config->tool_offset, request->tool_offset);
-    motion_planner_config->descartes_config.tool_offset =
-        Eigen::Isometry3d::Identity() * Eigen::Translation3d(0.0, 0.0, 0.005);
 
     std::vector<crs_msgs::msg::ProcessMotionPlan> returned_plans;
     bool success;
@@ -340,18 +330,10 @@ private:
     using namespace crs_motion_planning;
     namespace fs = boost::filesystem;
     crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config;
-    std::string config_fp = (fs::path(ament_index_cpp::get_package_share_directory("crs_application")) / fs::path("conf"
-                                                                                                                  "ig/"
-                                                                                                                  "moti"
-                                                                                                                  "on_"
-                                                                                                                  "plan"
-                                                                                                                  "ning"
-                                                                                                                  "/MP_"
-                                                                                                                  "conf"
-                                                                                                                  "ig."
-                                                                                                                  "yam"
-                                                                                                                  "l"))
-                                .string();
+    std::string config_rel_path = "config/motion_planning/MP_config.yaml";
+    std::string config_fp =
+        (fs::path(ament_index_cpp::get_package_share_directory("crs_application")) / fs::path(config_rel_path))
+            .string();
     crs_motion_planning::loadPathPlanningConfig(config_fp, motion_planner_config);
     motion_planner_config->tesseract_local = tesseract_local_;
 
