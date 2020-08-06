@@ -73,20 +73,45 @@ def generate_launch_description():
     
     print('config_opencv %s' % str(region_detection_opencv_cfg))
     
-    toolpath_crop_node = Node(
-        node_executable='toolpath_crop_node',
-        package='crs_perception',
-        node_name='toolpath_crop_node',
+    region_detector_server = Node(
+    node_executable='region_detector_server',
+    package='region_detection_rclcpp',
+    node_name='region_detector_server',
+    node_namespace = GLOBAL_NS ,
+    output='screen',
+    #prefix= 'xterm -e gdb -ex run --args',
+    #prefix= 'xterm -e',
+    parameters=[{'config_opencv': region_detection_opencv_cfg},
+                {'config_pcl2d': region_detection_pcl2d_cfg},
+                {'config_pcl': region_detection_pcl_cfg},
+                ])  
+    
+    interactive_region_selection = Node(
+    node_executable='interactive_region_selection',
+    package='region_detection_rclcpp',
+    node_name='interactive_region_selection',
+    node_namespace = GLOBAL_NS ,
+    output='screen',
+    #prefix= 'xterm -e gdb -ex run --args',
+    #prefix= 'xterm -e',
+    parameters=[{'region_height': 0.2}
+                ])  
+    
+    crop_data_server = Node(
+        node_executable='crop_data_server',
+        package='region_detection_rclcpp',
+        node_name='crop_data_server',
         node_namespace = GLOBAL_NS ,
         output='screen',
         #prefix= 'xterm -e gdb -ex run --args',
-        prefix= 'xterm -e',
-        parameters=[{'config_opencv': region_detection_opencv_cfg},
-                    {'config_pcl2d': region_detection_pcl2d_cfg},
-                    {'config_pcl': region_detection_pcl_cfg},
-                    {'region_crop': region_crop_cfg}
-                    ])  
+        #prefix= 'xterm -e',
+        parameters=[{'region_crop': region_crop_cfg}
+                    ],
+        remappings = [('crop_data','crop_toolpaths')]
+        )  
     
     return launch.LaunchDescription([
         part_localization_node,
-        toolpath_crop_node])
+        region_detector_server,
+        interactive_region_selection,
+        crop_data_server])
