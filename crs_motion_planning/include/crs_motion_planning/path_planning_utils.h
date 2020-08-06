@@ -193,8 +193,7 @@ struct pathPlanningResults
   std::string msg_out;
 };
 
-bool loadPathPlanningConfig(const std::string& yaml_fp,
-                            pathPlanningConfig::Ptr& motion_planner_config);
+bool loadPathPlanningConfig(const std::string& yaml_fp, pathPlanningConfig::Ptr& motion_planner_config);
 
 class crsMotionPlanner
 {
