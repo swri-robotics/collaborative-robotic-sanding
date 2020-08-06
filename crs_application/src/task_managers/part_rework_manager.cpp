@@ -84,14 +84,13 @@ common::ActionResult PartReworkManager::init()
       node_->create_publisher<visualization_msgs::msg::MarkerArray>(CROPPED_TOOLPATH_MARKER_TOPIC, rclcpp::QoS(1));
 
   // service clients
-  detect_regions_client_ = node_->create_client<region_detection_msgs::srv::DetectRegions>(
-      DETECT_REGIONS_SERVICE);
+  detect_regions_client_ = node_->create_client<region_detection_msgs::srv::DetectRegions>(DETECT_REGIONS_SERVICE);
 
-  show_selectable_regions_client_ = node_->create_client<region_detection_msgs::srv::ShowSelectableRegions>(
-      SHOW_SELECTABLE_REGIONS_SERVICE);
+  show_selectable_regions_client_ =
+      node_->create_client<region_detection_msgs::srv::ShowSelectableRegions>(SHOW_SELECTABLE_REGIONS_SERVICE);
 
-  get_selected_regions_client_ = node_->create_client<region_detection_msgs::srv::GetSelectedRegions>(
-      GET_SELECTED_REGIONS);
+  get_selected_regions_client_ =
+      node_->create_client<region_detection_msgs::srv::GetSelectedRegions>(GET_SELECTED_REGIONS);
 
   crop_toolpaths_client_ = node_->create_client<region_detection_msgs::srv::CropData>(CROP_TOOLPATH_SERVICE);
 
@@ -229,15 +228,14 @@ common::ActionResult PartReworkManager::detectRegions()
   detected_regions_results_ = DetectRegions::Response();
 
   // calling crop service
- DetectRegions::Response::SharedPtr srv_res = common::waitForResponse<DetectRegions>(detect_regions_client_,
-                                                                                    scan_data_,
-                                                                                    WAIT_SERVICE_COMPLETION_TIMEOUT);
-  if(!srv_res || !srv_res->succeeded)
+  DetectRegions::Response::SharedPtr srv_res =
+      common::waitForResponse<DetectRegions>(detect_regions_client_, scan_data_, WAIT_SERVICE_COMPLETION_TIMEOUT);
+  if (!srv_res || !srv_res->succeeded)
   {
     common::ActionResult res;
     res.succeeded = false;
-    res.err_msg = boost::str(boost::format("%s region detection failed with msg: %s") % MANAGER_NAME
-                             % srv_res->err_msg);
+    res.err_msg =
+        boost::str(boost::format("%s region detection failed with msg: %s") % MANAGER_NAME % srv_res->err_msg);
     RCLCPP_ERROR_STREAM(node_->get_logger(), res.err_msg);
     return res;
   }
@@ -254,11 +252,10 @@ common::ActionResult PartReworkManager::showRegions()
   srv_req->selectable_regions = detected_regions_results_.detected_regions;
   srv_req->start_selected = true;
 
-  ShowSelectableRegions::Response::SharedPtr srv_res = common::waitForResponse<ShowSelectableRegions>(show_selectable_regions_client_,
-      srv_req,
-      WAIT_SERVICE_COMPLETION_TIMEOUT);
+  ShowSelectableRegions::Response::SharedPtr srv_res = common::waitForResponse<ShowSelectableRegions>(
+      show_selectable_regions_client_, srv_req, WAIT_SERVICE_COMPLETION_TIMEOUT);
 
-  if(!srv_res)
+  if (!srv_res)
   {
     common::ActionResult res;
     res.succeeded = false;
@@ -286,11 +283,9 @@ common::ActionResult PartReworkManager::trimToolpaths()
 
   // get selected regions first
   GetSelectedRegions::Response::SharedPtr get_selection_res = common::waitForResponse<GetSelectedRegions>(
-      get_selected_regions_client_,
-      std::make_shared<GetSelectedRegions::Request>(),
-      WAIT_SERVICE_COMPLETION_TIMEOUT);
+      get_selected_regions_client_, std::make_shared<GetSelectedRegions::Request>(), WAIT_SERVICE_COMPLETION_TIMEOUT);
 
-  if(!get_selection_res)
+  if (!get_selection_res)
   {
     common::ActionResult res = false;
     res.err_msg = "Failed to get selected regions from service";
@@ -298,7 +293,7 @@ common::ActionResult PartReworkManager::trimToolpaths()
     return res;
   }
 
-  //crs_msgs::msg::ToolProcessPath process_path;
+  // crs_msgs::msg::ToolProcessPath process_path;
   CropData::Request::SharedPtr srv_req = std::make_shared<CropData::Request>();
 
   // adding rasters to request
@@ -308,7 +303,7 @@ common::ActionResult PartReworkManager::trimToolpaths()
   }
 
   // adding selected regions to request
-  for(std::size_t i = 0; i < get_selection_res->selected_regions_indices.size(); i++)
+  for (std::size_t i = 0; i < get_selection_res->selected_regions_indices.size(); i++)
   {
     int idx = get_selection_res->selected_regions_indices[i];
     srv_req->crop_regions.push_back(detected_regions_results_.detected_regions[idx]);
@@ -318,11 +313,10 @@ common::ActionResult PartReworkManager::trimToolpaths()
   result_ = datatypes::ProcessToolpathData();
 
   // sending request
-  CropData::Response::SharedPtr crop_data_res = common::waitForResponse<CropData>(crop_toolpaths_client_,
-                                                                                  srv_req,
-                                                                                  WAIT_SERVICE_COMPLETION_TIMEOUT);
+  CropData::Response::SharedPtr crop_data_res =
+      common::waitForResponse<CropData>(crop_toolpaths_client_, srv_req, WAIT_SERVICE_COMPLETION_TIMEOUT);
 
-  if(!crop_data_res)
+  if (!crop_data_res)
   {
     common::ActionResult res = false;
     res.err_msg = "Crop data service failed";
@@ -330,7 +324,7 @@ common::ActionResult PartReworkManager::trimToolpaths()
     return res;
   }
 
-  if(!crop_data_res->succeeded)
+  if (!crop_data_res->succeeded)
   {
     common::ActionResult res = false;
     res.err_msg = "Cropping failed with error: " + crop_data_res->err_msg;

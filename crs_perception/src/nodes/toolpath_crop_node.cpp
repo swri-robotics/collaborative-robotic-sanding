@@ -39,7 +39,7 @@ static const std::string REGION_MARKERS_TOPIC = "detected_regions";
 static const std::string CLOSED_REGIONS_NS = "closed_regions";
 
 typedef std::vector<Eigen::Isometry3d, Eigen::aligned_allocator<Eigen::Isometry3d> > EigenPose3dVector;
-//typedef std::vector<Eigen::Isometry3d> EigenPose3dVector;
+// typedef std::vector<Eigen::Isometry3d> EigenPose3dVector;
 
 static geometry_msgs::msg::Pose pose3DtoPoseMsg(const std::array<float, 6>& p)
 {
@@ -182,10 +182,8 @@ convertToDottedLineMarker(const std::vector<EigenPose3dVector>& path,
 class ToolpathCrop
 {
 public:
-  ToolpathCrop(std::shared_ptr<rclcpp::Node> node) :
-      node_(node),
-      logger_(node->get_logger()),
-      marker_pub_timer_(nullptr)
+  ToolpathCrop(std::shared_ptr<rclcpp::Node> node)
+    : node_(node), logger_(node->get_logger()), marker_pub_timer_(nullptr)
   {
     // load parameters
 
@@ -292,7 +290,7 @@ private:
   {
     using namespace std::chrono_literals;
 
-    if(marker_pub_timer_)
+    if (marker_pub_timer_)
     {
       marker_pub_timer_->cancel();
     }
@@ -310,11 +308,10 @@ private:
       m = convertToDottedLineMarker({ poses }, frame_id, ns + std::to_string(id));
       region_markers.markers.insert(region_markers.markers.end(), m.markers.begin(), m.markers.end());
     }
-    marker_pub_timer_ = node_->create_wall_timer(500ms, [this, region_markers]() -> void {
-     region_markers_pub_->publish(region_markers);
-    });
+    marker_pub_timer_ = node_->create_wall_timer(
+        500ms, [this, region_markers]() -> void { region_markers_pub_->publish(region_markers); });
 
-    //region_markers_pub_->publish(region_markers);
+    // region_markers_pub_->publish(region_markers);
   }
 
   void cropToolpathsCallback(const std::shared_ptr<rmw_request_id_t> request_header,
@@ -329,7 +326,7 @@ private:
 
     // converting to input for region detection
     RegionDetector::DataBundleVec data_vec;
-    //std::vector<RegionDetector::DataBundle, Eigen::aligned_allocator<RegionDetector::DataBundle>> data_vec;
+    // std::vector<RegionDetector::DataBundle, Eigen::aligned_allocator<RegionDetector::DataBundle>> data_vec;
     const std::string img_name_prefix = "img_input_";
     for (std::size_t i = 0; i < request->clouds.size(); i++)
     {
@@ -337,7 +334,7 @@ private:
       pcl_conversions::toPCL(request->clouds[i], data.cloud_blob);
       cv_bridge::CvImagePtr img = cv_bridge::toCvCopy(request->images[i], sensor_msgs::image_encodings::RGBA8);
       data.image = img->image;
-      cv::imwrite( img_name_prefix + std::to_string(i) + ".jpg", data.image );
+      cv::imwrite(img_name_prefix + std::to_string(i) + ".jpg", data.image);
       data.transform = tf2::transformToEigen(request->transforms[i]);
       data_vec.push_back(data);
     }
@@ -421,7 +418,7 @@ private:
   rclcpp::Service<crs_msgs::srv::CropToolpaths>::SharedPtr crop_toolpaths_srv_;
   rclcpp::Publisher<visualization_msgs::msg::MarkerArray>::SharedPtr region_markers_pub_;
   std::shared_ptr<rclcpp::Node> node_;
-  rclcpp::Logger logger_;  
+  rclcpp::Logger logger_;
   rclcpp::TimerBase::SharedPtr marker_pub_timer_;
 };
 
