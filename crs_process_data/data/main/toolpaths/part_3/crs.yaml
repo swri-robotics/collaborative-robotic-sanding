@@ -11,9 +11,12 @@ crs:
       retreat_dist: 0.03
       approach_dist: 0.03
       tool_frame: sander_center_link
+      target_force: 15
     media_change:
       change_time: 300.0
       change_pose: [-0.381, -0.202, 1.5, 0.0, -0.786, 1.57]
+      joint_names: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
+      joint_position: []
     preview:
       time_scaling: 4.0
   scan_acquisition:
@@ -30,6 +33,12 @@ crs:
   process_execution:
     time_tolerance: 5.0
     joint_tolerance: [0.035, 0.035, 0.035, 0.035, 0.035, 0.035]
+    cartesian_path_tolerance: [0.015, 0.015, 0.025, 0.15, 0.15, 0.15]
+    cartesian_goal_tolerance: [0.01, 0.01, 0.01, 0.05, 0.05, 0.05]
+    force_tolerance: 10
+    force_controlled_trajectories: true
+    ur_tool_change_script: simpleMove.urp
+    execute_tool_change: false
   part_registration:
     simulation_pose: [-0.7, 0.0, 1.1, 0.0, 0.0, 0.0]
     seed_pose: [-0.72, 0.0, 1.0, 0.0, 0.0, 0.0]
