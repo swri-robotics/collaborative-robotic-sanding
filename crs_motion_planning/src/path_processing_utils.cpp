@@ -2,7 +2,7 @@
 #include <boost/format.hpp>
 #include <crs_motion_planning/path_processing_utils.h>
 
-static const double TRAJECTORY_TIME_TOLERANCE = 15.0;  // seconds
+static const double TRAJECTORY_TIME_TOLERANCE = 180.0;  // seconds
 static const double WAIT_RESULT_TIMEOUT = 1.0;         // seconds
 static const rclcpp::Logger LOGGER = rclcpp::get_logger("PATH_PROCESSING_UTILS");
 
@@ -797,7 +797,7 @@ bool crs_motion_planning::execSurfaceTrajectory(
 
   // send goal
   std::shared_future<GoalHandleT::SharedPtr> trajectory_exec_fut = ac->async_send_goal(goal);
-  traj_dur = traj_dur + rclcpp::Duration(std::chrono::duration<double>(60));
+  traj_dur = traj_dur + rclcpp::Duration(std::chrono::duration<double>(TRAJECTORY_TIME_TOLERANCE));
 
   // wait for goal acceptance
   std::future_status status = trajectory_exec_fut.wait_for(std::chrono::duration<double>(WAIT_RESULT_TIMEOUT));
@@ -871,7 +871,7 @@ bool crs_motion_planning::execSurfaceTrajectory(
 
   // send goal
   std::shared_future<GoalHandleT::SharedPtr> trajectory_exec_fut = ac->async_send_goal(goal);
-  traj_dur = traj_dur + rclcpp::Duration(std::chrono::duration<double>(60));
+  traj_dur = traj_dur + rclcpp::Duration(std::chrono::duration<double>(TRAJECTORY_TIME_TOLERANCE));
 
   // wait for goal acceptance
   std::future_status status = trajectory_exec_fut.wait_for(std::chrono::duration<double>(WAIT_RESULT_TIMEOUT));
