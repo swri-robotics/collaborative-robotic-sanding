@@ -1,6 +1,6 @@
 general:
   use_trajopt_freespace: false
-  use_trajopt_surface: false
+  use_trajopt_surface: true
   default_to_descartes: true
   simplify_start_end_freespace: true
   manipulator: "manipulator"
@@ -9,8 +9,8 @@ general:
   tool0_frame: "tool0"
   required_tool_vel: true
   max_joint_vel: 0.3
-  max_joint_vel_mult: 1.5
-  max_surface_dist: 0.1
+  max_joint_vel_mult: 2.2
+  max_surface_dist: 0.15
   max_joint_acc: 0.8
   add_approach_and_retreat: true
   minimum_raster_length: 4
@@ -57,18 +57,6 @@ trajopt_surface:
       link2: "part_link"
       distance: -0.05
       cost: 10.0
-  #  - link1: "eoat_link"
-  #    link2: "table"
-  #    distance: -0.05
-  #    cost: 10.0
-  #  - link1: "sander_center_link"
-  #    link2: "part_link"
-  #    distance: -0.05
-  #    cost: 10.0
-  #  - link1: "sander_center_link"
-  #    link2: "table"
-  #   distance: -0.05
-  #    cost: 10.0
 ompl:
   collision_safety_margin: 0.01
   planning_time: 120.0

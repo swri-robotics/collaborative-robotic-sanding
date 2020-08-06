@@ -30,7 +30,6 @@
         <child link="${prefix}shoulder_link" />
         <origin rpy="0 0 3.14159249728" xyz="0 0 0.180920744391" />
         <axis xyz="0 0 1" />
-<!--        <limit effort="330.0" lower="-6.28318530718" upper="6.28318530718" velocity="3.14" />-->
         <limit effort="330.0" lower="-4" upper="3.28" velocity="3.14" />
         <dynamics damping="0.0" friction="0.0" />
     </joint>
@@ -239,7 +238,6 @@
     </link>
     <link name="${prefix}base" />
     <joint name="${prefix}base_link-base_fixed_joint" type="fixed">
-        <!--<origin rpy="-1.571 0 0" xyz="0 0 0" />-->
         <origin rpy="0 0 0" xyz="0 0 0" />-->
         <parent link="${prefix}base" />
         <child link="${prefix}base_link" />
@@ -295,12 +293,12 @@
                 <color rgba="0.7 0.7 0.7 1.0" />
             </material>
         </visual>
-        <!--<collision>
+        <collision>
             <origin rpy="1.57079632679 0 0" xyz="0.20 0 -0.1168" />
             <geometry>
                 <mesh filename="package://crs_support/meshes/Mockup/collision/Mockup3_6_Cart_collision.stl" />
             </geometry>
-        </collision>-->
+        </collision>
         <collision> <!-- Right Wall-->
             <geometry>
                 <box size="3.0 2.14 0.1" />
@@ -319,12 +317,6 @@
             </geometry>
             <origin rpy="0 0 0" xyz="0.85 -1.1 0.0" />
         </collision>
-        <!--<collision> Back Wall Full
-            <geometry>
-                <box size="0.1 2.14 3.0" />
-            </geometry>
-            <origin rpy="0 0 0" xyz="-2.06 -1.1 0.0" />
-        </collision>-->
         <collision> Back Wall bottom Half
             <geometry>
                 <box size="0.1 1.1 3.0" />
@@ -349,12 +341,6 @@
             </geometry>
             <origin rpy="0.786 0 0" xyz="-2.06 -1.9 -1.15" />
         </collision>
-<!--        <collision> < Top front beam>
-            <geometry>
-                <box size="1.25 0.12 3.0" />
-            </geometry>
-            <origin rpy="0 0 0" xyz="0.38 -2.135 0.0" />
-        </collision>-->
         <collision> <!-- Top back beam-->
             <geometry>
                 <box size="0.34 0.15 3.0" />
@@ -373,12 +359,12 @@
             </geometry>
             <origin rpy="0 0.785 0" xyz="-2.06 -2.135 1.38" />
         </collision>
-        <!--<collision>  fake floor
+        <collision>  fake floor
             <geometry>
-                <box size="3.0 0.12 3.0" />
+                <box size="3.0 0.12 2.5" />
             </geometry>
             <origin rpy="0 0 0" xyz="-0.65 -0.82 0" />
-        </collision>-->
+        </collision>
 
         <inertial>
             <mass value="0.1" />
@@ -389,7 +375,6 @@
     <joint name="${prefix}robot_base_joint" type="fixed">
         <parent link="${prefix}robot_stand" />
         <child link="${prefix}base" />
-<!--        <origin rpy="-1.570796 1.570796 0" xyz="-0.148896 -2.047406 0.6277 " />-->
         <origin rpy="-1.570796 1.570796 0" xyz="-1.030659 -2.037406 0.7977 " />
         <axis xyz="1 0 0"/>
         <limit effort="1.0" lower="-0.1" upper="1.9" velocity=".01" />
@@ -408,14 +393,12 @@
     </joint>
     <link name="${prefix}camera_link_optical" />
     <joint name="${prefix}camera_optical_joint" type="fixed">
-        <origin xyz="-0.00345 0.070793 0.077409" rpy="-0.7854 0 0"/>
+        <origin xyz="-0.021 0.0797 0.06525" rpy="-0.7854 0 0"/>
         <parent link="${prefix}eoat_link"/>
-        <!-- <parent link="${prefix}gazebo_camera_link"/> -->
         <child link="${prefix}camera_link_optical"/>
     </joint>
     <link name="${prefix}camera_link" />
     <joint name="${prefix}camera_link_joint" type="fixed">
-<!--        <origin xyz="0.001 0.015 0.0" rpy="-1.57 1.57 0"/>-->
         <origin xyz="0.0 0.0 0.0" rpy="1.57 -1.57 0"/>
         <parent link="${prefix}camera_link_optical"/>
         <child link="${prefix}camera_link"/>
@@ -441,41 +424,14 @@
     <joint name="${prefix}sander_intermediate_to_sander_center_link" type="fixed">
       <parent link="${prefix}sander_intermediate_link" />
       <child link="${prefix}sander_center_link" />
-    <!--        <origin xyz="0 0.16578 0.01902" rpy="-0.785 0 0" />-->
-    <!--        <origin xyz="0 0.162 0.015" rpy="-0.785 0 0" />-->
-    <!--        <origin xyz="0 0.04612 -0.03371" rpy="-2.355 0 0" />-->
       <origin  xyz="0.0 0.0 0.0125" rpy="0.0 0.0 0.0"/>
     </joint>
 
     <joint name="${prefix}tool0_to_sander_intermediate_link" type="fixed">
         <parent link="${prefix}eoat_link" />
         <child link="${prefix}sander_intermediate_link" />
-    <!--        <origin xyz="0 0.16578 0.01902" rpy="-0.785 0 0" />-->
-    <!--        <origin xyz="0 0.162 0.015" rpy="-0.785 0 0" />-->
-    <!--        <origin xyz="0 0.04612 -0.03371" rpy="-2.355 0 0" />-->
         <origin xyz="0.0 -0.15497 0.17503" rpy="0.7854 0.0 0.0"/>
     </joint>
-<!--    <link name="${prefix}part" >
-        <visual>
-            <origin rpy="0 0 0" xyz="0 0 0" />
-            <geometry>
-                <mesh filename="package://crs_support/meshes/Parts/visual/part1_ch.stl" />
-            </geometry>
-            <material name="Green">
-                <color rgba="0.0 0.7 0.0 1.0" />
-            </material>
-        </visual>
-        <collision>
-            <geometry>
-                <mesh filename="package://crs_support/meshes/Parts/collision/part1_ch.stl" />
-            </geometry>
-        </collision>
-    </link>
-    <joint name="${prefix}robot_stand_to_part_joint" type= "fixed">
-        <origin xyz="-0.439 -1.1 -0.14" rpy= "-3.1416 0.0 -1.571"/>
-        <parent link="${prefix}robot_stand"/>
-        <child link="${prefix}part"/>
-    </joint>-->
 
     <transmission name="trans_shoulder_pan_joint">
         <type>transmission_interface/SimpleTransmission</type>
@@ -640,14 +596,6 @@
           <joint_name>${prefix}wrist_2_joint</joint_name>
           <joint_name>${prefix}wrist_3_joint</joint_name>
         </plugin>
-        <!-- Replaced by the crs_gazebo_plugins_joint_pose_trajectory plugin which hosts an action server instead
-        <plugin name='gazebo_ros_joint_pose_trajectory' filename='libgazebo_ros_joint_pose_trajectory.so'>
-            <ros>
-              <namespace>/demo</namespace>
-              <argument>set_joint_trajectory:=set_trajectory_test</argument>
-            </ros>
-            <update_rate>20</update_rate>
-        </plugin> -->
         <plugin name='crs_gazebo_plugins_joint_pose_trajectory' filename='libcrs_gazebo_plugins_joint_pose_trajectory.so'>
             <ros>
               <namespace>sim</namespace>

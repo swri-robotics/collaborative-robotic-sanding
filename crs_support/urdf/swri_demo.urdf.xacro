@@ -348,7 +348,7 @@
               <mesh filename="package://crs_support/meshes/end_effector/collision/full_ee_v4_collision.stl" />
           </geometry>
       </collision>
-<!--      <inertial>
+<!--      <inertial> Keep this here for testing with other sander end effector
         <origin xyz="8.625E-08 -4.6583E-06 0.03145" rpy="0 0 0" />
         <origin xyz="0 0 0" rpy="0 0 0" />
         <mass value="0.22652" />
@@ -441,12 +441,10 @@
     <joint name="${prefix}camera_optical_joint" type="fixed">
         <origin xyz="-0.021 0.0797 0.06525" rpy="-0.7854 0 0"/>
         <parent link="${prefix}eoat_link"/>
-        <!-- <parent link="${prefix}gazebo_camera_link"/> -->
         <child link="${prefix}camera_link_optical"/>
     </joint>
     <link name="${prefix}camera_link" />
     <joint name="${prefix}camera_link_joint" type="fixed">
-<!--        <origin xyz="0.001 0.015 0.0" rpy="-1.57 1.57 0"/>-->
         <origin xyz="0.00 0.0 0.003" rpy="1.57 -1.57 0.0"/>
         <parent link="${prefix}camera_link_optical"/>
         <child link="${prefix}camera_link"/>
