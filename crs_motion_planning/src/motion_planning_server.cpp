@@ -166,11 +166,6 @@ public:
     tesseract_local_ = std::make_shared<tesseract::Tesseract>();
     tesseract_scene_graph::ResourceLocator::Ptr locator = std::make_shared<tesseract_rosutils::ROSResourceLocator>();
     tesseract_local_->init(urdf_content, srdf_content, locator);
-
-//    motion_planner_config_ = std::make_shared<crs_motion_planning::pathPlanningConfig>();
-//    std::string config_fp = (fs::path(ament_index_cpp::get_package_share_directory("crs_application")) / fs::path("config/motion_planning/MP_config.yaml")).string();
-//    crs_motion_planning::loadPathPlanningConfig(config_fp, motion_planner_config_);
-//    motion_planner_config_->tesseract_local = tesseract_local_;
   }
 
 private:
@@ -186,9 +181,19 @@ private:
                    std::shared_ptr<crs_msgs::srv::PlanProcessMotions::Response> response)
   {
     namespace fs = boost::filesystem;
-//    crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config = motion_planner_config_;
     crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config;
-    std::string config_fp = (fs::path(ament_index_cpp::get_package_share_directory("crs_application")) / fs::path("config/motion_planning/MP_config.yaml")).string();
+    std::string config_fp = (fs::path(ament_index_cpp::get_package_share_directory("crs_application")) / fs::path("conf"
+                                                                                                                  "ig/"
+                                                                                                                  "moti"
+                                                                                                                  "on_"
+                                                                                                                  "plan"
+                                                                                                                  "ning"
+                                                                                                                  "/MP_"
+                                                                                                                  "conf"
+                                                                                                                  "ig."
+                                                                                                                  "yam"
+                                                                                                                  "l"))
+                                .string();
     crs_motion_planning::loadPathPlanningConfig(config_fp, motion_planner_config);
     motion_planner_config->tesseract_local = tesseract_local_;
 
@@ -312,11 +317,6 @@ private:
 
       returned_plans.push_back(resulting_process);
       path_plan_results.reset();
-//      if (path_plan_results.unique())
-//      {
-//        std::cout << "DELETING PATH PLANNING RESULTS" << std::endl;
-//        path_plan_results.reset();
-//      }
     }
     // Populate response
     response->plans = returned_plans;
@@ -332,17 +332,6 @@ private:
       response->err_msg = "Failed to generate preplan";
     }
     motion_planner_config.reset();
-
-//    if (motion_planner_config.unique())
-//    {
-//      std::cout << "DELETING Motion PLANNING CONFIG" << std::endl;
-//      motion_planner_config.reset();
-//    }
-//    else
-//    {
-//      std::cout << "NOT UNIQUE" << std::endl;
-//    }
-
   }
 
   void planFreespace(std::shared_ptr<crs_msgs::srv::CallFreespaceMotion::Request> request,
@@ -350,9 +339,19 @@ private:
   {
     using namespace crs_motion_planning;
     namespace fs = boost::filesystem;
-//    crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config = motion_planner_config_;
     crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config;
-    std::string config_fp = (fs::path(ament_index_cpp::get_package_share_directory("crs_application")) / fs::path("config/motion_planning/MP_config.yaml")).string();
+    std::string config_fp = (fs::path(ament_index_cpp::get_package_share_directory("crs_application")) / fs::path("conf"
+                                                                                                                  "ig/"
+                                                                                                                  "moti"
+                                                                                                                  "on_"
+                                                                                                                  "plan"
+                                                                                                                  "ning"
+                                                                                                                  "/MP_"
+                                                                                                                  "conf"
+                                                                                                                  "ig."
+                                                                                                                  "yam"
+                                                                                                                  "l"))
+                                .string();
     crs_motion_planning::loadPathPlanningConfig(config_fp, motion_planner_config);
     motion_planner_config->tesseract_local = tesseract_local_;
 
@@ -426,15 +425,6 @@ private:
           crs_motion_planner.generateFreespacePlan(joint_start_waypoint, goal_waypoint, response->output_trajectory);
     }
 
-//    if (motion_planner_config.unique())
-//    {
-//      std::cout << "DELETING Motion PLANNING CONFIG" << std::endl;
-//      motion_planner_config.reset();
-//    }
-//    else
-//    {
-//      std::cout << "NOT UNIQUE" << std::endl;
-//    }
     motion_planner_config.reset();
 
     if (success && response->output_trajectory.points.size() > 0)
@@ -638,7 +628,6 @@ private:
   rclcpp::callback_group::CallbackGroup::SharedPtr trajectory_exec_client_cbgroup_;
 
   tesseract::Tesseract::Ptr tesseract_local_;
-//  crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config_;
 
   sensor_msgs::msg::JointState curr_joint_state_;
   std::size_t tesseract_revision_ = 0;

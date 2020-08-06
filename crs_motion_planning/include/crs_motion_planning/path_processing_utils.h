@@ -207,8 +207,6 @@ void findCartPoseArrayFromTraj(const trajectory_msgs::msg::JointTrajectory& join
 void genCartesianTrajectory(const trajectory_msgs::msg::JointTrajectory& joint_trajectory,
                             const cartesianTrajectoryConfig traj_config,
                             cartesian_trajectory_msgs::msg::CartesianTrajectory& cartesian_trajectory);
-//                            cartesian_trajectory_msgs::action::CartesianComplianceTrajectory::Goal&
-//                            cartesian_trajectory);
 
 void genCartesianTrajectoryGoal(
     const cartesian_trajectory_msgs::msg::CartesianTrajectory& cartesian_trajectory,
