@@ -1,6 +1,6 @@
 general:
   use_trajopt_freespace: false
-  use_trajopt_surface: true
+  use_trajopt_surface: false
   default_to_descartes: true
   simplify_start_end_freespace: true
   manipulator: "manipulator"
@@ -9,7 +9,7 @@ general:
   tool0_frame: "tool0"
   required_tool_vel: true
   max_joint_vel: 0.3
-  max_joint_vel_mult: 2.2
+  max_joint_vel_mult: 1.5
   max_surface_dist: 0.15
   max_joint_acc: 0.8
   add_approach_and_retreat: true

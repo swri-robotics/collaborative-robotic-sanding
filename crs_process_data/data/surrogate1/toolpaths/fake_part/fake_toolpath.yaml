@@ -1,0 +1,389 @@
+- paths:
+    - header:
+        seq: 2
+        stamp:
+          sec: 1591743020
+          nsec: 924176126
+        frame_id: 0
+      poses:
+        - position:
+            x: -0.45
+            y: -0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: -0.4
+            y: -0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: -0.35
+            y: -0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: -0.3
+            y: -0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: -0.25
+            y: -0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: -0.2
+            y: -0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: -0.15
+            y: -0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: -0.1
+            y: -0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: -0.05
+            y: -0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: 0.0
+            y: -0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: 0.05
+            y: -0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: 0.1
+            y: -0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: 0.15
+            y: -0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: 0.2
+            y: -0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: 0.25
+            y: -0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: 0.3
+            y: -0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: 0.35
+            y: -0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: 0.4
+            y: -0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: 0.45
+            y: -0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+    - header:
+        seq: 1
+        stamp:
+          sec: 1591743020
+          nsec: 924053037
+        frame_id: 0
+      poses:
+        - position:
+            x: 0.45
+            y: 0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: 0.4
+            y: 0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: 0.35
+            y: 0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: 0.3
+            y: 0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: 0.25
+            y: 0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: 0.2
+            y: 0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: 0.15
+            y: 0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: 0.1
+            y: 0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: 0.05
+            y: 0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: 0.0
+            y: 0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: -0.05
+            y: 0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: -0.1
+            y: 0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: -0.15
+            y: 0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: -0.2
+            y: 0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: -0.25
+            y: 0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: -0.3
+            y: 0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: -0.35
+            y: 0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: -0.4
+            y: 0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+        - position:
+            x: -0.45
+            y: 0.03
+            z: -0.002
+          orientation:
+            x: 0.0
+            y: 0.0
+            z: 0.0
+            w: 1.0
+  process_type:
+    val: "\x00"
+  header:
+    stamp:
+      sec: 1591743022
+      nsec: 80833357
+    frame_id: ""
+    seq: 0
+  dwell_time: 0
+  tool_offset:
+    position:
+      x: 0
+      y: 0
+      z: 0
+    orientation:
+      x: 1
+      y: 0
+      z: 0
+      w: 6.123233995736766e-17
+  params:
+    config:
+      pt_spacing: 0.1
+      line_spacing: 0.2
+      tool_offset: 0
+      intersecting_plane_height: 0.05
+      min_hole_size: 0.2
+      min_segment_size: 0.01
+      raster_angle: 0.1745329251994329
+      raster_wrt_global_axes: "\x00"
+      generate_extra_rasters: "\x00"
+    curvature_threshold: 0.05
+    min_polygons_per_cluster: 500

@@ -1,0 +1,43 @@
+crs:
+  general: {}
+  motion_planning:
+    pre_move_home: false
+    home_position:
+      joint_names: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
+      joint_position: [-1.8444, -1.85261, -1.6167, -1.6665, 0.8773, -0.9489]
+    process_path:
+      tool_speed: 0.1
+      offset_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+      retreat_dist: 0.025
+      approach_dist: 0.025
+      tool_frame: sander_center_link
+      target_force: 50
+    media_change:
+      change_time: 15.0
+      change_pose: [0.771, -0.279, 0.220, 3.138, -0.005, -0.486]
+      joint_names: [shoulder_pan_joint, shoulder_lift_joint, elbow_joint, wrist_1_joint, wrist_2_joint, wrist_3_joint]
+      joint_position: [-0.02467, -1.7719, -1.8680, -0.6212, 0.90265, -2.2430]
+    preview:
+      time_scaling: 4.0
+  scan_acquisition:
+    scan_poses:
+      - pose: [0.668, -0.423, 0.320, 2.232, -0.014, -0.457]
+      - pose: [0.794, -0.412, 0.320, 2.233, -0.016, -0.745]
+    tool_frame: camera_link_optical
+    skip_on_failure: true
+  process_execution:
+    time_tolerance: 60.0
+    joint_tolerance: [0.035, 0.035, 0.035, 0.035, 0.035, 0.035]
+    cartesian_path_tolerance: [0.015, 0.015, 0.025, 0.15, 0.15, 0.15]
+    cartesian_goal_tolerance: [0.01, 0.01, 0.01, 0.05, 0.05, 0.05]
+    force_tolerance: 10
+    force_controlled_trajectories: true
+    ur_tool_change_script: simpleMove.urp
+    execute_tool_change: false
+  part_registration:
+    simulation_pose: [0.0, -0.875, -0.36, 0.0, 0.0, 0.0]
+    seed_pose: [0.0, -0.875, -0.36, 0.0, 0.0, 0.0]
+    target_frame_id: world
+    part_file: /home/forcecontroltraj/crs_data/fake_part/fake_part.stl
+    toolpath_file: /home/forcecontroltraj/crs_data/fake_part/fake_toolpath.yaml
+  part_rework: {}
