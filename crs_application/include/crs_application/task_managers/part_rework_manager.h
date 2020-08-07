@@ -50,7 +50,11 @@
 #include <visualization_msgs/msg/marker_array.hpp>
 
 #include <crs_msgs/srv/call_freespace_motion.hpp>
-#include <crs_msgs/srv/crop_toolpaths.hpp>
+
+#include <region_detection_msgs/srv/crop_data.hpp>
+#include <region_detection_msgs/srv/detect_regions.hpp>
+#include <region_detection_msgs/srv/get_selected_regions.hpp>
+#include <region_detection_msgs/srv/show_selectable_regions.hpp>
 
 namespace crs_application
 {
@@ -72,12 +76,14 @@ public:
   common::ActionResult moveRobot();
   common::ActionResult acquireScan();
   common::ActionResult doneScanning();
+  common::ActionResult detectRegions();
+  common::ActionResult showRegions();
   common::ActionResult trimToolpaths();
-  common::ActionResult showPreview();
-  common::ActionResult hidePreview();
+  common::ActionResult showToolpathsPreview();
+  common::ActionResult hideToolPathsPreview();
 
   // Results
-  const datatypes::ProcessToolpathData& getResult() { return result_; }
+  const std::vector<datatypes::ProcessToolpathData>& getResult() { return result_; }
 
 protected:
   std::shared_ptr<rclcpp::Node> node_;
@@ -94,7 +100,10 @@ protected:
 
   // service clients
   rclcpp::Client<crs_msgs::srv::CallFreespaceMotion>::SharedPtr call_freespace_motion_client_;
-  rclcpp::Client<crs_msgs::srv::CropToolpaths>::SharedPtr crop_toolpaths_client_;
+  rclcpp::Client<region_detection_msgs::srv::DetectRegions>::SharedPtr detect_regions_client_;
+  rclcpp::Client<region_detection_msgs::srv::ShowSelectableRegions>::SharedPtr show_selectable_regions_client_;
+  rclcpp::Client<region_detection_msgs::srv::GetSelectedRegions>::SharedPtr get_selected_regions_client_;
+  rclcpp::Client<region_detection_msgs::srv::CropData>::SharedPtr crop_toolpaths_client_;
 
   // timers
   rclcpp::TimerBase::SharedPtr scan_poses_pub_timer_;
@@ -106,11 +115,12 @@ protected:
 
   // inputs and outputs
   std::shared_ptr<datatypes::ProcessToolpathData> input_ = nullptr;
-  datatypes::ProcessToolpathData result_;
+  std::vector<datatypes::ProcessToolpathData> result_;
 
   // process data
   bool proceed_next_scan; /** @brief will be set to false if previous robot move failed*/
-  crs_msgs::srv::CropToolpaths::Request::Ptr process_data_;
+  region_detection_msgs::srv::DetectRegions::Request::Ptr scan_data_;
+  region_detection_msgs::srv::DetectRegions::Response detected_regions_results_;
   int scan_index_;
 };
 

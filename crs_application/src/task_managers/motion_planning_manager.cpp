@@ -110,14 +110,15 @@ common::ActionResult MotionPlanningManager::configure(const config::MotionPlanni
   return true;
 }
 
-common::ActionResult MotionPlanningManager::setInput(const datatypes::ProcessToolpathData& input)
+common::ActionResult MotionPlanningManager::setInput(const std::vector<datatypes::ProcessToolpathData>& input)
 {
-  if (input.rasters.empty())
+  if (input.empty())
   {
     RCLCPP_ERROR(node_->get_logger(), "%s found no rasters in the process path", MANAGER_NAME.c_str());
     return false;
   }
-  input_ = std::make_shared<datatypes::ProcessToolpathData>(input);
+  input_process_toolpaths.clear();
+  input_process_toolpaths.assign(input.begin(), input.end());
   return true;
 }
 
@@ -130,7 +131,7 @@ common::ActionResult MotionPlanningManager::checkPreReq()
     return res;
   }
 
-  if (!input_)
+  if (input_process_toolpaths.empty())
   {
     common::ActionResult res = { succeeded : false, err_msg : "No input data has been provided, can not proceed" };
     RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
@@ -154,60 +155,65 @@ common::ActionResult MotionPlanningManager::splitToolpaths()
   std::vector<datatypes::ProcessToolpathData> toolpaths_processes;
   double current_dist = 0.0;
   Eigen::Vector3d p1, p2;
-  std::vector<std::vector<std::size_t> > rasters_breakpoints(input_->rasters.size());
-  for (std::size_t r_idx = 0; r_idx < input_->rasters.size(); r_idx++)
+  for (std::size_t i = 0; i < input_process_toolpaths.size(); i++)
   {
-    geometry_msgs::msg::PoseArray& raster = input_->rasters[r_idx];
-    for (std::size_t p_idx = 0; p_idx < raster.poses.size() - 1; p_idx++)
+    const datatypes::ProcessToolpathData& current_toolpath = input_process_toolpaths[i];
+    std::vector<std::vector<std::size_t> > rasters_breakpoints(current_toolpath.rasters.size());
+    for (std::size_t r_idx = 0; r_idx < current_toolpath.rasters.size(); r_idx++)
     {
-      p1 = toEigen(raster.poses[p_idx].position);
-      p2 = toEigen(raster.poses[p_idx + 1].position);
-
-      double d = (p2 - p1).norm();
-      if (current_dist + d > split_dist)
+      const geometry_msgs::msg::PoseArray& raster = current_toolpath.rasters[r_idx];
+      for (std::size_t p_idx = 0; p_idx < raster.poses.size() - 1; p_idx++)
       {
-        RCLCPP_INFO(node_->get_logger(), "Found split at point %lu of raster %lu", p_idx, r_idx);
-        rasters_breakpoints[r_idx].push_back(p_idx);
-        current_dist = 0;
+        p1 = toEigen(raster.poses[p_idx].position);
+        p2 = toEigen(raster.poses[p_idx + 1].position);
+
+        double d = (p2 - p1).norm();
+        if (current_dist + d > split_dist)
+        {
+          RCLCPP_INFO(node_->get_logger(), "Found split at point %lu of raster %lu", p_idx, r_idx);
+          rasters_breakpoints[r_idx].push_back(p_idx);
+          current_dist = 0;
+        }
+        current_dist += d;
       }
-      current_dist += d;
-    }
-  }
-
-  // splitting toolpath
-  toolpaths_processes.resize(1);
-  for (std::size_t r_idx = 0; r_idx < rasters_breakpoints.size(); r_idx++)
-  {
-    geometry_msgs::msg::PoseArray& raster = input_->rasters[r_idx];
-    auto& breakpoints_indices = rasters_breakpoints[r_idx];
-    if (breakpoints_indices.empty())
-    {
-      toolpaths_processes.back().rasters.push_back(raster);
-      continue;
     }
 
-    std::size_t start_idx = 0;
-    std::size_t end_idx;
-    std::remove_reference<decltype(raster)>::type new_raster;
-    for (std::size_t p_idx = 0; p_idx < breakpoints_indices.size(); p_idx++)
+    // splitting toolpath
+    toolpaths_processes.push_back(datatypes::ProcessToolpathData());
+    for (std::size_t r_idx = 0; r_idx < rasters_breakpoints.size(); r_idx++)
     {
-      // copy portion of raster leading up to breakpoint into current toolpath
-      end_idx = breakpoints_indices[p_idx];
-      new_raster.poses.clear();
-      std::copy(raster.poses.begin() + start_idx, raster.poses.begin() + end_idx, std::back_inserter(new_raster.poses));
-      toolpaths_processes.back().rasters.push_back(new_raster);
+      const geometry_msgs::msg::PoseArray& raster = current_toolpath.rasters[r_idx];
+      auto& breakpoints_indices = rasters_breakpoints[r_idx];
+      if (breakpoints_indices.empty())
+      {
+        toolpaths_processes.back().rasters.push_back(raster);
+        continue;
+      }
 
-      // create new toolpath
-      toolpaths_processes.resize(toolpaths_processes.size() + 1);
-      start_idx = end_idx;
-    }
+      std::size_t start_idx = 0;
+      std::size_t end_idx;
+      geometry_msgs::msg::PoseArray new_raster;
+      for (std::size_t p_idx = 0; p_idx < breakpoints_indices.size(); p_idx++)
+      {
+        // copy portion of raster leading up to breakpoint into current toolpath
+        end_idx = breakpoints_indices[p_idx];
+        new_raster.poses.clear();
+        std::copy(
+            raster.poses.begin() + start_idx, raster.poses.begin() + end_idx, std::back_inserter(new_raster.poses));
+        toolpaths_processes.back().rasters.push_back(new_raster);
 
-    // copy remaining segment of raster into toolpath
-    if (end_idx < raster.poses.size() - 1)
-    {
-      new_raster.poses.clear();
-      std::copy(raster.poses.begin() + end_idx, raster.poses.end(), std::back_inserter(new_raster.poses));
-      toolpaths_processes.back().rasters.push_back(new_raster);
+        // create new toolpath
+        toolpaths_processes.resize(toolpaths_processes.size() + 1);
+        start_idx = end_idx;
+      }
+
+      // copy remaining segment of raster into toolpath
+      if (end_idx < raster.poses.size() - 1)
+      {
+        new_raster.poses.clear();
+        std::copy(raster.poses.begin() + end_idx, raster.poses.end(), std::back_inserter(new_raster.poses));
+        toolpaths_processes.back().rasters.push_back(new_raster);
+      }
     }
   }
 
@@ -366,8 +372,19 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
 
   CallFreespaceMotion::Request::SharedPtr req = std::make_shared<CallFreespaceMotion::Request>();
   req->target_link = config_->tool_frame;
-  req->goal_position.position = config_->joint_media_position;
-  req->goal_position.name = config_->media_joint_names;
+  if (config_->joint_media_position.empty() || config_->media_joint_names.empty())
+  {
+    // use cartesian tool pose when no joint pose is available
+    geometry_msgs::msg::Pose pose_msg = tf2::toMsg(config_->media_change_pose);
+    std::tie(req->goal_pose.translation.x, req->goal_pose.translation.y, req->goal_pose.translation.z) =
+        std::make_tuple(pose_msg.position.x, pose_msg.position.y, pose_msg.position.z);
+    req->goal_pose.rotation = pose_msg.orientation;
+  }
+  else
+  {
+    req->goal_position.position = config_->joint_media_position;
+    req->goal_position.name = config_->media_joint_names;
+  }
   req->execute = false;
   req->num_steps = 0;  // planner should use default
 

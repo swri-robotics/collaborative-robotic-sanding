@@ -56,7 +56,10 @@ static const std::string PREVIEW_ROOT = "preview";
 static const std::vector<std::string> HOME_POS_ITEMS = { "joint_names", "joint_position" };
 static const std::vector<std::string> PROCESS_PATH_ITEMS = { "tool_speed",    "offset_pose", "retreat_dist",
                                                              "approach_dist", "tool_frame",  "target_force" };
-static const std::vector<std::string> MEDIA_CHANGE_ITEMS = { "change_time", "joint_names", "joint_position" };
+static const std::vector<std::string> MEDIA_CHANGE_ITEMS = { "change_time",
+                                                             "change_pose",
+                                                             "joint_names",
+                                                             "joint_position" };
 static const std::vector<std::string> PREVIEW_ITEMS = { "time_scaling" };
 }  // namespace motion_planning
 
@@ -177,8 +180,13 @@ boost::optional<MotionPlanningConfig> parse(YAML::Node& config, std::string& err
     if (media_change_node && hasFields(media_change_node, MEDIA_CHANGE_ROOT, MEDIA_CHANGE_ITEMS))
     {
       cfg.media_change_time = media_change_node[MEDIA_CHANGE_ITEMS[0]].as<double>();
-      cfg.media_joint_names = media_change_node[MEDIA_CHANGE_ITEMS[1]].as<std::vector<std::string>>();
-      cfg.joint_media_position = media_change_node[MEDIA_CHANGE_ITEMS[2]].as<std::vector<double>>();
+      std::vector<double> xyzrpy = media_change_node[MEDIA_CHANGE_ITEMS[1]].as<std::vector<double>>();
+      cfg.media_change_pose = Eigen::Translation3d(Eigen::Vector3d(xyzrpy[0], xyzrpy[1], xyzrpy[2])) *
+                              Eigen::AngleAxisd(xyzrpy[3], Eigen::Vector3d::UnitX()) *
+                              Eigen::AngleAxisd(xyzrpy[4], Eigen::Vector3d::UnitY()) *
+                              Eigen::AngleAxisd(xyzrpy[5], Eigen::Vector3d::UnitZ());
+      cfg.media_joint_names = media_change_node[MEDIA_CHANGE_ITEMS[2]].as<std::vector<std::string>>();
+      cfg.joint_media_position = media_change_node[MEDIA_CHANGE_ITEMS[3]].as<std::vector<double>>();
     }
     else
     {
