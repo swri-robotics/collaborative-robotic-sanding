@@ -245,8 +245,8 @@
         </state>
         <state id="PR_User_Region_Selection">
             <qt:editorinfo geometry="568.94;196.64;-145.58;-43.08;232.99;127.29" scenegeometry="2389.74;1035.26;2244.16;992.18;232.99;127.29"/>
-            <transition type="external" event="user_rejects" target="Ready">
-                <qt:editorinfo movePoint="912.04;1.45" localGeometry="26.14;88.64;26.14;216.56;-2340.82;216.56;-2340.82;-676.62" endTargetFactors="2.71;64.04" startTargetFactors="94.69;47.39"/>
+            <transition type="external" event="user_rejects" target="Wait_User_Selection">
+                <qt:editorinfo movePoint="331.61;-17.63" localGeometry="26.14;88.64;26.14;216.56;-782.42;216.56;-782.42;-240.20" endTargetFactors="13.67;46.89" startTargetFactors="94.69;47.39"/>
             </transition>
             <transition type="external" event="user_approves" target="PR_Trim_Toolpaths">
                 <qt:editorinfo movePoint="-206.52;-18.41" localGeometry="-436.30;-1.98" endTargetFactors="51.38;10.78" startTargetFactors="9.78;82.81"/>
@@ -261,7 +261,7 @@
         <state id="PR_Save_Results">
             <qt:editorinfo geometry="571.93;338.45;-80.38;-50;140.38;100" scenegeometry="2392.73;1177.07;2312.35;1127.07;140.38;100"/>
             <transition type="external" event="sm_done" target="Motion_Planning">
-                <qt:editorinfo movePoint="964.29;-94.42" localGeometry="-371.04;95.59;-1702.20;95.59" endTargetFactors="58.26;96.15" startTargetFactors="9.21;80.38"/>
+                <qt:editorinfo movePoint="964.29;-94.42" localGeometry="-108.51;95.59;-1702.21;95.59" endTargetFactors="58.26;96.15" startTargetFactors="9.21;80.38"/>
             </transition>
         </state>
         <transition type="external" event="sm_failure" target="At_Fault">
@@ -279,7 +279,7 @@
                 <qt:editorinfo movePoint="64.95;0.80" localGeometry="0.44;-29.20" endTargetFactors="11.56;60.74" startTargetFactors="34.39;7.77"/>
             </transition>
             <transition type="external" event="sm_done" target="PR_Detect_Regions">
-                <qt:editorinfo movePoint="48.62;30.34" localGeometry="-19.71;47.64" endTargetFactors="9.64;44.41" startTargetFactors="93.88;63.22"/>
+                <qt:editorinfo movePoint="-11.81;22.39" localGeometry="-19.71;47.64" endTargetFactors="9.64;44.41" startTargetFactors="93.88;63.22"/>
             </transition>
         </state>
         <state id="PR_Reset">
@@ -299,8 +299,8 @@
             <transition type="external" event="user_approves" target="PR_Save_Results">
                 <qt:editorinfo endTargetFactors="13.96;54.44" startTargetFactors="94.31;66.89"/>
             </transition>
-            <transition type="external" event="Transition_1" target="Wait_User_Selection">
-                <qt:editorinfo localGeometry="-127.44;59.65;-347.28;59.65;-347.28;-263.81" endTargetFactors="35;70.29"/>
+            <transition type="external" event="user_rejects" target="Wait_User_Selection">
+                <qt:editorinfo movePoint="44.53;114.50" localGeometry="-147.77;-96.70;-147.77;-299.59" endTargetFactors="52.63;81.54"/>
             </transition>
         </state>
     </state>

@@ -349,7 +349,8 @@ common::ActionResult PartReworkManager::showPreview()
   visualization_msgs::msg::MarkerArray all_markers;
   std::for_each(result_.begin(), result_.end(),[&all_markers](const decltype(result_)::value_type& toolpath){
     visualization_msgs::msg::MarkerArray markers =
-        crs_motion_planning::convertToDottedLineMarker(toolpath.rasters, DEFAULT_WORLD_FRAME_ID, MARKER_NS_TOOLPATH);
+        crs_motion_planning::convertToDottedLineMarker(toolpath.rasters, DEFAULT_WORLD_FRAME_ID, MARKER_NS_TOOLPATH,
+                                                       all_markers.markers.size());
     all_markers.markers.insert(all_markers.markers.end(),markers.markers.begin(), markers.markers.end());
   });
 

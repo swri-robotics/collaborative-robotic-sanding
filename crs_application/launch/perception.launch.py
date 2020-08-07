@@ -95,7 +95,7 @@ def generate_launch_description():
     output='screen',
     #prefix= 'xterm -e gdb -ex run --args',
     prefix= 'xterm -e',
-    parameters=[{'region_height': 0.02}
+    parameters=[{'region_height': 0.05}
                 ])  
     
     crop_data_server = Node(
