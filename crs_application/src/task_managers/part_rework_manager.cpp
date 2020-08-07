@@ -310,7 +310,7 @@ common::ActionResult PartReworkManager::trimToolpaths()
   }
 
   // clearing results from previous actions
-  result_ = datatypes::ProcessToolpathData();
+  result_.clear();
 
   // sending request
   CropData::Response::SharedPtr crop_data_res =
@@ -332,7 +332,13 @@ common::ActionResult PartReworkManager::trimToolpaths()
     return res;
   }
 
-  result_.rasters = crop_data_res->cropped_data.front().pose_arrays;
+  std::for_each(crop_data_res->cropped_data.begin(), crop_data_res->cropped_data.end(), [this](
+      const decltype(crop_data_res->cropped_data)::value_type& toolpath_msg){
+    datatypes::ProcessToolpathData toolpath;
+    toolpath.rasters = toolpath_msg.pose_arrays;
+    result_.push_back(toolpath);
+  });
+
   return true;
 }
 
@@ -340,8 +346,12 @@ common::ActionResult PartReworkManager::showPreview()
 {
   using namespace std::chrono_literals;
 
-  visualization_msgs::msg::MarkerArray markers =
-      crs_motion_planning::convertToDottedLineMarker(result_.rasters, DEFAULT_WORLD_FRAME_ID, MARKER_NS_TOOLPATH);
+  visualization_msgs::msg::MarkerArray all_markers;
+  std::for_each(result_.begin(), result_.end(),[&all_markers](const decltype(result_)::value_type& toolpath){
+    visualization_msgs::msg::MarkerArray markers =
+        crs_motion_planning::convertToDottedLineMarker(toolpath.rasters, DEFAULT_WORLD_FRAME_ID, MARKER_NS_TOOLPATH);
+    all_markers.markers.insert(all_markers.markers.end(),markers.markers.begin(), markers.markers.end());
+  });
 
   // setting up timers
   if (preview_markers_publish_timer_)
@@ -349,7 +359,7 @@ common::ActionResult PartReworkManager::showPreview()
     preview_markers_publish_timer_->cancel();
   }
   preview_markers_publish_timer_ =
-      node_->create_wall_timer(500ms, [this, markers]() -> void { cropped_toolpath_markers_pub_->publish(markers); });
+      node_->create_wall_timer(500ms, [this, all_markers]() -> void { cropped_toolpath_markers_pub_->publish(all_markers); });
   return true;
 }
 

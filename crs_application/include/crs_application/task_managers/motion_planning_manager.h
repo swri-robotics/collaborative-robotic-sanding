@@ -59,7 +59,7 @@ public:
   // initialization and configuration
   common::ActionResult init();
   common::ActionResult configure(const config::MotionPlanningConfig& config);
-  common::ActionResult setInput(const datatypes::ProcessToolpathData& input);
+  common::ActionResult setInput(const std::vector<datatypes::ProcessToolpathData>& input);
 
   // Process Actions
   common::ActionResult splitToolpaths();
@@ -89,7 +89,7 @@ protected:
   planFreeSpace(const std::string& plan_name, crs_msgs::srv::CallFreespaceMotion::Request::SharedPtr req);
 
   std::shared_ptr<rclcpp::Node> node_;
-  std::shared_ptr<datatypes::ProcessToolpathData> input_ = nullptr;
+  std::vector<datatypes::ProcessToolpathData> input_process_toolpaths;
   std::shared_ptr<config::MotionPlanningConfig> config_ = nullptr;
   sensor_msgs::msg::JointState::SharedPtr home_js_;
   datatypes::ProcessExecutionData result_;

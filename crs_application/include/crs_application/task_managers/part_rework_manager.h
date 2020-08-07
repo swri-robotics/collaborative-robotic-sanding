@@ -83,7 +83,7 @@ public:
   common::ActionResult hidePreview();
 
   // Results
-  const datatypes::ProcessToolpathData& getResult() { return result_; }
+  const std::vector<datatypes::ProcessToolpathData>& getResult() { return result_; }
 
 protected:
   std::shared_ptr<rclcpp::Node> node_;
@@ -115,7 +115,7 @@ protected:
 
   // inputs and outputs
   std::shared_ptr<datatypes::ProcessToolpathData> input_ = nullptr;
-  datatypes::ProcessToolpathData result_;
+  std::vector<datatypes::ProcessToolpathData> result_;
 
   // process data
   bool proceed_next_scan; /** @brief will be set to false if previous robot move failed*/
