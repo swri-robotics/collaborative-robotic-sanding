@@ -118,7 +118,7 @@ common::ActionResult MotionPlanningManager::setInput(const std::vector<datatypes
     return false;
   }
   input_process_toolpaths.clear();
-  input_process_toolpaths.assign(input.begin(),input.end());
+  input_process_toolpaths.assign(input.begin(), input.end());
   return true;
 }
 
@@ -155,7 +155,7 @@ common::ActionResult MotionPlanningManager::splitToolpaths()
   std::vector<datatypes::ProcessToolpathData> toolpaths_processes;
   double current_dist = 0.0;
   Eigen::Vector3d p1, p2;
-  for(std::size_t i = 0; i < input_process_toolpaths.size(); i++)
+  for (std::size_t i = 0; i < input_process_toolpaths.size(); i++)
   {
     const datatypes::ProcessToolpathData& current_toolpath = input_process_toolpaths[i];
     std::vector<std::vector<std::size_t> > rasters_breakpoints(current_toolpath.rasters.size());
@@ -198,7 +198,8 @@ common::ActionResult MotionPlanningManager::splitToolpaths()
         // copy portion of raster leading up to breakpoint into current toolpath
         end_idx = breakpoints_indices[p_idx];
         new_raster.poses.clear();
-        std::copy(raster.poses.begin() + start_idx, raster.poses.begin() + end_idx, std::back_inserter(new_raster.poses));
+        std::copy(
+            raster.poses.begin() + start_idx, raster.poses.begin() + end_idx, std::back_inserter(new_raster.poses));
         toolpaths_processes.back().rasters.push_back(new_raster);
 
         // create new toolpath

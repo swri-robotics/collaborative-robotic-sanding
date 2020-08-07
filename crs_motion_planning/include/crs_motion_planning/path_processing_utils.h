@@ -83,16 +83,16 @@ convertToAxisMarkers(const std::vector<geometry_msgs::msg::PoseArray>& path,
  * @param point_size
  * @return A marker
  */
-visualization_msgs::msg::MarkerArray
-convertToDottedLineMarker(const std::vector<geometry_msgs::msg::PoseArray>& path,
-                          const std::string& frame_id,
-                          const std::string& ns,
-                          const std::size_t& start_id = 1,
-                          const std::array<float, 6>& offset = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },
-                          const float& line_width = 0.001,
-                          const float& point_size = 0.005,
-                          const std::tuple<float, float, float, float>& line_rgba = std::make_tuple(1.0, 1.0, 0.2, 1.0) ,
-                          const std::tuple<float, float, float, float>& point_rgba = std::make_tuple(0.1, .8, 0.2, 1.0));
+visualization_msgs::msg::MarkerArray convertToDottedLineMarker(
+    const std::vector<geometry_msgs::msg::PoseArray>& path,
+    const std::string& frame_id,
+    const std::string& ns,
+    const std::size_t& start_id = 1,
+    const std::array<float, 6>& offset = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },
+    const float& line_width = 0.001,
+    const float& point_size = 0.005,
+    const std::tuple<float, float, float, float>& line_rgba = std::make_tuple(1.0, 1.0, 0.2, 1.0),
+    const std::tuple<float, float, float, float>& point_rgba = std::make_tuple(0.1, .8, 0.2, 1.0));
 
 ///
 /// \brief rasterStripsToMarkerArray Generates marker array from vector of poseStampeds

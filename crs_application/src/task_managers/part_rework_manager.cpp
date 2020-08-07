@@ -234,8 +234,8 @@ common::ActionResult PartReworkManager::detectRegions()
   {
     common::ActionResult res;
     res.succeeded = false;
-    res.err_msg =
-        boost::str(boost::format("%s region detection failed with msg: %s") % MANAGER_NAME % (srv_res ? srv_res->err_msg: "timeout"));
+    res.err_msg = boost::str(boost::format("%s region detection failed with msg: %s") % MANAGER_NAME %
+                             (srv_res ? srv_res->err_msg : "timeout"));
     RCLCPP_ERROR_STREAM(node_->get_logger(), res.err_msg);
     return res;
   }
@@ -332,12 +332,13 @@ common::ActionResult PartReworkManager::trimToolpaths()
     return res;
   }
 
-  std::for_each(crop_data_res->cropped_data.begin(), crop_data_res->cropped_data.end(), [this](
-      const decltype(crop_data_res->cropped_data)::value_type& toolpath_msg){
-    datatypes::ProcessToolpathData toolpath;
-    toolpath.rasters = toolpath_msg.pose_arrays;
-    result_.push_back(toolpath);
-  });
+  std::for_each(crop_data_res->cropped_data.begin(),
+                crop_data_res->cropped_data.end(),
+                [this](const decltype(crop_data_res->cropped_data)::value_type& toolpath_msg) {
+                  datatypes::ProcessToolpathData toolpath;
+                  toolpath.rasters = toolpath_msg.pose_arrays;
+                  result_.push_back(toolpath);
+                });
 
   return true;
 }
@@ -347,15 +348,17 @@ common::ActionResult PartReworkManager::showToolpathsPreview()
   using namespace std::chrono_literals;
 
   visualization_msgs::msg::MarkerArray all_markers;
-  std::for_each(result_.begin(), result_.end(),[&all_markers](const decltype(result_)::value_type& toolpath){
+  std::for_each(result_.begin(), result_.end(), [&all_markers](const decltype(result_)::value_type& toolpath) {
     visualization_msgs::msg::MarkerArray markers =
-        crs_motion_planning::convertToDottedLineMarker(toolpath.rasters, DEFAULT_WORLD_FRAME_ID, MARKER_NS_TOOLPATH,
+        crs_motion_planning::convertToDottedLineMarker(toolpath.rasters,
+                                                       DEFAULT_WORLD_FRAME_ID,
+                                                       MARKER_NS_TOOLPATH,
                                                        all_markers.markers.size(),
-                                                       {0,0,0,0,0,0},
+                                                       { 0, 0, 0, 0, 0, 0 },
                                                        0.002,
                                                        0.008,
-                                                       std::make_tuple(51.0/255.0, 153.0/255.0, 1.0, 0.6));
-    all_markers.markers.insert(all_markers.markers.end(),markers.markers.begin(), markers.markers.end());
+                                                       std::make_tuple(51.0 / 255.0, 153.0 / 255.0, 1.0, 0.6));
+    all_markers.markers.insert(all_markers.markers.end(), markers.markers.begin(), markers.markers.end());
   });
 
   // setting up timers
@@ -363,8 +366,8 @@ common::ActionResult PartReworkManager::showToolpathsPreview()
   {
     preview_markers_publish_timer_->cancel();
   }
-  preview_markers_publish_timer_ =
-      node_->create_wall_timer(500ms, [this, all_markers]() -> void { cropped_toolpath_markers_pub_->publish(all_markers); });
+  preview_markers_publish_timer_ = node_->create_wall_timer(
+      500ms, [this, all_markers]() -> void { cropped_toolpath_markers_pub_->publish(all_markers); });
   return true;
 }
 
