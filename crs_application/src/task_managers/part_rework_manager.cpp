@@ -41,7 +41,7 @@ static const double WAIT_FOR_MSG_TIMEOUT = 5.0;
 static const double WAIT_ROBOT_STOP = 2.0;
 static const double WAIT_MOTION_COMPLETION = 90.0;
 static const double WAIT_FOR_SERVICE_PERIOD = 40.0;
-static const double WAIT_SERVICE_COMPLETION_TIMEOUT = 40.0;
+static const double WAIT_SERVICE_COMPLETION_TIMEOUT = 60.0;
 
 static const std::string FREESPACE_MOTION_PLAN_SERVICE = "plan_freespace_motion";
 static const std::string DETECT_REGIONS_SERVICE = "detect_regions";
@@ -235,7 +235,7 @@ common::ActionResult PartReworkManager::detectRegions()
     common::ActionResult res;
     res.succeeded = false;
     res.err_msg =
-        boost::str(boost::format("%s region detection failed with msg: %s") % MANAGER_NAME % srv_res->err_msg);
+        boost::str(boost::format("%s region detection failed with msg: %s") % MANAGER_NAME % (srv_res ? srv_res->err_msg: "timeout"));
     RCLCPP_ERROR_STREAM(node_->get_logger(), res.err_msg);
     return res;
   }

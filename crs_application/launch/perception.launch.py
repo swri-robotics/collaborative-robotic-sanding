@@ -64,7 +64,8 @@ def generate_launch_description():
         node_name='part_localization',
         node_namespace = GLOBAL_NS ,
         output='screen',
-        #prefix= 'xterm -e gdb --args',
+        #prefix= 'xterm -e gdb -ex run --args',
+        #prefix= 'xterm -e',
         parameters=[general_params,
                     icp_params,
                     sac_params,
@@ -80,7 +81,7 @@ def generate_launch_description():
     node_namespace = GLOBAL_NS ,
     output='screen',
     #prefix= 'xterm -e gdb -ex run --args',
-    #prefix= 'xterm -e',
+    prefix= 'xterm -e',
     parameters=[{'config_opencv': region_detection_opencv_cfg},
                 {'config_pcl2d': region_detection_pcl2d_cfg},
                 {'config_pcl': region_detection_pcl_cfg},
@@ -93,8 +94,8 @@ def generate_launch_description():
     node_namespace = GLOBAL_NS ,
     output='screen',
     #prefix= 'xterm -e gdb -ex run --args',
-    #prefix= 'xterm -e',
-    parameters=[{'region_height': 0.2}
+    prefix= 'xterm -e',
+    parameters=[{'region_height': 0.02}
                 ])  
     
     crop_data_server = Node(
@@ -104,7 +105,7 @@ def generate_launch_description():
         node_namespace = GLOBAL_NS ,
         output='screen',
         #prefix= 'xterm -e gdb -ex run --args',
-        #prefix= 'xterm -e',
+        prefix= 'xterm -e',
         parameters=[{'region_crop': region_crop_cfg}
                     ],
         remappings = [('crop_data','crop_toolpaths')]

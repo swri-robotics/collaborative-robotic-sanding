@@ -42,7 +42,7 @@
 #include <tf2_eigen/tf2_eigen.h>
 #include <crs_motion_planning/path_processing_utils.h>
 
-static const double WAIT_SERVICE_DURATION = 2.0;            // secs
+static const double WAIT_SERVICE_DURATION = 50.0;            // secs
 static const double WAIT_SERVICE_COMPLETION_TIMEOUT = 2.0;  // secs
 
 static const std::string PREVIEW_TOPIC = "part_registration_preview";
