@@ -206,15 +206,16 @@ crs_motion_planning::convertToDottedLineMarker(const std::vector<geometry_msgs::
                                                const std::size_t& start_id,
                                                const std::array<float, 6>& offset,
                                                const float& line_width,
-                                               const float& point_size)
+                                               const float& point_size,
+                                               const std::tuple<float, float, float, float>& line_rgba,
+                                               const std::tuple<float, float, float, float>& point_rgba)
 {
   visualization_msgs::msg::MarkerArray markers_msgs;
   visualization_msgs::msg::Marker line_marker, points_marker;
 
   // configure line marker
   line_marker.action = line_marker.ADD;
-  std::tie(line_marker.color.r, line_marker.color.g, line_marker.color.b, line_marker.color.a) =
-      std::make_tuple(1.0, 1.0, 0.2, 1.0);
+  std::tie(line_marker.color.r, line_marker.color.g, line_marker.color.b, line_marker.color.a) = line_rgba;
   line_marker.header.frame_id = frame_id;
   line_marker.type = line_marker.LINE_STRIP;
   line_marker.id = start_id;
@@ -227,8 +228,7 @@ crs_motion_planning::convertToDottedLineMarker(const std::vector<geometry_msgs::
   points_marker = line_marker;
   points_marker.type = points_marker.POINTS;
   points_marker.ns = ns;
-  std::tie(points_marker.color.r, points_marker.color.g, points_marker.color.b, points_marker.color.a) =
-      std::make_tuple(0.1, .8, 0.2, 1.0);
+  std::tie(points_marker.color.r, points_marker.color.g, points_marker.color.b, points_marker.color.a) = point_rgba;
   std::tie(points_marker.scale.x, points_marker.scale.y, points_marker.scale.z) =
       std::make_tuple(point_size, point_size, point_size);
 

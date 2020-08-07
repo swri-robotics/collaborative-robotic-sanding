@@ -79,8 +79,8 @@ public:
   common::ActionResult detectRegions();
   common::ActionResult showRegions();
   common::ActionResult trimToolpaths();
-  common::ActionResult showPreview();
-  common::ActionResult hidePreview();
+  common::ActionResult showToolpathsPreview();
+  common::ActionResult hideToolPathsPreview();
 
   // Results
   const std::vector<datatypes::ProcessToolpathData>& getResult() { return result_; }

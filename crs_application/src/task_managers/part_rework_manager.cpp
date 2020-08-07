@@ -342,7 +342,7 @@ common::ActionResult PartReworkManager::trimToolpaths()
   return true;
 }
 
-common::ActionResult PartReworkManager::showPreview()
+common::ActionResult PartReworkManager::showToolpathsPreview()
 {
   using namespace std::chrono_literals;
 
@@ -350,7 +350,11 @@ common::ActionResult PartReworkManager::showPreview()
   std::for_each(result_.begin(), result_.end(),[&all_markers](const decltype(result_)::value_type& toolpath){
     visualization_msgs::msg::MarkerArray markers =
         crs_motion_planning::convertToDottedLineMarker(toolpath.rasters, DEFAULT_WORLD_FRAME_ID, MARKER_NS_TOOLPATH,
-                                                       all_markers.markers.size());
+                                                       all_markers.markers.size(),
+                                                       {0,0,0,0,0,0},
+                                                       0.002,
+                                                       0.008,
+                                                       std::make_tuple(51.0/255.0, 153.0/255.0, 1.0, 0.6));
     all_markers.markers.insert(all_markers.markers.end(),markers.markers.begin(), markers.markers.end());
   });
 
@@ -364,7 +368,7 @@ common::ActionResult PartReworkManager::showPreview()
   return true;
 }
 
-common::ActionResult PartReworkManager::hidePreview()
+common::ActionResult PartReworkManager::hideToolPathsPreview()
 {
   using namespace visualization_msgs;
   using namespace std::chrono_literals;

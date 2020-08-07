@@ -632,9 +632,9 @@ bool CRSExecutive::setupPartReworkStates()
   };
 
   st_callbacks_map[part_rework::PREVIEW_TOOLPATHS] = StateCallbackInfo{
-    entry_cb : std::bind(&task_managers::PartReworkManager::showPreview, part_rework_mngr_.get()),
+    entry_cb : std::bind(&task_managers::PartReworkManager::showToolpathsPreview, part_rework_mngr_.get()),
     async : false,
-    exit_cb : std::bind(&task_managers::PartReworkManager::hidePreview, part_rework_mngr_.get()),
+    exit_cb : std::bind(&task_managers::PartReworkManager::hideToolPathsPreview, part_rework_mngr_.get()),
     on_done_action : ""
   };
 
