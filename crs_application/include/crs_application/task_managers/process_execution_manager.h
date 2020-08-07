@@ -92,6 +92,7 @@ protected:
   // support methods
   void resetIndexes();
   bool changeActiveController(const bool turn_on_cart);
+  bool toggleSander(const bool turn_on_sander);
   common::ActionResult execTrajectory(const trajectory_msgs::msg::JointTrajectory& traj);
   common::ActionResult execSurfaceTrajectory(const cartesian_trajectory_msgs::msg::CartesianTrajectory& traj,
                                              const crs_motion_planning::cartesianTrajectoryConfig& traj_config);
@@ -106,6 +107,7 @@ protected:
   rclcpp::callback_group::CallbackGroup::SharedPtr trajectory_exec_client_cbgroup_;
   std::shared_future<GoalHandleT::SharedPtr> trajectory_exec_fut_;
   rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr controller_changer_client_;
+  rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr toggle_sander_client_;
   rclcpp::Client<crs_msgs::srv::RunRobotScript>::SharedPtr run_robot_script_client_;
 
   // process data

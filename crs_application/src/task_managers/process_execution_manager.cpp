@@ -42,6 +42,7 @@ static const std::string FOLLOW_JOINT_TRAJECTORY_ACTION = "follow_joint_trajecto
 static const std::string SURFACE_TRAJECTORY_ACTION = "execute_surface_motion";
 static const std::string CONTROLLER_CHANGER_SERVICE = "compliance_controller_on";
 static const std::string RUN_ROBOT_SCRIPT_SERVICE = "run_robot_script";
+static const std::string TOGGLE_SANDER_SERVICE = "toggle_sander";
 
 namespace crs_application
 {
@@ -68,6 +69,7 @@ ProcessExecutionManager::ProcessExecutionManager(std::shared_ptr<rclcpp::Node> n
           trajectory_exec_client_cbgroup_);
 
   controller_changer_client_ = node_->create_client<std_srvs::srv::SetBool>(CONTROLLER_CHANGER_SERVICE);
+  toggle_sander_client_ = node_->create_client<std_srvs::srv::SetBool>(TOGGLE_SANDER_SERVICE);
 
   run_robot_script_client_ = node_->create_client<crs_msgs::srv::RunRobotScript>(RUN_ROBOT_SCRIPT_SERVICE);
 }
@@ -356,6 +358,36 @@ bool ProcessExecutionManager::changeActiveController(const bool turn_on_cart)
   return true;
 }
 
+bool ProcessExecutionManager::toggleSander(const bool turn_on_sander)
+{
+  RCLCPP_INFO(node_->get_logger(), "Changing controller");
+  using namespace std_srvs::srv;
+  SetBool::Request::SharedPtr req = std::make_shared<std_srvs::srv::SetBool::Request>();
+  req->data = turn_on_sander;
+  if (req->data)
+    RCLCPP_INFO(node_->get_logger(), "Turning on sander");
+  else
+    RCLCPP_INFO(node_->get_logger(), "Turning off sander");
+  std::shared_future<SetBool::Response::SharedPtr> result_future = toggle_sander_client_->async_send_request(req);
+
+  std::future_status status = result_future.wait_for(std::chrono::seconds(15));
+  if (status != std::future_status::ready)
+  {
+    RCLCPP_ERROR(node_->get_logger(), "Toggle sander service error or timeout");
+    return false;
+  }
+
+  if (!result_future.get()->success)
+  {
+    RCLCPP_ERROR(node_->get_logger(), "Toggle sander service failed");
+    return false;
+  }
+
+  RCLCPP_INFO(node_->get_logger(), "Toggle sander service succeeded");
+  return true;
+
+}
+
 common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_msgs::msg::JointTrajectory& traj)
 {
   using namespace control_msgs::action;
@@ -450,8 +482,19 @@ ProcessExecutionManager::execSurfaceTrajectory(const cartesian_trajectory_msgs::
     return res;
   }
 
+  if (!ProcessExecutionManager::toggleSander(true))
+  {
+    res.succeeded = false;
+    return res;
+  }
+
   res.succeeded = crs_motion_planning::execSurfaceTrajectory(
       surface_trajectory_exec_client_, node_->get_logger(), traj, traj_config);
+  if (!ProcessExecutionManager::toggleSander(false))
+  {
+    res.succeeded = false;
+    return res;
+  }
   if (!res)
   {
     return res;
