@@ -385,7 +385,6 @@ bool ProcessExecutionManager::toggleSander(const bool turn_on_sander)
 
   RCLCPP_INFO(node_->get_logger(), "Toggle sander service succeeded");
   return true;
-
 }
 
 common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_msgs::msg::JointTrajectory& traj)
