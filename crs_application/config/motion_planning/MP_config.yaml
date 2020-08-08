@@ -20,7 +20,7 @@ general:
 descartes:
   axial_step: 0.5 # Pi/36
   collision_safety_margin: 0.00
-  additional_tool_offset: [0.0, 0.0, 0.001, 0.0, 0.0, 0.0]
+  additional_tool_offset: [0.0, 0.0, 0.005, 0.0, 0.0, 0.0]
 trajopt_surface:
   smooth_velocities: false
   smooth_accelerations: false
