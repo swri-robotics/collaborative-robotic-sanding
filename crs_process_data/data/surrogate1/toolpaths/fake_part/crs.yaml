@@ -38,8 +38,8 @@ crs:
     simulation_pose: [0.0, -0.875, -0.36, 0.0, 0.0, 0.0]
     seed_pose: [0.0, -0.875, -0.4, 0.0, 0.0, 0.0]
     target_frame_id: world
-    part_file: null
-    toolpath_file: null
+    part_file: ""
+    toolpath_file: ""
   part_rework: 
     scan_poses:
       - pose: [0.111, -0.972, 0.307, 3.049, -0.064, -0.074]

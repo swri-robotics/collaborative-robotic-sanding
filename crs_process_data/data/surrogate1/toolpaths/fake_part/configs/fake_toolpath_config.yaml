@@ -38,6 +38,6 @@ crs:
     simulation_pose: [0.0, -0.875, -0.36, 0.0, 0.0, 0.0]
     seed_pose: [0.0, -0.875, -0.36, 0.0, 0.0, 0.0]
     target_frame_id: world
-    part_file: /home/forcecontroltraj/crs_data/fake_part/fake_part.stl
-    toolpath_file: /home/forcecontroltraj/crs_data/fake_part/fake_toolpath.yaml
+    part_file: ""
+    toolpath_file: ""
   part_rework: {}

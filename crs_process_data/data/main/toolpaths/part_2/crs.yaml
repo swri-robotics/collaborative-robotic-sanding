@@ -43,8 +43,8 @@ crs:
     simulation_pose: [-0.7, 0.0, 1.1, 0.0, 0.0, 1.57]
     seed_pose: [-0.68, 0.0, 1.0, 0.0, 0.0, 1.57]
     target_frame_id: "world"
-    part_file: "null"      # relative to known data directory
-    toolpath_file: "null"  # relative to known data directory
+    part_file: ""      # relative to known data directory
+    toolpath_file: ""  # relative to known data directory
   part_rework: 
     scan_poses:
       - pose: [-1.444, -0.322, 1.495, 2.5029407, 0.9721462, -2.3962962]
