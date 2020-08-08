@@ -38,8 +38,8 @@ crs:
     simulation_pose: [0.0, 0.8, 0.2, -1.57, 3.14, -1.57]
     seed_pose: [0.05, 0.95, 0.0, -1.57, 3.14, -1.57]
     target_frame_id: world
-    part_file: /home/tmarr/crs_data/swri_part/swri_part.stl
-    toolpath_file: /home/tmarr/crs_data/swri_part/scan.yaml
+    part_file: null
+    toolpath_file: null
   part_rework:
     scan_poses:
       - pose: [0.0, -0.50, 1.7, 0.0, -2.35619, 1.57]
