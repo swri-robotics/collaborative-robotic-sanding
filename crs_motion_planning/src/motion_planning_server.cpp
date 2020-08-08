@@ -241,7 +241,7 @@ private:
       crs_motion_planning::crsMotionPlanner crs_motion_planner(*motion_planner_config, this->get_logger());
 
       // Run process planner
-      auto path_plan_results = std::make_shared<crs_motion_planning::pathPlanningResults>();
+      auto path_plan_results = std::make_unique<crs_motion_planning::pathPlanningResults>();
       success = crs_motion_planner.generateProcessPlan(path_plan_results) || success;
 
       // Create marker array for processed raster visualization
