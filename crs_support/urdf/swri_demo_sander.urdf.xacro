@@ -24,20 +24,10 @@
     </link>
 
     <joint name="world_to_table_joint" type="fixed">
-<!--      <origin xyz="0 0 -0.363"/>-->
       <origin xyz="0 0 -0.353"/>
-<!--      <origin xyz="0 0 -0.385"/>-->
       <parent link="world"/>
       <child link="table"/>
     </joint>
-
-  <!--  <link name="${prefix}part"/>
-
-    <joint name="table_to_part" type="fixed">
-      <origin xyz="0.0 -0.875 -0.008" />
-      <parent link="table"/>
-      <child link="${prefix}part"/>
-    </joint>-->
 
     <link name="robot_stand">
       <visual>
@@ -73,6 +63,30 @@
           <box size="$(arg table_size) 0.1 $(arg table_size)"/>
         </geometry>
       </collision>-->
+      <visual>
+        <origin xyz="0.61 -0.7 -0.33"/>
+        <geometry>
+          <box size="0.15 0.15 1.0"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="0.61 -0.7 -0.33"/>
+        <geometry>
+          <box size="0.15 0.15 1.0"/>
+        </geometry>
+      </collision>
+      <visual>
+        <origin xyz="-0.55 -0.7 -0.33"/>
+        <geometry>
+          <box size="0.15 0.15 1.0"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="-0.55 -0.7 -0.33"/>
+        <geometry>
+          <box size="0.15 0.15 1.0"/>
+        </geometry>
+      </collision>
     </link>
 
     <joint name="table_to_external_walls" type="fixed">
@@ -335,18 +349,44 @@
         <child link="${prefix}tool0" />
     </joint>
     <link name="${prefix}eoat_link">
+      <inertial>
+        <origin xyz="8.625E-08 -4.6583E-06 0.03145" rpy="0 0 0" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <mass value="0.22652" />
+        <inertia ixx="0.00020005" ixy="-4.2442E-10" ixz="-2.9069E-10" iyy="0.00017832" iyz="-3.4402E-08" izz="0.00013478" />
+      </inertial>
       <visual>
-          <geometry>
-              <mesh filename="package://crs_support/meshes/end_effector/visual/full_ee_v4.stl" />
-          </geometry>
-          <material name="Orange">
-              <color rgba="1.0 0.4 0.0 1.0" />
-          </material>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://crs_support/meshes/end_effector/visual/ee1.stl" />
+        </geometry>
+        <material name="">
+          <color rgba="0.1 0.1 0.1 1" />
+        </material>
+      </visual>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://crs_support/meshes/end_effector/visual/ee2.stl" />
+        </geometry>
+        <material name="">
+          <color rgba="0.1 0.1 0.1 1" />
+        </material>
+      </visual>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://crs_support/meshes/end_effector/visual/ee3.stl" />
+        </geometry>
+        <material name="">
+          <color rgba="0.1 0.1 0.1 1" />
+        </material>
       </visual>
       <collision>
-          <geometry>
-              <mesh filename="package://crs_support/meshes/end_effector/collision/full_ee_v4_collision.stl" />
-          </geometry>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://crs_support/meshes/end_effector/visual/ee1.stl" />
+        </geometry>
       </collision>
 
     </link>
@@ -354,36 +394,24 @@
     <joint name="${prefix}tool0_to_eoat_link" type="fixed">
         <parent link="${prefix}tool0" />
         <child link="${prefix}eoat_link" />
-        <origin xyz="0 0 0" rpy="0 0 0" />
+        <origin xyz="0 0 0" rpy="1.57 0 -1.57" />
     </joint>
 
     <link name="${prefix}sander_center_link" />
 
     <link name="${prefix}sander_intermediate_link">
-      <visual>
-          <geometry>
-              <cylinder length="0.025" radius="0.06425" />
-          </geometry>
-          <origin rpy="0 0 0" xyz="0 0 0" />
-      </visual>
-      <collision>
-          <geometry>
-              <cylinder length="0.025" radius="0.06425" />
-          </geometry>
-          <origin rpy="0 0 0" xyz="0 0 0" />
-      </collision>
     </link>
 
     <joint name="${prefix}sander_intermediate_to_sander_center_link" type="fixed">
       <parent link="${prefix}sander_intermediate_link" />
       <child link="${prefix}sander_center_link" />
-      <origin  xyz="0.0 0.0 0.0125" rpy="0.0 0.0 0.0"/>
+      <origin  xyz="0.0 0.0 0.00" rpy="0.0 0.0 0.0"/>
     </joint>
 
     <joint name="${prefix}tool0_to_sander_intermediate_link" type="fixed">
         <parent link="${prefix}eoat_link" />
         <child link="${prefix}sander_intermediate_link" />
-        <origin xyz="0.0 -0.15497 0.17503" rpy="0.7854 0.0 0.0"/>
+        <origin xyz="0 0.162 0.015" rpy="-0.785 0 0" />
     </joint>
     <link name="${prefix}gazebo_camera_link" />
     <joint name="${prefix}gazebo_camera_joint" type="fixed">
@@ -393,7 +421,7 @@
     </joint>
     <link name="${prefix}camera_link_optical" />
     <joint name="${prefix}camera_optical_joint" type="fixed">
-        <origin xyz="-0.021 0.0797 0.06525" rpy="-0.7854 0 0"/>
+        <origin xyz="-0.022 0.079773 0.065" rpy="-0.7854 0 0"/>
         <parent link="${prefix}eoat_link"/>
         <child link="${prefix}camera_link_optical"/>
     </joint>
