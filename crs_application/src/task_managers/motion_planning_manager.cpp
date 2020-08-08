@@ -390,9 +390,8 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
 
   // Pruning empty plans
   auto& plans = result_.process_plans;
-  plans.erase(std::remove_if(plans.begin(),plans.end(), [](crs_msgs::msg::ProcessMotionPlan& p){
-    return p.process_motions.empty();
-  }));
+  plans.erase(std::remove_if(
+      plans.begin(), plans.end(), [](crs_msgs::msg::ProcessMotionPlan& p) { return p.process_motions.empty(); }));
 
   // Create media change plans
   for (std::size_t i = 0; i < result_.process_plans.size() - 1; i++)
@@ -401,10 +400,9 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
     const trajectory_msgs::msg::JointTrajectory& traj = result_.process_plans[i].end;
 
     // check trajectory
-    if(traj.points.empty())
+    if (traj.points.empty())
     {
-      RCLCPP_WARN(node_->get_logger(),"%s skipping empty process plan trajectory",
-                  MANAGER_NAME.c_str());
+      RCLCPP_WARN(node_->get_logger(), "%s skipping empty process plan trajectory", MANAGER_NAME.c_str());
       continue;
     }
     req->start_position.name = traj.joint_names;
