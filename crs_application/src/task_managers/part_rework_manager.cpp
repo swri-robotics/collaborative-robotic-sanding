@@ -355,7 +355,7 @@ common::ActionResult PartReworkManager::showToolpathsPreview()
                                                        MARKER_NS_TOOLPATH,
                                                        all_markers.markers.size(),
                                                        { 0, 0, 0, 0, 0, 0 },
-                                                       0.002,
+                                                       0.004,
                                                        0.008,
                                                        std::make_tuple(51.0 / 255.0, 153.0 / 255.0, 1.0, 0.6));
     all_markers.markers.insert(all_markers.markers.end(), markers.markers.begin(), markers.markers.end());

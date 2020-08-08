@@ -321,7 +321,7 @@ private:
 
       // Run process planner
       auto path_plan_results = std::make_shared<crs_motion_planning::pathPlanningResults>();
-      success = crs_motion_planner.generateProcessPlan(path_plan_results);
+      success = crs_motion_planner.generateProcessPlan(path_plan_results) || success;
 
       // Create marker array for processed raster visualization
       visualization_msgs::msg::MarkerArray temp_mark_array_msg, pub_mark_array_msg;

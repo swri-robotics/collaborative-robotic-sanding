@@ -5,7 +5,7 @@ debug_wait_key: false
 threshold:
   type: 3
   enable: true
-  value: 150
+  value: 170
 canny:
   enable: false
   lower_threshold: 100
