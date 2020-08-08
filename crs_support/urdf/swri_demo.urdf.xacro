@@ -73,6 +73,30 @@
           <box size="$(arg table_size) 0.1 $(arg table_size)"/>
         </geometry>
       </collision>-->
+      <visual>
+        <origin xyz="0.61 -0.7 -0.33"/>
+        <geometry>
+          <box size="0.15 0.15 1.0"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="0.61 -0.7 -0.33"/>
+        <geometry>
+          <box size="0.15 0.15 1.0"/>
+        </geometry>
+      </collision>
+      <visual>
+        <origin xyz="-0.55 -0.7 -0.33"/>
+        <geometry>
+          <box size="0.15 0.15 1.0"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="-0.55 -0.7 -0.33"/>
+        <geometry>
+          <box size="0.15 0.15 1.0"/>
+        </geometry>
+      </collision>
     </link>
 
     <joint name="table_to_external_walls" type="fixed">
@@ -420,7 +444,7 @@
 <!--        <origin xyz="0 0.16578 0.01902" rpy="-0.785 0 0" />-->
 <!--        <origin xyz="0 0.162 0.015" rpy="-0.785 0 0" />-->
 <!--        <origin xyz="0 0.04612 -0.03371" rpy="-2.355 0 0" />-->
-      <origin  xyz="0.0 0.0 0.0125" rpy="0.0 0.0 0.0"/>
+      <origin  xyz="0.0 0.0 0.00" rpy="0.0 0.0 0.0"/>
     </joint>
 
     <joint name="${prefix}tool0_to_sander_intermediate_link" type="fixed">
