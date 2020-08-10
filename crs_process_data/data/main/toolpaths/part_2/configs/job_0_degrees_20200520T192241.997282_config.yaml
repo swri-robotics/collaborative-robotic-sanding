@@ -32,6 +32,6 @@ crs:
     simulation_pose: [-0.7, 0.0, 1.1, 0.0, 0.0, 1.57]
     seed_pose: [-0.68, 0.0, 1.0, 0.0, 0.0, 1.57]
     target_frame_id: world
-    part_file: /home/jnicho/crs_data/part_2/part_2.stl
-    toolpath_file: /home/jnicho/crs_data/part_2/job_0_degrees_20200520T192241.997282.yaml
+    part_file: ""
+    toolpath_file: ""
   part_rework: {}

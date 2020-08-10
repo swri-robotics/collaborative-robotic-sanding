@@ -50,6 +50,8 @@ static const std::string LOADED_PART_LINK_NAME = "part_link";
 static const std::string LOADED_PART_JOINT_NAME = "world_to_part_joint";
 static const std::string ROBOT_BASE_JOINT_NAME = "robot_base_joint";
 
+static const std::string MOTION_PLANNING_CONFIG_PATH = "config/motion_planning/MP_config.yaml";
+
 namespace param_names
 {
 static const std::string URDF_PATH = "urdf_path";
@@ -182,10 +184,9 @@ private:
   {
     namespace fs = boost::filesystem;
     crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config;
-    std::string config_rel_path = "config/motion_planning/MP_config.yaml";
-    std::string config_fp =
-        (fs::path(ament_index_cpp::get_package_share_directory("crs_application")) / fs::path(config_rel_path))
-            .string();
+    std::string config_fp = (fs::path(ament_index_cpp::get_package_share_directory("crs_application")) /
+                             fs::path(MOTION_PLANNING_CONFIG_PATH))
+                                .string();
     crs_motion_planning::loadPathPlanningConfig(config_fp, motion_planner_config);
     motion_planner_config->tesseract_local = tesseract_local_;
 
@@ -330,10 +331,9 @@ private:
     using namespace crs_motion_planning;
     namespace fs = boost::filesystem;
     crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config;
-    std::string config_rel_path = "config/motion_planning/MP_config.yaml";
-    std::string config_fp =
-        (fs::path(ament_index_cpp::get_package_share_directory("crs_application")) / fs::path(config_rel_path))
-            .string();
+    std::string config_fp = (fs::path(ament_index_cpp::get_package_share_directory("crs_application")) /
+                             fs::path(MOTION_PLANNING_CONFIG_PATH))
+                                .string();
     crs_motion_planning::loadPathPlanningConfig(config_fp, motion_planner_config);
     motion_planner_config->tesseract_local = tesseract_local_;
 
