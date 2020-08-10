@@ -52,53 +52,24 @@ static const std::string ROBOT_BASE_JOINT_NAME = "robot_base_joint";
 
 namespace param_names
 {
+
+static const std::string MOTION_PLANNING_CONFIG = "motion_planning_config";
 static const std::string URDF_PATH = "urdf_path";
 static const std::string SRDF_PATH = "srdf_path";
 static const std::string PROCESS_MOTION_PLANNING_SERVICE = "process_planner_service";
 static const std::string FREESPACE_MOTION_PLANNING_SERVICE = "freespace_motion_service";
-static const std::string ROOT_LINK_FRAME = "base_link_frame";
 static const std::string WORLD_FRAME = "world_frame";
-static const std::string TOOL0_FRAME = "tool0_frame";
-static const std::string MANIPULATOR_GROUP = "manipulator_group";
 static const std::string NUM_FREEPSACE_STEPS = "num_steps";
-static const std::string MAX_JOINT_VELOCITY = "max_joint_velocity";
-static const std::string MAX_JOINT_ACCELERATION = "max_joint_acceleration";
-static const std::string MIN_RASTER_LENGTH = "min_raster_length";
-static const std::string GAZEBO_SIM_TIMING = "use_gazebo_simulation_time";
-static const std::string TRAJOPT_VERBOSE = "set_trajopt_verbose";
 }  // namespace param_names
 
 class MotionPlanningServer : public rclcpp::Node
 {
 public:
-  MotionPlanningServer() : Node("motion_planning_server_node")
+  MotionPlanningServer(rclcpp::NodeOptions options) : Node("motion_planning_server_node", options)
   {
     namespace fs = boost::filesystem;
 
     // ROS parameters
-    this->declare_parameter(
-        param_names::URDF_PATH,
-        (fs::path(ament_index_cpp::get_package_share_directory(RESOURCES_PACKAGE_NAME)) / fs::path(DEFAULT_URDF_PATH))
-            .string());
-
-    this->declare_parameter(
-        param_names::SRDF_PATH,
-        (fs::path(ament_index_cpp::get_package_share_directory(RESOURCES_PACKAGE_NAME)) / fs::path(DEFAULT_SRDF_PATH))
-            .string());
-
-    this->declare_parameter(param_names::FREESPACE_MOTION_PLANNING_SERVICE, DEFAULT_FREESPACE_MOTION_PLANNING_SERVICE);
-    this->declare_parameter(param_names::PROCESS_MOTION_PLANNING_SERVICE, DEFAULT_PROCESS_MOTION_PLANNING_SERVICE);
-    this->declare_parameter(param_names::ROOT_LINK_FRAME, "base_link");
-    this->declare_parameter(param_names::WORLD_FRAME, "world");
-    this->declare_parameter(param_names::TOOL0_FRAME, "tool0");
-    this->declare_parameter(param_names::MANIPULATOR_GROUP, "manipulator");
-    this->declare_parameter(param_names::NUM_FREEPSACE_STEPS, 20);
-    this->declare_parameter(param_names::MAX_JOINT_VELOCITY, 0.2);
-    this->declare_parameter(param_names::MAX_JOINT_ACCELERATION, 0.5);
-    this->declare_parameter(param_names::MIN_RASTER_LENGTH, 3);
-    this->declare_parameter(param_names::GAZEBO_SIM_TIMING, false);
-    this->declare_parameter(param_names::TRAJOPT_VERBOSE, false);
-
     std::string process_planner_service = this->get_parameter(param_names::PROCESS_MOTION_PLANNING_SERVICE).as_string();
     std::string freespace_motion_service =
         this->get_parameter(param_names::FREESPACE_MOTION_PLANNING_SERVICE).as_string();
@@ -142,13 +113,13 @@ public:
     env_state_sub_ = this->create_subscription<tesseract_msgs::msg::TesseractState>(
         ENVIRONMENT_UPDATE_TOPIC_NAME, 10, std::bind(&MotionPlanningServer::envCallback, this, std::placeholders::_1));
 
-    // openning files
+    // openning robot files
     std::string urdf_path, srdf_path;
     urdf_path = this->get_parameter(param_names::URDF_PATH).as_string();
     srdf_path = this->get_parameter(param_names::SRDF_PATH).as_string();
-    std::vector<std::string> file_paths = { urdf_path, srdf_path };
-    std::vector<std::string> file_string_contents;
-    for (const auto& f : file_paths)
+    std::vector<std::string> robot_file_paths = { urdf_path, srdf_path };
+    std::vector<std::string> robot_file_contents;
+    for (const auto& f : robot_file_paths)
     {
       std::ifstream ifs(f);
       if (!ifs.is_open())
@@ -157,15 +128,18 @@ public:
       }
       std::stringstream ss;
       ss << ifs.rdbuf();
-      file_string_contents.push_back(ss.str());
+      robot_file_contents.push_back(ss.str());
     }
 
-    const std::string urdf_content = file_string_contents[0];
-    const std::string srdf_content = file_string_contents[1];
+    const std::string urdf_content = robot_file_contents[0];
+    const std::string srdf_content = robot_file_contents[1];
 
     tesseract_local_ = std::make_shared<tesseract::Tesseract>();
     tesseract_scene_graph::ResourceLocator::Ptr locator = std::make_shared<tesseract_rosutils::ROSResourceLocator>();
     tesseract_local_->init(urdf_content, srdf_content, locator);
+
+    // motion planning config file
+    std::string motion_planing_config = this->get_parameter(param_names::MOTION_PLANNING_CONFIG).as_string();
   }
 
 private:
@@ -181,12 +155,9 @@ private:
                    std::shared_ptr<crs_msgs::srv::PlanProcessMotions::Response> response)
   {
     namespace fs = boost::filesystem;
-    crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config;
-    std::string config_rel_path = "config/motion_planning/MP_config.yaml";
-    std::string config_fp =
-        (fs::path(ament_index_cpp::get_package_share_directory("crs_application")) / fs::path(config_rel_path))
-            .string();
-    crs_motion_planning::loadPathPlanningConfig(config_fp, motion_planner_config);
+    crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config = std::make_unique<crs_motion_planning::pathPlanningConfig>();
+    std::string motion_planing_config = this->get_parameter(param_names::MOTION_PLANNING_CONFIG).as_string();
+    crs_motion_planning::loadPathPlanningConfig(motion_planing_config, *motion_planner_config);
     motion_planner_config->tesseract_local = tesseract_local_;
 
     // Setup planner config with requested process planner service request data
@@ -329,12 +300,10 @@ private:
   {
     using namespace crs_motion_planning;
     namespace fs = boost::filesystem;
-    crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config;
-    std::string config_rel_path = "config/motion_planning/MP_config.yaml";
-    std::string config_fp =
-        (fs::path(ament_index_cpp::get_package_share_directory("crs_application")) / fs::path(config_rel_path))
-            .string();
-    crs_motion_planning::loadPathPlanningConfig(config_fp, motion_planner_config);
+
+    crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config = std::make_unique<crs_motion_planning::pathPlanningConfig>();
+    std::string motion_planing_config = this->get_parameter(param_names::MOTION_PLANNING_CONFIG).as_string();
+    crs_motion_planning::loadPathPlanningConfig(motion_planing_config, *motion_planner_config);
     motion_planner_config->tesseract_local = tesseract_local_;
 
     std::cout << "GOT REQUEST" << std::endl;
@@ -619,7 +588,13 @@ int main(int argc, char** argv)
 {
   rclcpp::init(argc, argv);
   rclcpp::executors::MultiThreadedExecutor executor;
-  rclcpp::Node::SharedPtr node = std::make_shared<MotionPlanningServer>();
+
+  // This enables loading undeclared parameters
+  // best practice would be to declare parameters in the corresponding classes
+  // and provide descriptions about expected use
+  rclcpp::NodeOptions node_options;
+  node_options.automatically_declare_parameters_from_overrides(true);
+  rclcpp::Node::SharedPtr node = std::make_shared<MotionPlanningServer>(node_options);
   executor.add_node(node);
   executor.spin();
   return 0;

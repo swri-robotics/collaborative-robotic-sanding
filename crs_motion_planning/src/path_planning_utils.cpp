@@ -5,14 +5,12 @@ static const rclcpp::Logger LOGGER = rclcpp::get_logger("PATH_PLANNING_UTILS");
 
 namespace crs_motion_planning
 {
-bool loadPathPlanningConfig(const std::string& yaml_fp, pathPlanningConfig::Ptr& motion_planner_config)
+bool loadPathPlanningConfig(const std::string& yaml_fp, pathPlanningConfig& motion_planner_config)
 {
   descartesConfig descartes_config;
   trajoptSurfaceConfig trajopt_surface_config;
   crs_motion_planning::omplConfig ompl_config;
   crs_motion_planning::trajoptFreespaceConfig trajopt_freespace_config;
-  motion_planner_config = std::make_unique<crs_motion_planning::pathPlanningConfig>();
-  ;
 
   YAML::Node full_yaml_node = YAML::LoadFile(yaml_fp);
   if (!full_yaml_node)
@@ -154,28 +152,28 @@ bool loadPathPlanningConfig(const std::string& yaml_fp, pathPlanningConfig::Ptr&
 
     // GENERAL CONFIG
     YAML::Node general_yaml = full_yaml_node["general"];
-    motion_planner_config->use_trajopt_freespace = general_yaml["use_trajopt_freespace"].as<bool>();
-    motion_planner_config->use_trajopt_surface = general_yaml["use_trajopt_surface"].as<bool>();
-    motion_planner_config->default_to_descartes = general_yaml["default_to_descartes"].as<bool>();
-    motion_planner_config->simplify_start_end_freespace = general_yaml["simplify_start_end_freespace"].as<bool>();
-    motion_planner_config->manipulator = general_yaml["manipulator"].as<std::string>();
-    motion_planner_config->world_frame = general_yaml["world_frame"].as<std::string>();
-    motion_planner_config->robot_base_frame = general_yaml["robot_base_frame"].as<std::string>();
-    motion_planner_config->tool0_frame = general_yaml["tool0_frame"].as<std::string>();
-    motion_planner_config->required_tool_vel = general_yaml["required_tool_vel"].as<bool>();
-    motion_planner_config->max_joint_vel = general_yaml["max_joint_vel"].as<double>();
-    motion_planner_config->max_joint_vel_mult = general_yaml["max_joint_vel_mult"].as<double>();
-    motion_planner_config->max_surface_dist = general_yaml["max_surface_dist"].as<double>();
-    motion_planner_config->max_joint_acc = general_yaml["max_joint_acc"].as<double>();
-    motion_planner_config->add_approach_and_retreat = general_yaml["add_approach_and_retreat"].as<bool>();
-    motion_planner_config->minimum_raster_length = general_yaml["minimum_raster_length"].as<std::size_t>();
-    motion_planner_config->trajopt_verbose_output = general_yaml["trajopt_verbose_output"].as<bool>();
-    motion_planner_config->combine_strips = general_yaml["combine_strips"].as<bool>();
-    motion_planner_config->global_descartes = general_yaml["global_descartes"].as<bool>();
-    motion_planner_config->descartes_config = descartes_config;
-    motion_planner_config->trajopt_surface_config = trajopt_surface_config;
-    motion_planner_config->ompl_config = ompl_config;
-    motion_planner_config->trajopt_freespace_config = trajopt_freespace_config;
+    motion_planner_config.use_trajopt_freespace = general_yaml["use_trajopt_freespace"].as<bool>();
+    motion_planner_config.use_trajopt_surface = general_yaml["use_trajopt_surface"].as<bool>();
+    motion_planner_config.default_to_descartes = general_yaml["default_to_descartes"].as<bool>();
+    motion_planner_config.simplify_start_end_freespace = general_yaml["simplify_start_end_freespace"].as<bool>();
+    motion_planner_config.manipulator = general_yaml["manipulator"].as<std::string>();
+    motion_planner_config.world_frame = general_yaml["world_frame"].as<std::string>();
+    motion_planner_config.robot_base_frame = general_yaml["robot_base_frame"].as<std::string>();
+    motion_planner_config.tool0_frame = general_yaml["tool0_frame"].as<std::string>();
+    motion_planner_config.required_tool_vel = general_yaml["required_tool_vel"].as<bool>();
+    motion_planner_config.max_joint_vel = general_yaml["max_joint_vel"].as<double>();
+    motion_planner_config.max_joint_vel_mult = general_yaml["max_joint_vel_mult"].as<double>();
+    motion_planner_config.max_surface_dist = general_yaml["max_surface_dist"].as<double>();
+    motion_planner_config.max_joint_acc = general_yaml["max_joint_acc"].as<double>();
+    motion_planner_config.add_approach_and_retreat = general_yaml["add_approach_and_retreat"].as<bool>();
+    motion_planner_config.minimum_raster_length = general_yaml["minimum_raster_length"].as<std::size_t>();
+    motion_planner_config.trajopt_verbose_output = general_yaml["trajopt_verbose_output"].as<bool>();
+    motion_planner_config.combine_strips = general_yaml["combine_strips"].as<bool>();
+    motion_planner_config.global_descartes = general_yaml["global_descartes"].as<bool>();
+    motion_planner_config.descartes_config = descartes_config;
+    motion_planner_config.trajopt_surface_config = trajopt_surface_config;
+    motion_planner_config.ompl_config = ompl_config;
+    motion_planner_config.trajopt_freespace_config = trajopt_freespace_config;
     return true;
   }
   catch (YAML::InvalidNode& e)
