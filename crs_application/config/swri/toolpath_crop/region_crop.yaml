@@ -1,0 +1,6 @@
+plane_dist_threshold: 0.2
+heigth_limits_min: -0.1
+heigth_limits_max: 0.1
+dir_estimation_method: 1       # PLANE_NORMAL: 1, NORMAL_AVGR: 2, POSE_Z_AXIS: 3, USER_DEFINED: 4
+user_dir: [0.0, 0.0, 0.1]      # Used when dir_estimation_method == 4
+view_point: [0.0, 0.0, 10.0]

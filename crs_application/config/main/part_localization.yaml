@@ -21,16 +21,7 @@ sac:
   similarity_threshold: 0.1
   max_correspondence_dist: 0.02
   inlier_fraction: 0.25
-# crop_boxes: # surrogate 1 cell
-#   box1:
-#     xyz: [0.0, 0.8, 0.2]
-#     size: [2.0, 0.4, 1.0]
-#     reverse: True
-#   box2:
-#     xyz: [0.0, -0.875, -0.48]
-#     size: [2.5, 3.0, 0.2]
-#     reverse: False # deletes what's inside the box
-crop_boxes: # wsu cell
+crop_boxes:
   box1:
     xyz: [-0.4, 0.0, 1.15]
     size: [2.0, 2.0, 0.8]
