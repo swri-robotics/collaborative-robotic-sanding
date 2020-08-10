@@ -52,7 +52,6 @@ static const std::string ROBOT_BASE_JOINT_NAME = "robot_base_joint";
 
 namespace param_names
 {
-
 static const std::string MOTION_PLANNING_CONFIG = "motion_planning_config";
 static const std::string URDF_PATH = "urdf_path";
 static const std::string SRDF_PATH = "srdf_path";
@@ -155,7 +154,8 @@ private:
                    std::shared_ptr<crs_msgs::srv::PlanProcessMotions::Response> response)
   {
     namespace fs = boost::filesystem;
-    crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config = std::make_unique<crs_motion_planning::pathPlanningConfig>();
+    crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config =
+        std::make_unique<crs_motion_planning::pathPlanningConfig>();
     std::string motion_planing_config = this->get_parameter(param_names::MOTION_PLANNING_CONFIG).as_string();
     crs_motion_planning::loadPathPlanningConfig(motion_planing_config, *motion_planner_config);
     motion_planner_config->tesseract_local = tesseract_local_;
@@ -301,7 +301,8 @@ private:
     using namespace crs_motion_planning;
     namespace fs = boost::filesystem;
 
-    crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config = std::make_unique<crs_motion_planning::pathPlanningConfig>();
+    crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config =
+        std::make_unique<crs_motion_planning::pathPlanningConfig>();
     std::string motion_planing_config = this->get_parameter(param_names::MOTION_PLANNING_CONFIG).as_string();
     crs_motion_planning::loadPathPlanningConfig(motion_planing_config, *motion_planner_config);
     motion_planner_config->tesseract_local = tesseract_local_;
