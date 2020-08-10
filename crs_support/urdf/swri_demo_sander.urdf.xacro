@@ -1,6 +1,100 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <robot name="crs" xmlns:xacro="http://ros.org/wiki/xacro">
   <xacro:macro name="crs_workcell" params="prefix:=^|''">
+  <xacro:arg name="table_size" default="3.0"/>
+
+    <link name="world"/>
+
+    <link name="table">
+      <visual>
+        <origin xyz="0 0 -0.05"/>
+        <geometry>
+          <box size="$(arg table_size) $(arg table_size) 0.1"/>
+        </geometry>
+        <material name="StainlessSteel">
+          <color rgba="0.8 0.8 0.8 0.9"/>
+        </material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 -0.05"/>
+        <geometry>
+          <box size="$(arg table_size) $(arg table_size) 0.1"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="world_to_table_joint" type="fixed">
+      <origin xyz="0 0 -0.353"/>
+      <parent link="world"/>
+      <child link="table"/>
+    </joint>
+
+    <link name="robot_stand">
+      <visual>
+        <origin xyz="0 0 -0.1905"/>
+        <geometry>
+          <box size="0.35 0.35 0.381"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="0 0 -0.1905"/>
+        <geometry>
+          <box size="0.35 0.35 0.381"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="table_to_robot_stand" type="fixed">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.1415"/>
+      <parent link="world"/>
+      <child link="robot_stand"/>
+    </joint>
+
+    <link name="${prefix}external_walls">
+      <!--<visual>
+        <origin xyz="0 0.765 0"/>
+        <geometry>
+          <box size="$(arg table_size) 0.1 $(arg table_size)"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="0 0.765 0"/>
+        <geometry>
+          <box size="$(arg table_size) 0.1 $(arg table_size)"/>
+        </geometry>
+      </collision>-->
+      <visual>
+        <origin xyz="0.61 -0.7 -0.33"/>
+        <geometry>
+          <box size="0.15 0.15 1.0"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="0.61 -0.7 -0.33"/>
+        <geometry>
+          <box size="0.15 0.15 1.0"/>
+        </geometry>
+      </collision>
+      <visual>
+        <origin xyz="-0.55 -0.7 -0.33"/>
+        <geometry>
+          <box size="0.15 0.15 1.0"/>
+        </geometry>
+      </visual>
+      <collision>
+        <origin xyz="-0.55 -0.7 -0.33"/>
+        <geometry>
+          <box size="0.15 0.15 1.0"/>
+        </geometry>
+      </collision>
+    </link>
+
+    <joint name="table_to_external_walls" type="fixed">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 0.0"/>
+      <parent link="world"/>
+      <child link="${prefix}external_walls"/>
+    </joint>
+
     <link name="${prefix}base_link">
         <visual>
             <origin rpy="0 0 3.14159265359" xyz="0 0 0" />
@@ -30,7 +124,7 @@
         <child link="${prefix}shoulder_link" />
         <origin rpy="0 0 3.14159249728" xyz="0 0 0.180920744391" />
         <axis xyz="0 0 1" />
-        <limit effort="330.0" lower="-4" upper="3.28" velocity="3.14" />
+        <limit effort="330.0" lower="-6.28318530718" upper="6.28318530718" velocity="3.14" />
         <dynamics damping="0.0" friction="0.0" />
     </joint>
     <link name="${prefix}shoulder_link">
@@ -237,8 +331,14 @@
 
     </link>
     <link name="${prefix}base" />
+
+    <joint name="table_to_ur" type="fixed">
+      <origin xyz="0.0 0.0 0.0" rpy="0.0 0.0 3.1415"/>
+      <parent link="world"/>
+      <child link="${prefix}base"/>
+    </joint>
     <joint name="${prefix}base_link-base_fixed_joint" type="fixed">
-        <origin rpy="0 0 0" xyz="0 0 0" />-->
+        <origin rpy="0 0 0" xyz="0 0 0" />
         <parent link="${prefix}base" />
         <child link="${prefix}base_link" />
     </joint>
@@ -249,141 +349,69 @@
         <child link="${prefix}tool0" />
     </joint>
     <link name="${prefix}eoat_link">
-        <visual>
-            <geometry>
-                <mesh filename="package://crs_support/meshes/end_effector/visual/full_ee_v4.stl" />
-            </geometry>
-            <material name="Orange">
-                <color rgba="1.0 0.4 0.0 1.0" />
-            </material>
-        </visual>
-        <collision>
-            <geometry>
-                <mesh filename="package://crs_support/meshes/end_effector/collision/full_ee_v4_collision.stl" />
-            </geometry>
-        </collision>
+      <inertial>
+        <origin xyz="8.625E-08 -4.6583E-06 0.03145" rpy="0 0 0" />
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <mass value="0.22652" />
+        <inertia ixx="0.00020005" ixy="-4.2442E-10" ixz="-2.9069E-10" iyy="0.00017832" iyz="-3.4402E-08" izz="0.00013478" />
+      </inertial>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://crs_support/meshes/end_effector/visual/ee1.stl" />
+        </geometry>
+        <material name="">
+          <color rgba="0.1 0.1 0.1 1" />
+        </material>
+      </visual>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://crs_support/meshes/end_effector/visual/ee2.stl" />
+        </geometry>
+        <material name="">
+          <color rgba="0.1 0.1 0.1 1" />
+        </material>
+      </visual>
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://crs_support/meshes/end_effector/visual/ee3.stl" />
+        </geometry>
+        <material name="">
+          <color rgba="0.1 0.1 0.1 1" />
+        </material>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0" />
+        <geometry>
+          <mesh filename="package://crs_support/meshes/end_effector/visual/ee1.stl" />
+        </geometry>
+      </collision>
 
-        <inertial>
-            <mass value="0.01" />
-            <origin rpy="0 0 0" xyz="0.0 0.0 0.0" />
-            <inertia ixx="0.000526462289415" ixy="0.0" ixz="0.0" iyy="0.000526462289415" iyz="0.0" izz="0.000568125" />
-        </inertial>
     </link>
+
     <joint name="${prefix}tool0_to_eoat_link" type="fixed">
         <parent link="${prefix}tool0" />
         <child link="${prefix}eoat_link" />
-        <origin rpy="0.0 0.0 0" xyz="0.00 0.00 0.00" />
+        <origin xyz="0 0 0" rpy="1.57 0 -1.57" />
     </joint>
-    <link name="${prefix}robot_stand">
-        <visual>
-            <origin rpy="1.57079632679 0 0" xyz="0 0 -0.1168" />
-            <geometry>
-                <mesh filename="package://crs_support/meshes/Mockup/visual/Mockup3_6_Frame_noTools_small.stl" />
-            </geometry>
-            <material name="LightGrey">
-                <color rgba="0.7 0.7 0.7 1.0" />
-            </material>
-        </visual>
-        <visual>
-            <origin rpy="1.57079632679 0 0" xyz="0.00 0 -0.1168" />
-            <geometry>
-                <mesh filename="package://crs_support/meshes/Mockup/visual/mockup_cart_v4.stl" />
-            </geometry>
-            <material name="LightGrey">
-                <color rgba="0.7 0.7 0.7 1.0" />
-            </material>
-        </visual>
-        <collision>
-            <origin rpy="1.57079632679 0 0" xyz="0.20 0 -0.1168" />
-            <geometry>
-                <mesh filename="package://crs_support/meshes/Mockup/collision/Mockup3_6_Cart_collision.stl" />
-            </geometry>
-        </collision>
-        <collision> <!-- Right Wall-->
-            <geometry>
-                <box size="3.0 2.14 0.1" />
-            </geometry>
-            <origin rpy="0 0 0" xyz="-0.5 -1.1 1.38" />
-        </collision>
-        <collision> <!-- Left Wall-->
-            <geometry>
-                <box size="3.0 2.14 0.1" />
-            </geometry>
-            <origin rpy="0 0 0" xyz="-0.5 -1.1 -1.33" />
-        </collision>
-        <collision> Front Wall
-            <geometry>
-                <box size="0.1 2.14 3.0" />
-            </geometry>
-            <origin rpy="0 0 0" xyz="0.85 -1.1 0.0" />
-        </collision>
-        <collision> Back Wall bottom Half
-            <geometry>
-                <box size="0.1 1.1 3.0" />
-            </geometry>
-            <origin rpy="0 0 0" xyz="-2.06 -0.6 0.0" />
-        </collision>
-        <collision> Back Wall top beam
-            <geometry>
-                <box size="1.25 0.12 3.0" />
-            </geometry>
-            <origin rpy="0 0 0" xyz="0.38 -2.135 0.0" />
-        </collision>
-        <collision> Back Wall Half right
-            <geometry>
-                <box size="0.1 0.3 0.7" />
-            </geometry>
-            <origin rpy="-0.786 0 0" xyz="-2.06 -1.9 1.15" />
-        </collision>
-        <collision> Back Wall Half left
-            <geometry>
-                <box size="0.1 0.3 0.7" />
-            </geometry>
-            <origin rpy="0.786 0 0" xyz="-2.06 -1.9 -1.15" />
-        </collision>
-        <collision> <!-- Top back beam-->
-            <geometry>
-                <box size="0.34 0.15 3.0" />
-            </geometry>
-            <origin rpy="0 0 0" xyz="-1.0 -2.135 0.0" />
-        </collision>
-        <collision> <!-- Corner Bracket 1-->
-            <geometry>
-                <box size="1.25 0.12 1.25" />
-            </geometry>
-            <origin rpy="0 0.785 0" xyz="-2.06 -2.135 -1.33" />
-        </collision>
-        <collision> <!-- Corner Bracket 2-->
-            <geometry>
-                <box size="1.25 0.12 1.25" />
-            </geometry>
-            <origin rpy="0 0.785 0" xyz="-2.06 -2.135 1.38" />
-        </collision>
-        <collision>  fake floor
-            <geometry>
-                <box size="3.0 0.12 2.5" />
-            </geometry>
-            <origin rpy="0 0 0" xyz="-0.65 -0.82 0" />
-        </collision>
 
-        <inertial>
-            <mass value="0.1" />
-            <inertia ixx="0.03" iyy="0.03" izz="0.03" ixy="0.0" ixz="0.0" iyz="0.0" />
-        </inertial>
+    <link name="${prefix}sander_center_link" />
 
+    <link name="${prefix}sander_intermediate_link">
     </link>
-    <joint name="${prefix}robot_base_joint" type="fixed">
-        <parent link="${prefix}robot_stand" />
-        <child link="${prefix}base" />
-        <origin rpy="-1.570796 1.570796 0" xyz="-1.030659 -2.037406 0.7977 " />
-        <axis xyz="1 0 0"/>
-        <limit effort="1.0" lower="-0.1" upper="1.9" velocity=".01" />
+
+    <joint name="${prefix}sander_intermediate_to_sander_center_link" type="fixed">
+      <parent link="${prefix}sander_intermediate_link" />
+      <child link="${prefix}sander_center_link" />
+      <origin  xyz="0.0 0.0 0.00" rpy="0.0 0.0 0.0"/>
     </joint>
-    <link name="world" />
-    <joint name="${prefix}robot_stand_joint" type="fixed">
-        <parent link="world" />
-        <child link="${prefix}robot_stand" />
-        <origin rpy="-1.571 0 0" xyz="0 0 0" />
+
+    <joint name="${prefix}tool0_to_sander_intermediate_link" type="fixed">
+        <parent link="${prefix}eoat_link" />
+        <child link="${prefix}sander_intermediate_link" />
+        <origin xyz="0 0.162 0.015" rpy="-0.785 0 0" />
     </joint>
     <link name="${prefix}gazebo_camera_link" />
     <joint name="${prefix}gazebo_camera_joint" type="fixed">
@@ -393,44 +421,15 @@
     </joint>
     <link name="${prefix}camera_link_optical" />
     <joint name="${prefix}camera_optical_joint" type="fixed">
-        <origin xyz="-0.021 0.0797 0.06525" rpy="-0.7854 0 0"/>
+        <origin xyz="-0.022 0.079773 0.065" rpy="-0.7854 0 0"/>
         <parent link="${prefix}eoat_link"/>
         <child link="${prefix}camera_link_optical"/>
     </joint>
     <link name="${prefix}camera_link" />
     <joint name="${prefix}camera_link_joint" type="fixed">
-        <origin xyz="0.0 0.0 0.0" rpy="1.57 -1.57 0"/>
+        <origin xyz="0.00 0.0 0.003" rpy="1.57 -1.57 0.0"/>
         <parent link="${prefix}camera_link_optical"/>
         <child link="${prefix}camera_link"/>
-    </joint>
-
-    <link name="${prefix}sander_center_link" />
-
-    <link name="${prefix}sander_intermediate_link">
-      <visual>
-          <geometry>
-              <cylinder length="0.025" radius="0.06425" />
-          </geometry>
-          <origin rpy="0 0 0" xyz="0 0 0" />
-      </visual>
-      <collision>
-          <geometry>
-              <cylinder length="0.025" radius="0.06425" />
-          </geometry>
-          <origin rpy="0 0 0" xyz="0 0 0" />
-      </collision>
-    </link>
-
-    <joint name="${prefix}sander_intermediate_to_sander_center_link" type="fixed">
-      <parent link="${prefix}sander_intermediate_link" />
-      <child link="${prefix}sander_center_link" />
-      <origin  xyz="0.0 0.0 0.0125" rpy="0.0 0.0 0.0"/>
-    </joint>
-
-    <joint name="${prefix}tool0_to_sander_intermediate_link" type="fixed">
-        <parent link="${prefix}eoat_link" />
-        <child link="${prefix}sander_intermediate_link" />
-        <origin xyz="0.0 -0.15497 0.17503" rpy="0.7854 0.0 0.0"/>
     </joint>
 
     <transmission name="trans_shoulder_pan_joint">
@@ -596,6 +595,14 @@
           <joint_name>${prefix}wrist_2_joint</joint_name>
           <joint_name>${prefix}wrist_3_joint</joint_name>
         </plugin>
+        <!-- Replaced by the crs_gazebo_plugins_joint_pose_trajectory plugin which hosts an action server instead
+        <plugin name='gazebo_ros_joint_pose_trajectory' filename='libgazebo_ros_joint_pose_trajectory.so'>
+            <ros>
+              <namespace>/demo</namespace>
+              <argument>set_joint_trajectory:=set_trajectory_test</argument>
+            </ros>
+            <update_rate>20</update_rate>
+        </plugin> -->
         <plugin name='crs_gazebo_plugins_joint_pose_trajectory' filename='libcrs_gazebo_plugins_joint_pose_trajectory.so'>
             <ros>
               <namespace>sim</namespace>
@@ -605,7 +612,7 @@
         </plugin>
     </gazebo>
   </xacro:macro>
-  
+
   <!-- Instantiating  crs workcell urdf -->
   <xacro:arg name="prefix" default=""/>
   <xacro:crs_workcell prefix="$(arg prefix)"/>

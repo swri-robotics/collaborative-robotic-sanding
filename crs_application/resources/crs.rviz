@@ -116,7 +116,6 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
         preview/shoulder_link:
           Alpha: 1
           Show Axes: false
@@ -195,7 +194,8 @@ Visualization Manager:
       Enabled: true
       Name: Part Registration Preview
       Namespaces:
-        {}
+        part: true
+        toolpath: true
       Topic:
         Depth: 5
         Durability Policy: Volatile
@@ -340,7 +340,6 @@ Visualization Manager:
           Alpha: 1
           Show Axes: false
           Show Trail: false
-          Value: true
         shoulder_link:
           Alpha: 1
           Show Axes: false
@@ -463,7 +462,7 @@ Visualization Manager:
         Value: /crs/crop_boxes
       Value: false
     - Class: rviz_default_plugins/Marker
-      Enabled: false
+      Enabled: true
       Name: Process Planning Debug 3
       Namespaces:
         {}
@@ -473,9 +472,9 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /crs/failed_vertices
-      Value: false
+      Value: true
     - Class: rviz_default_plugins/MarkerArray
-      Enabled: false
+      Enabled: true
       Name: Process Planning Debug 1
       Namespaces:
         {}
@@ -485,9 +484,9 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /crs/failed_vertices_array
-      Value: false
+      Value: true
     - Class: rviz_default_plugins/MarkerArray
-      Enabled: false
+      Enabled: true
       Name: Process Planning Debug 2
       Namespaces:
         {}
@@ -497,7 +496,7 @@ Visualization Manager:
         History Policy: Keep Last
         Reliability Policy: Reliable
         Value: /crs/fixed_raster_paths
-      Value: false
+      Value: true
     - Class: rviz_default_plugins/Axes
       Enabled: true
       Length: 1
@@ -537,6 +536,13 @@ Visualization Manager:
       Show Axes: true
       Show Descriptions: true
       Show Visual Aids: false
+      Value: true
+    - Class: rviz_default_plugins/Axes
+      Enabled: true
+      Length: 1
+      Name: Axes
+      Radius: 0.10000000149011612
+      Reference Frame: world
       Value: true
   Enabled: true
   Global Options:

@@ -25,6 +25,8 @@ def generate_launch_description():
     urdf = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs.urdf')
     urdf_preview = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs_preview.urdf')
     srdf = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'ur10e_robot.srdf')
+    motion_planning_cfg = os.path.join(get_package_share_directory('crs_application'), 'config/motion_planning',
+                           'MP_config.yaml')
     gzworld = os.path.join(get_package_share_directory('crs_support'), 'worlds', 'crs.world')
     
     # create urdfs from xacro file
@@ -73,7 +75,9 @@ def generate_launch_description():
         #node_namespace = [launch.substitutions.LaunchConfiguration('global_ns')],
         prefix= 'xterm -e',
         output='screen',
-        parameters=[{'urdf_path': urdf,
+        parameters=[{
+        'motion_planning_config': motion_planning_cfg,
+        'urdf_path': urdf,
         'srdf_path': srdf,
         'process_planner_service': "plan_process_motion",
         'freespace_motion_service': "plan_freespace_motion",

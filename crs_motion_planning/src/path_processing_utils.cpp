@@ -2,8 +2,8 @@
 #include <boost/format.hpp>
 #include <crs_motion_planning/path_processing_utils.h>
 
-static const double TRAJECTORY_TIME_TOLERANCE = 15.0;  // seconds
-static const double WAIT_RESULT_TIMEOUT = 1.0;         // seconds
+static const double TRAJECTORY_TIME_TOLERANCE = 180.0;  // seconds
+static const double WAIT_RESULT_TIMEOUT = 1.0;          // seconds
 static const rclcpp::Logger LOGGER = rclcpp::get_logger("PATH_PROCESSING_UTILS");
 
 static geometry_msgs::msg::Pose pose3DtoPoseMsg(const std::array<float, 6>& p)
@@ -385,10 +385,13 @@ bool crs_motion_planning::splitRastersByJointDist(const trajectory_msgs::msg::Jo
                                                   const geometry_msgs::msg::PoseArray& given_raster,
                                                   const double& desired_ee_vel,
                                                   const double& max_joint_vel,
+                                                  const double& max_dist,
                                                   std::vector<trajectory_msgs::msg::JointTrajectory>& split_traj,
                                                   std::vector<geometry_msgs::msg::PoseArray>& split_rasters,
-                                                  std::vector<std::vector<double>>& time_steps)
+                                                  std::vector<std::vector<double>>& time_steps,
+                                                  const double& joint_vel_mult)
 {
+  double max_vel_adj = max_joint_vel * joint_vel_mult;
   bool split_exists = false;
   geometry_msgs::msg::PoseArray curr_raster_pose_array;
   std::vector<geometry_msgs::msg::PoseStamped> curr_raster;
@@ -421,7 +424,7 @@ bool crs_motion_planning::splitRastersByJointDist(const trajectory_msgs::msg::Jo
     double curr_time_step = dist_traveled / desired_ee_vel;
 
     // If required joint velocity is higher than max allowable then split raster
-    if (req_joint_vel > max_joint_vel)
+    if (req_joint_vel > max_vel_adj || dist_traveled > max_dist)
     {
       split_exists = true;
       split_traj.push_back(curr_traj);
@@ -794,7 +797,7 @@ bool crs_motion_planning::execSurfaceTrajectory(
 
   // send goal
   std::shared_future<GoalHandleT::SharedPtr> trajectory_exec_fut = ac->async_send_goal(goal);
-  traj_dur = traj_dur + rclcpp::Duration(std::chrono::duration<double>(60));
+  traj_dur = traj_dur + rclcpp::Duration(std::chrono::duration<double>(TRAJECTORY_TIME_TOLERANCE));
 
   // wait for goal acceptance
   std::future_status status = trajectory_exec_fut.wait_for(std::chrono::duration<double>(WAIT_RESULT_TIMEOUT));
@@ -868,7 +871,7 @@ bool crs_motion_planning::execSurfaceTrajectory(
 
   // send goal
   std::shared_future<GoalHandleT::SharedPtr> trajectory_exec_fut = ac->async_send_goal(goal);
-  traj_dur = traj_dur + rclcpp::Duration(std::chrono::duration<double>(60));
+  traj_dur = traj_dur + rclcpp::Duration(std::chrono::duration<double>(TRAJECTORY_TIME_TOLERANCE));
 
   // wait for goal acceptance
   std::future_status status = trajectory_exec_fut.wait_for(std::chrono::duration<double>(WAIT_RESULT_TIMEOUT));

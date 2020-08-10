@@ -147,9 +147,11 @@ bool splitRastersByJointDist(const trajectory_msgs::msg::JointTrajectory& given_
                              const geometry_msgs::msg::PoseArray& given_raster,
                              const double& desired_ee_vel,
                              const double& max_joint_vel,
+                             const double& max_dist,
                              std::vector<trajectory_msgs::msg::JointTrajectory>& split_traj,
                              std::vector<geometry_msgs::msg::PoseArray>& split_rasters,
-                             std::vector<std::vector<double>>& time_steps);
+                             std::vector<std::vector<double>>& time_steps,
+                             const double& joint_vel_mult = 1.0);
 
 void addApproachAndRetreat(const geometry_msgs::msg::PoseArray& given_raster,
                            const double& approach_dist,
@@ -205,8 +207,6 @@ void findCartPoseArrayFromTraj(const trajectory_msgs::msg::JointTrajectory& join
 void genCartesianTrajectory(const trajectory_msgs::msg::JointTrajectory& joint_trajectory,
                             const cartesianTrajectoryConfig traj_config,
                             cartesian_trajectory_msgs::msg::CartesianTrajectory& cartesian_trajectory);
-//                            cartesian_trajectory_msgs::action::CartesianComplianceTrajectory::Goal&
-//                            cartesian_trajectory);
 
 void genCartesianTrajectoryGoal(
     const cartesian_trajectory_msgs::msg::CartesianTrajectory& cartesian_trajectory,

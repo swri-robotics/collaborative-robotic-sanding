@@ -26,6 +26,7 @@
 #include <descartes_samplers/evaluators/euclidean_distance_edge_evaluator.h>
 #include <descartes_samplers/samplers/axial_symmetric_sampler.h>
 #include <descartes_samplers/samplers/cartesian_point_sampler.h>
+#include <descartes_samplers/samplers/fixed_joint_pose_sampler.h>
 
 #include <crs_motion_planning/path_processing_utils.h>
 
@@ -114,7 +115,7 @@ struct trajoptFreespaceConfig
 
 struct pathPlanningConfig
 {
-  using Ptr = std::shared_ptr<pathPlanningConfig>;
+  using Ptr = std::unique_ptr<pathPlanningConfig>;
 
   descartesConfig descartes_config;
 
@@ -124,6 +125,8 @@ struct pathPlanningConfig
 
   trajoptFreespaceConfig trajopt_freespace_config;
   bool use_trajopt_freespace = true;
+  bool use_trajopt_surface = true;
+  bool default_to_descartes = false;
 
   tesseract::Tesseract::Ptr tesseract_local;
 
@@ -151,6 +154,8 @@ struct pathPlanningConfig
   bool required_tool_vel = false;
   double tool_speed = 0.03;    // m/s
   double max_joint_vel = 0.2;  // rad/s
+  double max_joint_vel_mult = 1.0;
+  double max_surface_dist = 0.1;
   double max_joint_acc = 0.5;  // rad/s^2
 
   size_t minimum_raster_length = 2;
@@ -165,7 +170,7 @@ struct pathPlanningConfig
 
 struct pathPlanningResults
 {
-  using Ptr = std::shared_ptr<pathPlanningResults>;
+  using Ptr = std::unique_ptr<pathPlanningResults>;
 
   geometry_msgs::msg::PoseArray reachable_waypoints;
   geometry_msgs::msg::PoseArray unreachable_waypoints;
@@ -187,6 +192,8 @@ struct pathPlanningResults
   std::vector<trajectory_msgs::msg::JointTrajectory> final_trajectories;
   std::string msg_out;
 };
+
+bool loadPathPlanningConfig(const std::string& yaml_fp, pathPlanningConfig& motion_planner_config);
 
 class crsMotionPlanner
 {
