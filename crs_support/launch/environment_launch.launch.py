@@ -27,18 +27,12 @@ def launch_setup(context, *args, **kwargs):
     srdf = launch.substitutions.LaunchConfiguration('srdf').perform(context)
     motion_planning_cfg = launch.substitutions.LaunchConfiguration('motion_planning_cfg').perform(context)
     gzworld = launch.substitutions.LaunchConfiguration('gazebo_world').perform(context)
+    urdf_preview_path = launch.substitutions.LaunchConfiguration('urdf_preview_path').perform(context)
     
-    
-    #xacro = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs.urdf.xacro')
     urdf = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs.urdf')
-    urdf_preview = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs_preview.urdf')
-    #srdf = os.path.join(get_package_share_directory('crs_support'), 'urdf', 'ur10e_robot.srdf')
-#     motion_planning_cfg = os.path.join(get_package_share_directory('crs_application'), 'config/motion_planning',
-#                            'MP_config.yaml')
-    #gzworld = os.path.join(get_package_share_directory('crs_support'), 'worlds', 'crs.world')
     
     # create urdfs from xacro file
-    cmd2 = 'xacro %s prefix:=preview/ > %s'%(xacro, urdf_preview)
+    cmd2 = 'xacro %s prefix:=preview/ > %s'%(xacro, urdf_preview_path)
     cmd3 = 'xacro %s > %s'%(xacro, urdf)        
     cmd4 = 'killall -9 gzserver & killall -9 gzclient & killall -9 gazebo'
     cmd_dict = {cmd2 : True, cmd3: True, cmd4 : False}
@@ -111,12 +105,6 @@ def launch_setup(context, *args, **kwargs):
                                  ])
         ])
     '''
-
-    process_planner_test_server = launch_ros.actions.Node(
-        node_executable='crs_motion_planning_process_planner_test',
-        package='crs_motion_planning',
-        node_name='process_test_server',
-        output='screen')
 
     test_process_planner = launch_ros.actions.Node(
         node_executable='crs_motion_planning_process_planner_test',
@@ -195,5 +183,8 @@ def generate_launch_description():
             default_value = [os.path.join(get_package_share_directory('crs_application'), 'config/motion_planning','MP_config.yaml')]),
         launch.actions.DeclareLaunchArgument('gazebo_world',
             default_value = [os.path.join(get_package_share_directory('crs_support'), 'worlds', 'crs.world')]),
+        launch.actions.DeclareLaunchArgument('urdf_preview_path', 
+             default_value = [os.path.join(get_package_share_directory('crs_support'), 'urdf', 'crs_preview.urdf')],
+             description = 'The path where the launch file will generate the urdf for preview purposes'),
         OpaqueFunction(function = launch_setup)
         ])

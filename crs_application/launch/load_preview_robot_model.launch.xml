@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <launch>
+  <arg name="urdf_preview_path" default="$(find-pkg-share crs_support)/urdf/crs_preview.temp.urdf"/>
 	
 	<let name="ns" value="preview"/>
-	<let name="robot_description_file" value="$(find-pkg-share crs_support)/urdf/crs_preview.urdf"/>
 	
 	<node pkg="robot_state_publisher" exec="robot_state_publisher" name="$(var ns)/robot_state_publisher" namespace="$(var ns)"
-		args="$(var robot_description_file)"/>
+		args="$(var urdf_preview_path)"/>
 		
 	<node pkg="crs_utils_py" exec="joint_state_publisher" name="$(var ns)/joint_state_publisher" namespace="$(var ns)" 
 		output="screen">

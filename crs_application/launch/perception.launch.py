@@ -22,7 +22,6 @@ def launch_setup(context, *args, **kwargs):
     
     ## getting path
     config_path = launch.substitutions.LaunchConfiguration('config_path').perform(context)
-    print('Got config path {}'.format(config_path))
     
     # Part Localization Config
     localization_config= load_yaml_file(os.path.join(config_path, 'part_localization.yaml'))
