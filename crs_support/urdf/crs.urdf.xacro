@@ -238,7 +238,7 @@
     </link>
     <link name="${prefix}base" />
     <joint name="${prefix}base_link-base_fixed_joint" type="fixed">
-        <origin rpy="0 0 0" xyz="0 0 0" />-->
+        <origin rpy="0 0 3.14" xyz="0 0 0" />-->
         <parent link="${prefix}base" />
         <child link="${prefix}base_link" />
     </joint>
@@ -251,7 +251,15 @@
     <link name="${prefix}eoat_link">
         <visual>
             <geometry>
-                <mesh filename="package://crs_support/meshes/end_effector/visual/full_ee_v4.stl" />
+                <mesh filename="package://crs_support/meshes/end_effector/visual/flipped_tool.stl" />
+            </geometry>
+            <material name="Orange">
+                <color rgba="1.0 0.4 0.0 1.0" />
+            </material>
+        </visual>
+        <visual>
+            <geometry>
+                <mesh filename="package://crs_support/meshes/end_effector/visual/flipped_sander.stl" />
             </geometry>
             <material name="Orange">
                 <color rgba="1.0 0.4 0.0 1.0" />
@@ -259,10 +267,26 @@
         </visual>
         <collision>
             <geometry>
-                <mesh filename="package://crs_support/meshes/end_effector/collision/full_ee_v4_collision.stl" />
+                <mesh filename="package://crs_support/meshes/end_effector/collision/flipped_tool_collision.stl" />
             </geometry>
         </collision>
-
+        <collision>
+            <geometry>
+                <mesh filename="package://crs_support/meshes/end_effector/collision/flipped_sander_collision.stl" />
+            </geometry>
+        </collision>
+        <visual>
+          <geometry>
+              <cylinder length="0.05" radius="0.0125" />
+          </geometry>
+          <origin rpy="0 1.57 0" xyz="0.11 -0.055 0.055" />
+        </visual>
+        <collision>
+          <geometry>
+              <cylinder length="0.05" radius="0.0125" />
+          </geometry>
+          <origin rpy="0 1.57 0" xyz="0.11 -0.055 0.055" />
+        </collision>
         <inertial>
             <mass value="0.01" />
             <origin rpy="0 0 0" xyz="0.0 0.0 0.0" />
@@ -285,7 +309,7 @@
             </material>
         </visual>
         <visual>
-            <origin rpy="1.57079632679 0 0" xyz="0.00 0 -0.1168" />
+            <origin rpy="1.57079632679 0 0" xyz="0.20 0.2 -0.1168" />
             <geometry>
                 <mesh filename="package://crs_support/meshes/Mockup/visual/mockup_cart_v4.stl" />
             </geometry>
@@ -294,7 +318,7 @@
             </material>
         </visual>
         <collision>
-            <origin rpy="1.57079632679 0 0" xyz="0.20 0 -0.1168" />
+            <origin rpy="1.57079632679 0 0" xyz="0.20 0.2 -0.1168" />
             <geometry>
                 <mesh filename="package://crs_support/meshes/Mockup/collision/Mockup3_6_Cart_collision.stl" />
             </geometry>
@@ -359,12 +383,12 @@
             </geometry>
             <origin rpy="0 0.785 0" xyz="-2.06 -2.135 1.38" />
         </collision>
-        <collision>  fake floor
+        <!--<collision>  fake floor
             <geometry>
                 <box size="3.0 0.12 2.5" />
             </geometry>
             <origin rpy="0 0 0" xyz="-0.65 -0.82 0" />
-        </collision>
+        </collision>-->
 
         <inertial>
             <mass value="0.1" />
@@ -375,7 +399,7 @@
     <joint name="${prefix}robot_base_joint" type="fixed">
         <parent link="${prefix}robot_stand" />
         <child link="${prefix}base" />
-        <origin rpy="-1.570796 1.570796 0" xyz="-1.030659 -2.037406 0.7977 " />
+        <origin rpy="-1.570796 -1.570796 0.0" xyz="-1.030659 -2.037406 0.7977 " />
         <axis xyz="1 0 0"/>
         <limit effort="1.0" lower="-0.1" upper="1.9" velocity=".01" />
     </joint>
@@ -409,7 +433,7 @@
     <link name="${prefix}sander_intermediate_link">
       <visual>
           <geometry>
-              <cylinder length="0.025" radius="0.06425" />
+              <cylinder length="0.06" radius="0.06425" />
           </geometry>
           <origin rpy="0 0 0" xyz="0 0 0" />
       </visual>
@@ -419,18 +443,42 @@
           </geometry>
           <origin rpy="0 0 0" xyz="0 0 0" />
       </collision>
+      <visual>
+          <geometry>
+              <cylinder length="0.20" radius="0.0125" />
+          </geometry>
+          <origin rpy="1.57 0 0" xyz="-0.0175 -0.1 -.0375" />
+      </visual>
+      <visual>
+          <geometry>
+              <cylinder length="0.0254" radius="0.0125" />
+          </geometry>
+          <origin rpy="0 1.57 0" xyz="0.0 -0.2 -.0375" />
+      </visual>
+      <collision>
+          <geometry>
+              <cylinder length="0.20" radius="0.0125" />
+          </geometry>
+          <origin rpy="1.57 0 0" xyz="-0.0175 -0.1 -.0375" />
+      </collision>
+      <collision>
+          <geometry>
+              <cylinder length="0.0254" radius="0.0125" />
+          </geometry>
+          <origin rpy="0 1.57 0" xyz="0.0 -0.2 -.0375" />
+      </collision>
     </link>
 
     <joint name="${prefix}sander_intermediate_to_sander_center_link" type="fixed">
       <parent link="${prefix}sander_intermediate_link" />
       <child link="${prefix}sander_center_link" />
-      <origin  xyz="0.0 0.0 0.0125" rpy="0.0 0.0 0.0"/>
+      <origin  xyz="0.0 0.0 0.03" rpy="0.0 0.0 0.0"/>
     </joint>
 
     <joint name="${prefix}tool0_to_sander_intermediate_link" type="fixed">
         <parent link="${prefix}eoat_link" />
         <child link="${prefix}sander_intermediate_link" />
-        <origin xyz="0.0 -0.15497 0.17503" rpy="0.7854 0.0 0.0"/>
+        <origin xyz="0.0 -0.17503 0.15497" rpy="0.7854 0.0 0.0"/>
     </joint>
 
     <transmission name="trans_shoulder_pan_joint">
