@@ -1,0 +1,20 @@
+invert_image: true
+debug_mode_enable: true
+debug_window_name: "DEBUG_REGION_DETECTION"
+debug_wait_key: false
+threshold:
+  type: 3
+  enable: false
+  value: 210
+canny:
+  enable: true
+  lower_threshold: 50
+  upper_threshold: 210
+  aperture_size: 1
+dilation:
+  enable: true
+  elem: 1 # 0: Rect, 1: Cross, 2: Ellipse
+  kernel_size: 1 # 2n + 1
+contour:
+  method: 1
+  mode: 0
