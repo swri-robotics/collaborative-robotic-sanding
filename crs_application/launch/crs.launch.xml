@@ -58,7 +58,11 @@
 	    	name="$(var group_ns)/localization_node" output="screen" shell="true"/>-->
 	    	
     <!-- This launch file does not honor the ns pushed to it-->
-    <include file="$(find-pkg-share crs_application)/launch/perception.launch.py">
+    <include file="$(find-pkg-share crs_application)/launch/registration_startup.launch.py">
+      <arg name="config_path" value="$(var config_dir)"/>
+    </include>   
+    
+    <include file="$(find-pkg-share crs_application)/launch/rework_startup.launch.py">
       <arg name="config_path" value="$(var config_dir)"/>
     </include>   
 	    	

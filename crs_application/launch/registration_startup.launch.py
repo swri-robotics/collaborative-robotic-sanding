@@ -29,13 +29,7 @@ def launch_setup(context, *args, **kwargs):
     icp_params = {'icp':localization_config['icp']}
     sac_params = {'sac':localization_config['sac']}
     crop_boxes_params = {'crop_boxes': localization_config['crop_boxes']}
-    
-    # Toolpath Crop Config
-    region_detection_opencv_cfg = load_yaml_file(os.path.join(config_path,'toolpath_crop/region_detection_opencv_split_imgs.yaml'))
-    region_detection_pcl2d_cfg = load_yaml_file(os.path.join(config_path,'toolpath_crop/region_detection_pcl2d.yaml'))
-    region_detection_pcl_cfg = load_yaml_file(os.path.join(config_path,'toolpath_crop/region_detection_pcl.yaml'))
-    region_crop_cfg = load_yaml_file(os.path.join(config_path,'toolpath_crop/region_crop.yaml'))
-    
+        
    
     # ComposableNodeContainer not used because it fails to load parameters, using node instead
     '''
@@ -72,48 +66,8 @@ def launch_setup(context, *args, **kwargs):
                     sac_params,
                     crop_boxes_params
                     ])   
-        
-    region_detector_server = Node(
-    node_executable='region_detector_server',
-    package='region_detection_rclcpp',
-    node_name='region_detector_server',
-    node_namespace = GLOBAL_NS ,
-    output='screen',
-    #prefix= 'xterm -e gdb -ex run --args',
-    prefix= 'xterm -e',
-    parameters=[{'config_opencv': region_detection_opencv_cfg},
-                {'config_pcl2d': region_detection_pcl2d_cfg},
-                {'config_pcl': region_detection_pcl_cfg},
-                ])  
-    
-    interactive_region_selection = Node(
-    node_executable='interactive_region_selection',
-    package='region_detection_rclcpp',
-    node_name='interactive_region_selection',
-    node_namespace = GLOBAL_NS ,
-    output='screen',
-    #prefix= 'xterm -e gdb -ex run --args',
-    prefix= 'xterm -e',
-    parameters=[{'region_height': 0.05}
-                ])  
-    
-    crop_data_server = Node(
-        node_executable='crop_data_server',
-        package='region_detection_rclcpp',
-        node_name='crop_data_server',
-        node_namespace = GLOBAL_NS ,
-        output='screen',
-        #prefix= 'xterm -e gdb -ex run --args',
-        prefix= 'xterm -e',
-        parameters=[{'region_crop': region_crop_cfg}
-                    ],
-        remappings = [('crop_data','crop_toolpaths')]
-        ) 
-    
-    return [part_localization_node,
-        region_detector_server,
-        interactive_region_selection,
-        crop_data_server]
+            
+    return [part_localization_node]
     
 def generate_launch_description():    
     return launch.LaunchDescription([

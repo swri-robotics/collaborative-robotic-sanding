@@ -250,7 +250,7 @@ common::ActionResult PartReworkManager::showRegions()
 
   ShowSelectableRegions::Request::SharedPtr srv_req = std::make_shared<ShowSelectableRegions::Request>();
   srv_req->selectable_regions = detected_regions_results_.detected_regions;
-  srv_req->start_selected = true;
+  srv_req->start_selected = false;
 
   ShowSelectableRegions::Response::SharedPtr srv_res = common::waitForResponse<ShowSelectableRegions>(
       show_selectable_regions_client_, srv_req, WAIT_SERVICE_COMPLETION_TIMEOUT);
