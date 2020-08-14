@@ -20,11 +20,11 @@ opencv:
    elem: 2 # 0: Rect, 1: Cross, 2: Ellipse
    kernel_size: 2 # 2n + 1
   erosion:
-   elem: 2 # 0: Rect, 1: Cross, 2: Ellipse
-   kernel_size: 4 # 2n + 1
+   elem: 1 # 0: Rect, 1: Cross, 2: Ellipse
+   kernel_size: 1 # 2n + 1
   contour:
    method: 1
-   mode: 0 # See cv::RetrievalModes
+   mode: 1 # See cv::RetrievalModes
   range:
     low: 190
     high: 255
