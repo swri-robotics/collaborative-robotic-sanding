@@ -9,7 +9,7 @@ general:
   tool0_frame: "tool0"
   required_tool_vel: true
   max_joint_vel: 0.3
-  max_joint_vel_mult: 1.8
+  max_joint_vel_mult: 1.80
   max_surface_dist: 0.15
   max_joint_acc: 0.8
   add_approach_and_retreat: true
