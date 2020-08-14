@@ -99,6 +99,8 @@ protected:
   rclcpp::Client<crs_msgs::srv::PlanProcessMotions>::SharedPtr process_motion_planning_client_;
 
   // process data
+  std::vector<int> media_change_indices_; /** @brief indices into process_toolpaths_ that should
+                                              proceed to a media change move*/
   std::vector<datatypes::ProcessToolpathData> process_toolpaths_;
 
   // others

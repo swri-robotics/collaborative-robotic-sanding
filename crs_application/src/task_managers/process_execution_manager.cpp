@@ -120,8 +120,15 @@ common::ActionResult ProcessExecutionManager::execProcess()
   cartesian_traj_config.target_speed = config_->tool_speed;
 
   const crs_msgs::msg::ProcessMotionPlan& process_plan = input_->process_plans[current_process_idx_];
+  if(process_plan.process_motions.empty())
+  {
+    RCLCPP_INFO(node_->get_logger(), "%s Process Plan %i is empty, skipping",
+                MANAGER_NAME.c_str(), current_process_idx_);
+    return true;
+  }
+
   RCLCPP_INFO(node_->get_logger(), "%s Executing process %i", MANAGER_NAME.c_str(), current_process_idx_);
-  RCLCPP_INFO(node_->get_logger(), "CHANGED CONTROLLER");
+
   if (!execTrajectory(process_plan.start))
   {
     common::ActionResult res;
@@ -200,7 +207,14 @@ common::ActionResult ProcessExecutionManager::execMediaChange()
     return true;
   }
 
+  // check media change plan
   datatypes::MediaChangeMotionPlan& mc_motion_plan = input_->media_change_plans[current_media_change_idx_];
+  if(mc_motion_plan.start_traj.points.empty() || mc_motion_plan.return_traj.points.empty())
+  {
+    RCLCPP_WARN(node_->get_logger(),"Media change move is empty, skipping");
+    return true;
+  }
+
   RCLCPP_INFO(node_->get_logger(), "%s Executing media change %i", MANAGER_NAME.c_str(), current_media_change_idx_);
   if (!execTrajectory(mc_motion_plan.start_traj))
   {
@@ -405,6 +419,7 @@ common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_ms
     res.succeeded = false;
     return res;
   }
+  RCLCPP_INFO(node_->get_logger(), "CHANGED CONTROLLER");
   res.succeeded = crs_motion_planning::execTrajectory(trajectory_exec_client_, node_->get_logger(), traj);
   if (!res)
   {
