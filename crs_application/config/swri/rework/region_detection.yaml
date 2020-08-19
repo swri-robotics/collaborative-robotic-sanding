@@ -1,7 +1,8 @@
 opencv:
   #methods: ["CLAHE", "EQUALIZE_HIST", "EQUALIZE_HIST_YUV", "HSV", ...
   # "INVERT", "GRAYSCALE", "THRESHOLD", "DILATION", "EROSION", "CANNY", "THINNING","RANGE"]
-  methods: ["EQUALIZE_HIST", "GRAYSCALE", "EROSION","CLAHE", "DILATION","INVERT", "THRESHOLD", "THINNING"]
+  #methods: ["EQUALIZE_HIST", "GRAYSCALE", "EROSION","CLAHE", "DILATION","INVERT", "THRESHOLD", "THINNING"]
+  methods: ["GRAYSCALE",  "INVERT","THRESHOLD", "CANNY"]
   debug_mode_enable: true
   debug_window_name: "DEBUG_REGION_DETECTION"
   debug_wait_key: false
@@ -10,15 +11,15 @@ opencv:
     s: [100, 255]
     v: [0, 80]
   threshold:
-   type: 0
+   type: 2
    value: 180
   canny:
-   lower_threshold: 200
-   upper_threshold: 250
-   aperture_size: 2
+   lower_threshold: 40
+   upper_threshold: 180
+   aperture_size: 1
   dilation:
    elem: 2 # 0: Rect, 1: Cross, 2: Ellipse
-   kernel_size: 2 # 2n + 1
+   kernel_size: 1 # 2n + 1
   erosion:
    elem: 2 # 0: Rect, 1: Cross, 2: Ellipse
    kernel_size: 4 # 2n + 1
