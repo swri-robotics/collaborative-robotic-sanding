@@ -62,8 +62,12 @@ bool crs_motion_planning::parsePathFromFile(const std::string& yaml_filepath,
     Eigen::Vector3f first_xyz, last_xyz;
     try
     {
-      first_xyz = Eigen::Vector3f(first_pose["position"]["x"].as<float>(), first_pose["position"]["y"].as<float>(), first_pose["position"]["z"].as<float>());
-      last_xyz = Eigen::Vector3f(last_pose["position"]["x"].as<float>(), last_pose["position"]["y"].as<float>(), last_pose["position"]["z"].as<float>());
+      first_xyz = Eigen::Vector3f(first_pose["position"]["x"].as<float>(),
+                                  first_pose["position"]["y"].as<float>(),
+                                  first_pose["position"]["z"].as<float>());
+      last_xyz = Eigen::Vector3f(last_pose["position"]["x"].as<float>(),
+                                 last_pose["position"]["y"].as<float>(),
+                                 last_pose["position"]["z"].as<float>());
       if ((first_xyz - prev_end).norm() < (last_xyz - prev_end).norm())
       {
         prev_end = last_xyz;
@@ -117,7 +121,7 @@ bool crs_motion_planning::parsePathFromFile(const std::string& yaml_filepath,
       else
       {
         prev_end = first_xyz;
-        for (int i = strip.size() - 1; i >= 0 ; --i)
+        for (int i = strip.size() - 1; i >= 0; --i)
         {
           const YAML::Node& pose = strip[i];
           try
