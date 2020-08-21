@@ -219,7 +219,7 @@ common::ActionResult MotionPlanningManager::splitToolpaths()
     }
   }
 
-  RCLCPP_INFO(node_->get_logger(), "Split original process into %lu", toolpaths_processes.size());
+  RCLCPP_INFO(node_->get_logger(), "A total of %i process toolpaths were produced after splitting", toolpaths_processes.size());
   process_toolpaths_ = std::move(toolpaths_processes);
   return true;
 }
@@ -321,7 +321,27 @@ common::ActionResult MotionPlanningManager::planProcessPaths()
   // saving process plans
   RCLCPP_INFO(node_->get_logger(), "Successfully planned all process toolpaths");
   result_.process_plans = result_future.get()->plans;
-  return true;
+
+  // verifying plans
+  bool found_valid_plan = false;
+  for(std::size_t i = 0; i < result_.process_plans.size(); i++)
+  {
+    crs_msgs::msg::ProcessMotionPlan& plan = result_.process_plans[i];
+    if(plan.process_motions.empty())
+    {
+      continue;
+    }
+
+    if(plan.start.points.empty() || plan.end.points.empty())
+    {
+      RCLCPP_ERROR(node_->get_logger(), "Start or End move for process %i are empty, invalidating plan", i);
+      plan.process_motions.clear();
+      continue;
+    }
+
+    found_valid_plan = true;
+  }
+  return found_valid_plan;
 }
 
 boost::optional<trajectory_msgs::msg::JointTrajectory>
@@ -396,19 +416,19 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
   {
     datatypes::MediaChangeMotionPlan media_change_plan;
 
+    // check if current motion plan is empty
+    if(result_.process_plans[i].process_motions.empty())
+    {
+      empty_process_indices.push_back(i);
+    }
+
     // check if media change was assigned to the toolpath for the current process plan
     if(std::find(media_change_indices_.begin(), media_change_indices_.end(), i) ==
         media_change_indices_.end())
     {
       // no media change assigned so push empty one
       result_.media_change_plans.push_back(media_change_plan);
-    }
-
-    // check if current motion plan is empty
-    if(result_.process_plans[i].process_motions.empty())
-    {
-      result_.media_change_plans.push_back(media_change_plan);
-      empty_process_indices.push_back(i);
+      continue;
     }
 
     // creating the media change plan now
@@ -420,6 +440,8 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
       RCLCPP_WARN(node_->get_logger(), "%s skipping empty process plan trajectory", MANAGER_NAME.c_str());
       continue;
     }
+
+    RCLCPP_INFO(node_->get_logger(),"Planning media change for process %i", i);
     req->start_position.name = traj.joint_names;
     req->start_position.position = traj.points.back().positions;
 
