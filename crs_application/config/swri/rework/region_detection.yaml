@@ -18,7 +18,7 @@ opencv:
    aperture_size: 1
   dilation:
    elem: 0 # 0: Rect, 1: Cross, 2: Ellipse
-   kernel_size: 3 # 2n + 1
+   kernel_size: 2 # 2n + 1
   erosion:
    elem: 2 # 0: Rect, 1: Cross, 2: Ellipse
    kernel_size: 1 # 2n + 1
