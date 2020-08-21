@@ -43,7 +43,7 @@
 #include <crs_motion_planning/path_processing_utils.h>
 
 static const double WAIT_SERVICE_DURATION = 50.0;           // secs
-static const double WAIT_SERVICE_COMPLETION_TIMEOUT = 2.0;  // secs
+static const double WAIT_SERVICE_COMPLETION_TIMEOUT = 5.0;  // secs
 
 static const std::string PREVIEW_TOPIC = "part_registration_preview";
 static const std::string LOAD_PART_SERVICE = "load_part";
@@ -140,7 +140,7 @@ common::ActionResult PartRegistrationManager::configure(const config::PartRegist
   std::future_status status = result_future.wait_for(dur_timeout);
   if (status != std::future_status::ready)
   {
-    RCLCPP_ERROR(node_->get_logger(), "Load Part service call failed");
+    RCLCPP_ERROR(node_->get_logger(), "Load Part service call timed out");
     return false;
   }
 
