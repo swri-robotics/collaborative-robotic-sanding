@@ -1,7 +1,7 @@
 opencv:
   #methods: ["CLAHE", "EQUALIZE_HIST", "EQUALIZE_HIST_YUV", "HSV", ...
   # "INVERT", "GRAYSCALE", "THRESHOLD", "DILATION", "EROSION", "CANNY", "THINNING","RANGE"]
-  methods: ["EQUALIZE_HIST", "GRAYSCALE", "EROSION","CLAHE", "DILATION","INVERT", "THRESHOLD", "THINNING"]
+  methods: ["GRAYSCALE", "INVERT", "DILATION", "CANNY", "THINNING"]
   debug_mode_enable: true
   debug_window_name: "DEBUG_REGION_DETECTION"
   debug_wait_key: false
@@ -13,12 +13,12 @@ opencv:
    type: 0
    value: 180
   canny:
-   lower_threshold: 200
-   upper_threshold: 250
-   aperture_size: 2
+   lower_threshold: 50
+   upper_threshold: 210
+   aperture_size: 1
   dilation:
-   elem: 2 # 0: Rect, 1: Cross, 2: Ellipse
-   kernel_size: 2 # 2n + 1
+   elem: 1 # 0: Rect, 1: Cross, 2: Ellipse
+   kernel_size: 1 # 2n + 1
   erosion:
    elem: 1 # 0: Rect, 1: Cross, 2: Ellipse
    kernel_size: 1 # 2n + 1
@@ -39,8 +39,8 @@ pcl2d:
   simplification_alpha: 24.0 #  pixel units, used in concave hull step   
 pcl:
   debug_mode_enable: false
-  max_merge_dist: 0.01
-  closed_curve_max_dist: 0.01
+  max_merge_dist: 0.03
+  closed_curve_max_dist: 0.03
   simplification_min_dist: 0.01
   split_dist: 0.1
   min_num_points: 10
