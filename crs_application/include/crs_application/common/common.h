@@ -192,10 +192,10 @@ waitForMessage(std::shared_ptr<rclcpp::Node> node, const std::string& topic_name
         {
           promise_obj.set_value(*msg);
         }
-        catch(std::future_error& e)
+        catch (std::future_error& e)
         {
           // dismiss message
-          RCLCPP_WARN(node->get_logger(),"Message already received, ignoring ...");
+          RCLCPP_WARN(node->get_logger(), "Message already received, ignoring ...");
         }
       });
 
@@ -246,9 +246,8 @@ static sensor_msgs::msg::JointState::SharedPtr getCurrentState(std::shared_ptr<r
                                                                const std::string topic_name,
                                                                double timeout)
 {
-
-  sensor_msgs::msg::JointState::SharedPtr msg = waitForMessage<sensor_msgs::msg::JointState>(
-      node, topic_name, false, timeout);
+  sensor_msgs::msg::JointState::SharedPtr msg =
+      waitForMessage<sensor_msgs::msg::JointState>(node, topic_name, false, timeout);
   return msg;
 }
 

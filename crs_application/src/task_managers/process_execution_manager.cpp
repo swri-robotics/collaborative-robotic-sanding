@@ -120,10 +120,10 @@ common::ActionResult ProcessExecutionManager::execProcess()
   cartesian_traj_config.target_speed = config_->tool_speed;
 
   const crs_msgs::msg::ProcessMotionPlan& process_plan = input_->process_plans[current_process_idx_];
-  if(process_plan.process_motions.empty())
+  if (process_plan.process_motions.empty())
   {
-    RCLCPP_INFO(node_->get_logger(), "%s Process Plan %i is empty, skipping",
-                MANAGER_NAME.c_str(), current_process_idx_);
+    RCLCPP_INFO(
+        node_->get_logger(), "%s Process Plan %i is empty, skipping", MANAGER_NAME.c_str(), current_process_idx_);
     return true;
   }
 
@@ -209,9 +209,9 @@ common::ActionResult ProcessExecutionManager::execMediaChange()
 
   // check media change plan
   datatypes::MediaChangeMotionPlan& mc_motion_plan = input_->media_change_plans[current_media_change_idx_];
-  if(mc_motion_plan.start_traj.points.empty())
+  if (mc_motion_plan.start_traj.points.empty())
   {
-    RCLCPP_WARN(node_->get_logger(),"Media change start move is empty, skipping");
+    RCLCPP_WARN(node_->get_logger(), "Media change start move is empty, skipping");
     return true;
   }
 
@@ -283,9 +283,9 @@ common::ActionResult ProcessExecutionManager::checkQueue()
 
   // check if media change has valid trajectories
   datatypes::MediaChangeMotionPlan& mc_motion_plan = input_->media_change_plans[current_media_change_idx_];
-  if(mc_motion_plan.start_traj.points.empty() || mc_motion_plan.return_traj.points.empty())
+  if (mc_motion_plan.start_traj.points.empty() || mc_motion_plan.return_traj.points.empty())
   {
-    RCLCPP_WARN(node_->get_logger(),"Media change moves are empty, skipping");
+    RCLCPP_WARN(node_->get_logger(), "Media change moves are empty, skipping");
     res.succeeded = true;
     res.opt_data = datatypes::ProcessExecActions::EXEC_PROCESS;
     return res;
@@ -334,9 +334,9 @@ common::ActionResult ProcessExecutionManager::execMoveReturn()
               current_media_change_idx_);
 
   // check media change plan
-  if(mc_motion_plan.return_traj.points.empty())
+  if (mc_motion_plan.return_traj.points.empty())
   {
-    RCLCPP_WARN(node_->get_logger(),"Media change return move is empty, skipping");
+    RCLCPP_WARN(node_->get_logger(), "Media change return move is empty, skipping");
     return true;
   }
 
