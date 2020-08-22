@@ -251,7 +251,7 @@
     <link name="${prefix}eoat_link">
         <visual>
             <geometry>
-                <mesh filename="package://crs_support/meshes/end_effector/visual/flipped_tool.stl" />
+                <mesh filename="package://crs_support/meshes/end_effector/visual/tool.stl" />
             </geometry>
             <material name="Orange">
                 <color rgba="1.0 0.4 0.0 1.0" />
@@ -259,7 +259,7 @@
         </visual>
         <visual>
             <geometry>
-                <mesh filename="package://crs_support/meshes/end_effector/visual/flipped_sander.stl" />
+                <mesh filename="package://crs_support/meshes/end_effector/visual/sander.stl" />
             </geometry>
             <material name="Orange">
                 <color rgba="1.0 0.4 0.0 1.0" />
@@ -267,12 +267,12 @@
         </visual>
         <collision>
             <geometry>
-                <mesh filename="package://crs_support/meshes/end_effector/collision/flipped_tool_collision.stl" />
+                <mesh filename="package://crs_support/meshes/end_effector/collision/tool_collision.stl" />
             </geometry>
         </collision>
         <collision>
             <geometry>
-                <mesh filename="package://crs_support/meshes/end_effector/collision/flipped_sander_collision.stl" />
+                <mesh filename="package://crs_support/meshes/end_effector/collision/sander_collision.stl" />
             </geometry>
         </collision>
         <visual>

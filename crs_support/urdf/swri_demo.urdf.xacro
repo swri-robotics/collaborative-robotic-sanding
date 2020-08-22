@@ -337,7 +337,15 @@
     <link name="${prefix}eoat_link">
       <visual>
           <geometry>
-              <mesh filename="package://crs_support/meshes/end_effector/visual/full_ee_v4.stl" />
+              <mesh filename="package://crs_support/meshes/end_effector/visual/tool.stl" />
+          </geometry>
+          <material name="Orange">
+              <color rgba="1.0 0.4 0.0 1.0" />
+          </material>
+      </visual>
+      <visual>
+          <geometry>
+              <mesh filename="package://crs_support/meshes/end_effector/visual/sander.stl" />
           </geometry>
           <material name="Orange">
               <color rgba="1.0 0.4 0.0 1.0" />
@@ -345,10 +353,31 @@
       </visual>
       <collision>
           <geometry>
-              <mesh filename="package://crs_support/meshes/end_effector/collision/full_ee_v4_collision.stl" />
+              <mesh filename="package://crs_support/meshes/end_effector/collision/tool_collision.stl" />
           </geometry>
       </collision>
-
+      <collision>
+          <geometry>
+              <mesh filename="package://crs_support/meshes/end_effector/collision/sander_collision.stl" />
+          </geometry>
+      </collision>
+      <visual>
+        <geometry>
+            <cylinder length="0.05" radius="0.0125" />
+        </geometry>
+        <origin rpy="0 1.57 0" xyz="0.11 -0.055 0.055" />
+      </visual>
+      <collision>
+        <geometry>
+            <cylinder length="0.05" radius="0.0125" />
+        </geometry>
+        <origin rpy="0 1.57 0" xyz="0.11 -0.055 0.055" />
+      </collision>
+      <inertial>
+          <mass value="0.01" />
+          <origin rpy="0 0 0" xyz="0.0 0.0 0.0" />
+          <inertia ixx="0.000526462289415" ixy="0.0" ixz="0.0" iyy="0.000526462289415" iyz="0.0" izz="0.000568125" />
+      </inertial>
     </link>
 
     <joint name="${prefix}tool0_to_eoat_link" type="fixed">
