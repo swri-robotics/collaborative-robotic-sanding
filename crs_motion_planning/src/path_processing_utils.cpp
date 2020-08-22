@@ -496,7 +496,7 @@ bool crs_motion_planning::splitRastersByJointDist(const trajectory_msgs::msg::Jo
     double curr_time_step = dist_traveled / desired_ee_vel;
 
     // If required joint velocity is higher than max allowable then split raster
-    if (req_joint_vel > max_vel_adj || dist_traveled > max_dist || abs(given_traj.points[i].positions[4]) < 0.03)
+    if (req_joint_vel > max_vel_adj || dist_traveled > max_dist)
     {
       split_exists = true;
       split_traj.push_back(curr_traj);

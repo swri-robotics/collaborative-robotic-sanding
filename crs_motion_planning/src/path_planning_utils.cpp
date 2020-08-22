@@ -2,6 +2,7 @@
 #include <tesseract_rosutils/conversions.h>
 
 static const rclcpp::Logger LOGGER = rclcpp::get_logger("PATH_PLANNING_UTILS");
+static const double MINIMUM_WRIST_2_ABS_VAL = 0.1;
 
 namespace crs_motion_planning
 {
@@ -234,8 +235,16 @@ bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray
   world_to_tool0 = curr_transforms.find(config_->tool0_frame)->second;
   tool0_to_sander = world_to_tool0.inverse() * world_to_sander;
   tool0_to_sander = tool0_to_sander * config_->tool_offset * config_->descartes_config.tool_offset;
+
+  // Function to make sure wrist 2 isn't close to zero to avoid wrist singularities
+  std::function<bool(const double*)> isValidFn = [&](const double* joints) {
+    if (abs(joints[4]) < MINIMUM_WRIST_2_ABS_VAL)
+      return false;
+    return true;
+  };
+
   descartes_light::KinematicsInterfaceD::Ptr kin_interface =
-      std::make_shared<ur_ikfast_kinematics::UR10eKinematicsD>(world_to_base_link, tool0_to_sander, nullptr, nullptr);
+      std::make_shared<ur_ikfast_kinematics::UR10eKinematicsD>(world_to_base_link, tool0_to_sander, isValidFn, nullptr);
 
   for (size_t i = 0; i < waypoints_pose_array.poses.size(); ++i)
   {

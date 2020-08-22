@@ -50,8 +50,6 @@ static const std::string LOADED_PART_LINK_NAME = "part_link";
 static const std::string LOADED_PART_JOINT_NAME = "world_to_part_joint";
 static const std::string ROBOT_BASE_JOINT_NAME = "robot_base_joint";
 
-static const std::string MOTION_PLANNING_CONFIG_PATH = "config/motion_planning/MP_config.yaml";
-
 namespace param_names
 {
 static const std::string MOTION_PLANNING_CONFIG = "motion_planning_config";
