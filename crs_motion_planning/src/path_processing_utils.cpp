@@ -599,7 +599,7 @@ bool crs_motion_planning::execTrajectory(
     {
       auto& p = traj.points[i];
       rclcpp::Duration dur(p.time_from_start);
-      RCLCPP_INFO(logger, "Point %lu time: %f", i, dur.seconds());
+      RCLCPP_DEBUG(logger, "Point %lu time: %f", i, dur.seconds());
     }
   };
   print_time(traj);
