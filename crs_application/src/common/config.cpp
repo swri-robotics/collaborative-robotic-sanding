@@ -249,7 +249,7 @@ boost::optional<ProcessExecutionConfig> parse(YAML::Node& config, std::string& e
       cfg.traj_time_tolerance = root_node[TIME_TOLERANCE].as<double>();
       cfg.joint_tolerance = root_node[JOINT_TOLERANCE].as<std::vector<double>>();
       std::vector<double> xyzrpy_path = root_node[CARTESIAN_PATH_TOLERANCE].as<std::vector<double>>();
-      std::vector<double> xyzrpy_goal = root_node[CARTESIAN_PATH_TOLERANCE].as<std::vector<double>>();
+      std::vector<double> xyzrpy_goal = root_node[CARTESIAN_GOAL_TOLERANCE].as<std::vector<double>>();
       cfg.position_path_tolerance = Eigen::Vector3d(xyzrpy_path[0], xyzrpy_path[1], xyzrpy_path[2]);
       cfg.orientation_path_tolerance = Eigen::Vector3d(xyzrpy_path[3], xyzrpy_path[4], xyzrpy_path[5]);
       cfg.position_goal_tolerance = Eigen::Vector3d(xyzrpy_goal[0], xyzrpy_goal[1], xyzrpy_goal[2]);

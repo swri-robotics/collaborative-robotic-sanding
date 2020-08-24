@@ -3,7 +3,7 @@
 #include <crs_motion_planning/path_processing_utils.h>
 
 static const double TRAJECTORY_TIME_TOLERANCE = 180.0;  // seconds
-static const double WAIT_RESULT_TIMEOUT = 1.0;          // seconds
+static const double WAIT_RESULT_TIMEOUT = 5.0;          // seconds
 static const rclcpp::Logger LOGGER = rclcpp::get_logger("PATH_PROCESSING_UTILS");
 
 static geometry_msgs::msg::Pose pose3DtoPoseMsg(const std::array<float, 6>& p)
@@ -46,6 +46,7 @@ bool crs_motion_planning::parsePathFromFile(const std::string& yaml_filepath,
   }
 
   std::double_t offset_strip = 0.0;
+  Eigen::Vector3f prev_end = Eigen::Vector3f::Zero();
   for (YAML::const_iterator path_it = paths.begin(); path_it != paths.end(); ++path_it)
   {
     std::vector<geometry_msgs::msg::PoseStamped> temp_poses;
@@ -56,52 +57,123 @@ bool crs_motion_planning::parsePathFromFile(const std::string& yaml_filepath,
       RCLCPP_ERROR(LOGGER, "The 'poses' YAML element was not found");
       return false;
     }
-    for (YAML::const_iterator pose_it = strip.begin(); pose_it != strip.end(); ++pose_it)
+    size_t count = 0;
+    YAML::Node first_pose = strip[0], last_pose = strip[strip.size() - 1];
+    Eigen::Vector3f first_xyz, last_xyz;
+    try
     {
-      const YAML::Node& pose = *pose_it;
-      try
+      first_xyz = Eigen::Vector3f(first_pose["position"]["x"].as<float>(),
+                                  first_pose["position"]["y"].as<float>(),
+                                  first_pose["position"]["z"].as<float>());
+      last_xyz = Eigen::Vector3f(last_pose["position"]["x"].as<float>(),
+                                 last_pose["position"]["y"].as<float>(),
+                                 last_pose["position"]["z"].as<float>());
+      if ((first_xyz - prev_end).norm() < (last_xyz - prev_end).norm())
       {
-        geometry_msgs::msg::PoseStamped current_pose;
+        prev_end = last_xyz;
+        for (YAML::const_iterator pose_it = strip.begin(); pose_it != strip.end(); ++pose_it)
+        {
+          const YAML::Node& pose = *pose_it;
+          try
+          {
+            geometry_msgs::msg::PoseStamped current_pose;
 
-        float x = pose["position"]["x"].as<float>();
-        float y = pose["position"]["y"].as<float>();
-        float z = pose["position"]["z"].as<float>();
+            float x = pose["position"]["x"].as<float>();
+            float y = pose["position"]["y"].as<float>();
+            float z = pose["position"]["z"].as<float>();
 
-        float qx = pose["orientation"]["x"].as<float>();
-        float qy = pose["orientation"]["y"].as<float>();
-        float qz = pose["orientation"]["z"].as<float>();
-        float qw = pose["orientation"]["w"].as<float>();
+            float qx = pose["orientation"]["x"].as<float>();
+            float qy = pose["orientation"]["y"].as<float>();
+            float qz = pose["orientation"]["z"].as<float>();
+            float qw = pose["orientation"]["w"].as<float>();
 
-        current_pose.pose.position.x = x;
-        current_pose.pose.position.y = y;
-        current_pose.pose.position.z = z;
+            current_pose.pose.position.x = x;
+            current_pose.pose.position.y = y;
+            current_pose.pose.position.z = z;
 
-        current_pose.pose.orientation.x = qx;
-        current_pose.pose.orientation.y = qy;
-        current_pose.pose.orientation.z = qz;
-        current_pose.pose.orientation.w = qw;
+            current_pose.pose.orientation.x = qx;
+            current_pose.pose.orientation.y = qy;
+            current_pose.pose.orientation.z = qz;
+            current_pose.pose.orientation.w = qw;
 
-        current_pose.header.frame_id = waypoint_origin_frame;
+            current_pose.header.frame_id = waypoint_origin_frame;
 
-        std::double_t offset_waypoint = offset_strip;
+            std::double_t offset_waypoint = offset_strip;
 
-        Eigen::Isometry3d original_pose;
-        tf2::fromMsg(current_pose.pose, original_pose);
+            Eigen::Isometry3d original_pose;
+            tf2::fromMsg(current_pose.pose, original_pose);
 
-        Eigen::Isometry3d offset_pose =
-            original_pose * Eigen::Translation3d(0.0, 0.0, offset_waypoint) * Eigen::Quaterniond(0, 1, 0, 0);
+            Eigen::Isometry3d offset_pose =
+                original_pose * Eigen::Translation3d(0.0, 0.0, offset_waypoint) * Eigen::Quaterniond(0, 1, 0, 0);
 
-        current_pose.pose = tf2::toMsg(offset_pose);
-        curr_pose_array.poses.push_back(current_pose.pose);
-        curr_pose_array.header = current_pose.header;
+            current_pose.pose = tf2::toMsg(offset_pose);
+            curr_pose_array.poses.push_back(current_pose.pose);
+            curr_pose_array.header = current_pose.header;
 
-        temp_poses.push_back(tf2::toMsg(current_pose));
+            temp_poses.push_back(tf2::toMsg(current_pose));
+          }
+          catch (YAML::InvalidNode& e)
+          {
+            continue;
+          }
+        }
       }
-      catch (YAML::InvalidNode& e)
+      else
       {
-        continue;
+        prev_end = first_xyz;
+        for (int i = strip.size() - 1; i >= 0; --i)
+        {
+          const YAML::Node& pose = strip[i];
+          try
+          {
+            geometry_msgs::msg::PoseStamped current_pose;
+
+            float x = pose["position"]["x"].as<float>();
+            float y = pose["position"]["y"].as<float>();
+            float z = pose["position"]["z"].as<float>();
+
+            float qx = pose["orientation"]["x"].as<float>();
+            float qy = pose["orientation"]["y"].as<float>();
+            float qz = pose["orientation"]["z"].as<float>();
+            float qw = pose["orientation"]["w"].as<float>();
+
+            current_pose.pose.position.x = x;
+            current_pose.pose.position.y = y;
+            current_pose.pose.position.z = z;
+
+            current_pose.pose.orientation.x = qx;
+            current_pose.pose.orientation.y = qy;
+            current_pose.pose.orientation.z = qz;
+            current_pose.pose.orientation.w = qw;
+
+            current_pose.header.frame_id = waypoint_origin_frame;
+
+            std::double_t offset_waypoint = offset_strip;
+
+            Eigen::Isometry3d original_pose;
+            tf2::fromMsg(current_pose.pose, original_pose);
+
+            Eigen::Isometry3d offset_pose =
+                original_pose * Eigen::Translation3d(0.0, 0.0, offset_waypoint) * Eigen::Quaterniond(0, 1, 0, 0);
+
+            current_pose.pose = tf2::toMsg(offset_pose);
+            curr_pose_array.poses.push_back(current_pose.pose);
+            curr_pose_array.header = current_pose.header;
+
+            temp_poses.push_back(tf2::toMsg(current_pose));
+          }
+          catch (YAML::InvalidNode& e)
+          {
+            continue;
+          }
+        }
       }
     }
+    catch (YAML::InvalidNode& e)
+    {
+      continue;
+    }
+
     temp_raster_strips.push_back(curr_pose_array);
   }
   raster_strips.reserve(temp_raster_strips.size());
@@ -738,7 +810,7 @@ void crs_motion_planning::genCartesianTrajectory(
     curr_point.time_from_start = joint_trajectory.points[i].time_from_start;
     cartesian_trajectory.points.push_back(curr_point);
   }
-  cartesian_trajectory.points.back().wrench.force.z = -target_wrench.force.z;
+  cartesian_trajectory.points.back().wrench.force.z = 0;
 }
 
 void crs_motion_planning::genCartesianTrajectoryGoal(

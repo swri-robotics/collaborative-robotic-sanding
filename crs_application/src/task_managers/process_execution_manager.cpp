@@ -37,6 +37,7 @@
 #include "crs_application/task_managers/process_execution_manager.h"
 
 static const double WAIT_SERVER_TIMEOUT = 10.0;  // seconds
+static const double WAIT_ROBOT_STOP = 2.0;
 static const std::string MANAGER_NAME = "ProcessExecutionManager";
 static const std::string FOLLOW_JOINT_TRAJECTORY_ACTION = "follow_joint_trajectory";
 static const std::string SURFACE_TRAJECTORY_ACTION = "execute_surface_motion";
@@ -133,6 +134,9 @@ common::ActionResult ProcessExecutionManager::execProcess()
   for (std::size_t i = 0; i < process_plan.process_motions.size(); i++)
   {
     RCLCPP_INFO(node_->get_logger(), "%s Executing process path %i", MANAGER_NAME.c_str(), i);
+    std::chrono::duration<double> sleep_dur(WAIT_ROBOT_STOP);
+    RCLCPP_INFO(node_->get_logger(), "Waiting %f seconds for robot to fully stop", WAIT_ROBOT_STOP);
+    rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::seconds>(sleep_dur));
     if (config_->force_controlled_trajectories)
     {
       if (!execSurfaceTrajectory(process_plan.force_controlled_process_motions[i], cartesian_traj_config))
@@ -477,12 +481,6 @@ ProcessExecutionManager::execSurfaceTrajectory(const cartesian_trajectory_msgs::
   common::ActionResult res = false;
 
   if (config_->force_controlled_trajectories && !ProcessExecutionManager::changeActiveController(true))
-  {
-    res.succeeded = false;
-    return res;
-  }
-
-  if (!ProcessExecutionManager::toggleSander(true))
   {
     res.succeeded = false;
     return res;
