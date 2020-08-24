@@ -2,8 +2,8 @@
 #include <boost/format.hpp>
 #include <crs_motion_planning/path_processing_utils.h>
 
-static const double TRAJECTORY_TIME_TOLERANCE = 5.0;  // seconds
-static const double WAIT_RESULT_TIMEOUT = 1.0;        // seconds
+static const double TRAJECTORY_TIME_TOLERANCE = 180.0;  // seconds
+static const double WAIT_RESULT_TIMEOUT = 5.0;          // seconds
 static const rclcpp::Logger LOGGER = rclcpp::get_logger("PATH_PROCESSING_UTILS");
 
 static geometry_msgs::msg::Pose pose3DtoPoseMsg(const std::array<float, 6>& p)
@@ -46,6 +46,7 @@ bool crs_motion_planning::parsePathFromFile(const std::string& yaml_filepath,
   }
 
   std::double_t offset_strip = 0.0;
+  Eigen::Vector3f prev_end = Eigen::Vector3f::Zero();
   for (YAML::const_iterator path_it = paths.begin(); path_it != paths.end(); ++path_it)
   {
     std::vector<geometry_msgs::msg::PoseStamped> temp_poses;
@@ -56,52 +57,123 @@ bool crs_motion_planning::parsePathFromFile(const std::string& yaml_filepath,
       RCLCPP_ERROR(LOGGER, "The 'poses' YAML element was not found");
       return false;
     }
-    for (YAML::const_iterator pose_it = strip.begin(); pose_it != strip.end(); ++pose_it)
+    size_t count = 0;
+    YAML::Node first_pose = strip[0], last_pose = strip[strip.size() - 1];
+    Eigen::Vector3f first_xyz, last_xyz;
+    try
     {
-      const YAML::Node& pose = *pose_it;
-      try
+      first_xyz = Eigen::Vector3f(first_pose["position"]["x"].as<float>(),
+                                  first_pose["position"]["y"].as<float>(),
+                                  first_pose["position"]["z"].as<float>());
+      last_xyz = Eigen::Vector3f(last_pose["position"]["x"].as<float>(),
+                                 last_pose["position"]["y"].as<float>(),
+                                 last_pose["position"]["z"].as<float>());
+      if ((first_xyz - prev_end).norm() < (last_xyz - prev_end).norm())
       {
-        geometry_msgs::msg::PoseStamped current_pose;
+        prev_end = last_xyz;
+        for (YAML::const_iterator pose_it = strip.begin(); pose_it != strip.end(); ++pose_it)
+        {
+          const YAML::Node& pose = *pose_it;
+          try
+          {
+            geometry_msgs::msg::PoseStamped current_pose;
 
-        float x = pose["position"]["x"].as<float>();
-        float y = pose["position"]["y"].as<float>();
-        float z = pose["position"]["z"].as<float>();
+            float x = pose["position"]["x"].as<float>();
+            float y = pose["position"]["y"].as<float>();
+            float z = pose["position"]["z"].as<float>();
 
-        float qx = pose["orientation"]["x"].as<float>();
-        float qy = pose["orientation"]["y"].as<float>();
-        float qz = pose["orientation"]["z"].as<float>();
-        float qw = pose["orientation"]["w"].as<float>();
+            float qx = pose["orientation"]["x"].as<float>();
+            float qy = pose["orientation"]["y"].as<float>();
+            float qz = pose["orientation"]["z"].as<float>();
+            float qw = pose["orientation"]["w"].as<float>();
 
-        current_pose.pose.position.x = x;
-        current_pose.pose.position.y = y;
-        current_pose.pose.position.z = z;
+            current_pose.pose.position.x = x;
+            current_pose.pose.position.y = y;
+            current_pose.pose.position.z = z;
 
-        current_pose.pose.orientation.x = qx;
-        current_pose.pose.orientation.y = qy;
-        current_pose.pose.orientation.z = qz;
-        current_pose.pose.orientation.w = qw;
+            current_pose.pose.orientation.x = qx;
+            current_pose.pose.orientation.y = qy;
+            current_pose.pose.orientation.z = qz;
+            current_pose.pose.orientation.w = qw;
 
-        current_pose.header.frame_id = waypoint_origin_frame;
+            current_pose.header.frame_id = waypoint_origin_frame;
 
-        std::double_t offset_waypoint = offset_strip;
+            std::double_t offset_waypoint = offset_strip;
 
-        Eigen::Isometry3d original_pose;
-        tf2::fromMsg(current_pose.pose, original_pose);
+            Eigen::Isometry3d original_pose;
+            tf2::fromMsg(current_pose.pose, original_pose);
 
-        Eigen::Isometry3d offset_pose =
-            original_pose * Eigen::Translation3d(0.0, 0.0, offset_waypoint) * Eigen::Quaterniond(0, 1, 0, 0);
+            Eigen::Isometry3d offset_pose =
+                original_pose * Eigen::Translation3d(0.0, 0.0, offset_waypoint) * Eigen::Quaterniond(0, 1, 0, 0);
 
-        current_pose.pose = tf2::toMsg(offset_pose);
-        curr_pose_array.poses.push_back(current_pose.pose);
-        curr_pose_array.header = current_pose.header;
+            current_pose.pose = tf2::toMsg(offset_pose);
+            curr_pose_array.poses.push_back(current_pose.pose);
+            curr_pose_array.header = current_pose.header;
 
-        temp_poses.push_back(tf2::toMsg(current_pose));
+            temp_poses.push_back(tf2::toMsg(current_pose));
+          }
+          catch (YAML::InvalidNode& e)
+          {
+            continue;
+          }
+        }
       }
-      catch (YAML::InvalidNode& e)
+      else
       {
-        continue;
+        prev_end = first_xyz;
+        for (int i = strip.size() - 1; i >= 0; --i)
+        {
+          const YAML::Node& pose = strip[i];
+          try
+          {
+            geometry_msgs::msg::PoseStamped current_pose;
+
+            float x = pose["position"]["x"].as<float>();
+            float y = pose["position"]["y"].as<float>();
+            float z = pose["position"]["z"].as<float>();
+
+            float qx = pose["orientation"]["x"].as<float>();
+            float qy = pose["orientation"]["y"].as<float>();
+            float qz = pose["orientation"]["z"].as<float>();
+            float qw = pose["orientation"]["w"].as<float>();
+
+            current_pose.pose.position.x = x;
+            current_pose.pose.position.y = y;
+            current_pose.pose.position.z = z;
+
+            current_pose.pose.orientation.x = qx;
+            current_pose.pose.orientation.y = qy;
+            current_pose.pose.orientation.z = qz;
+            current_pose.pose.orientation.w = qw;
+
+            current_pose.header.frame_id = waypoint_origin_frame;
+
+            std::double_t offset_waypoint = offset_strip;
+
+            Eigen::Isometry3d original_pose;
+            tf2::fromMsg(current_pose.pose, original_pose);
+
+            Eigen::Isometry3d offset_pose =
+                original_pose * Eigen::Translation3d(0.0, 0.0, offset_waypoint) * Eigen::Quaterniond(0, 1, 0, 0);
+
+            current_pose.pose = tf2::toMsg(offset_pose);
+            curr_pose_array.poses.push_back(current_pose.pose);
+            curr_pose_array.header = current_pose.header;
+
+            temp_poses.push_back(tf2::toMsg(current_pose));
+          }
+          catch (YAML::InvalidNode& e)
+          {
+            continue;
+          }
+        }
       }
     }
+    catch (YAML::InvalidNode& e)
+    {
+      continue;
+    }
+
     temp_raster_strips.push_back(curr_pose_array);
   }
   raster_strips.reserve(temp_raster_strips.size());
@@ -206,15 +278,16 @@ crs_motion_planning::convertToDottedLineMarker(const std::vector<geometry_msgs::
                                                const std::size_t& start_id,
                                                const std::array<float, 6>& offset,
                                                const float& line_width,
-                                               const float& point_size)
+                                               const float& point_size,
+                                               const std::tuple<float, float, float, float>& line_rgba,
+                                               const std::tuple<float, float, float, float>& point_rgba)
 {
   visualization_msgs::msg::MarkerArray markers_msgs;
   visualization_msgs::msg::Marker line_marker, points_marker;
 
   // configure line marker
   line_marker.action = line_marker.ADD;
-  std::tie(line_marker.color.r, line_marker.color.g, line_marker.color.b, line_marker.color.a) =
-      std::make_tuple(1.0, 1.0, 0.2, 1.0);
+  std::tie(line_marker.color.r, line_marker.color.g, line_marker.color.b, line_marker.color.a) = line_rgba;
   line_marker.header.frame_id = frame_id;
   line_marker.type = line_marker.LINE_STRIP;
   line_marker.id = start_id;
@@ -227,8 +300,7 @@ crs_motion_planning::convertToDottedLineMarker(const std::vector<geometry_msgs::
   points_marker = line_marker;
   points_marker.type = points_marker.POINTS;
   points_marker.ns = ns;
-  std::tie(points_marker.color.r, points_marker.color.g, points_marker.color.b, points_marker.color.a) =
-      std::make_tuple(0.1, .8, 0.2, 1.0);
+  std::tie(points_marker.color.r, points_marker.color.g, points_marker.color.b, points_marker.color.a) = point_rgba;
   std::tie(points_marker.scale.x, points_marker.scale.y, points_marker.scale.z) =
       std::make_tuple(point_size, point_size, point_size);
 
@@ -385,10 +457,13 @@ bool crs_motion_planning::splitRastersByJointDist(const trajectory_msgs::msg::Jo
                                                   const geometry_msgs::msg::PoseArray& given_raster,
                                                   const double& desired_ee_vel,
                                                   const double& max_joint_vel,
+                                                  const double& max_dist,
                                                   std::vector<trajectory_msgs::msg::JointTrajectory>& split_traj,
                                                   std::vector<geometry_msgs::msg::PoseArray>& split_rasters,
-                                                  std::vector<std::vector<double>>& time_steps)
+                                                  std::vector<std::vector<double>>& time_steps,
+                                                  const double& joint_vel_mult)
 {
+  double max_vel_adj = max_joint_vel * joint_vel_mult;
   bool split_exists = false;
   geometry_msgs::msg::PoseArray curr_raster_pose_array;
   std::vector<geometry_msgs::msg::PoseStamped> curr_raster;
@@ -421,7 +496,7 @@ bool crs_motion_planning::splitRastersByJointDist(const trajectory_msgs::msg::Jo
     double curr_time_step = dist_traveled / desired_ee_vel;
 
     // If required joint velocity is higher than max allowable then split raster
-    if (req_joint_vel > max_joint_vel)
+    if (req_joint_vel > max_vel_adj || dist_traveled > max_dist)
     {
       split_exists = true;
       split_traj.push_back(curr_traj);
@@ -524,7 +599,7 @@ bool crs_motion_planning::execTrajectory(
     {
       auto& p = traj.points[i];
       rclcpp::Duration dur(p.time_from_start);
-      RCLCPP_INFO(logger, "Point %lu time: %f", i, dur.seconds());
+      RCLCPP_DEBUG(logger, "Point %lu time: %f", i, dur.seconds());
     }
   };
   print_time(traj);
@@ -669,5 +744,245 @@ bool crs_motion_planning::timeParameterizeFreespace(
     crs_motion_planning::timeParameterizeFreespace(traj, max_joint_vel, max_joint_acc, curr_traj);
     returned_traj.push_back(curr_traj);
   }
+  return true;
+}
+
+void crs_motion_planning::findCartPoseArrayFromTraj(const trajectory_msgs::msg::JointTrajectory& joint_trajectory,
+                                                    const cartesianTrajectoryConfig traj_config,
+                                                    geometry_msgs::msg::PoseArray& cartesian_poses)
+{
+  const std::shared_ptr<const tesseract_environment::Environment> env =
+      traj_config.tesseract_local->getEnvironmentConst();
+  tesseract_common::TransformMap curr_transforms = env->getCurrentState()->link_transforms;
+
+  tesseract_kinematics::ForwardKinematics::ConstPtr kin =
+      traj_config.tesseract_local->getFwdKinematicsManagerConst()->getFwdKinematicSolver(traj_config.manipulator);
+
+  Eigen::Isometry3d world_to_base_link, world_to_sander, world_to_tool0, tool0_to_sander;
+  world_to_base_link = curr_transforms.find(traj_config.base_frame)->second;
+  world_to_sander = curr_transforms.find(traj_config.tcp_frame)->second;
+  world_to_tool0 = curr_transforms.find(traj_config.tool_frame)->second;
+  tool0_to_sander = world_to_tool0.inverse() * world_to_sander;
+
+  for (auto joint_pose : joint_trajectory.points)
+  {
+    Eigen::VectorXd joint_positions(joint_pose.positions.size());
+    for (size_t i = 0; i < joint_pose.positions.size(); i++)
+    {
+      joint_positions[static_cast<int>(i)] = joint_pose.positions[i];
+    }
+    Eigen::Isometry3d eig_pose;
+    kin->calcFwdKin(eig_pose, joint_positions);
+    Eigen::Isometry3d world_to_base_link = Eigen::Isometry3d::Identity();
+    eig_pose = world_to_base_link * eig_pose * Eigen::Quaterniond(-0.5, 0.5, -0.5, 0.5) *
+               tool0_to_sander;  // Fwd kin switches to x forward instead of z
+    geometry_msgs::msg::Pose curr_cart_pose = tf2::toMsg(eig_pose);
+    cartesian_poses.poses.push_back(curr_cart_pose);
+  }
+  cartesian_poses.header.frame_id = traj_config.base_frame;
+}
+
+void crs_motion_planning::genCartesianTrajectory(
+    const trajectory_msgs::msg::JointTrajectory& joint_trajectory,
+    const crs_motion_planning::cartesianTrajectoryConfig traj_config,
+    cartesian_trajectory_msgs::msg::CartesianTrajectory& cartesian_trajectory)
+{
+  geometry_msgs::msg::PoseArray cartesian_poses;
+  crs_motion_planning::findCartPoseArrayFromTraj(joint_trajectory, traj_config, cartesian_poses);
+
+  Eigen::Vector3d tcp_force_vec = Eigen::Vector3d::Zero();
+  tcp_force_vec.z() = traj_config.target_force;
+  geometry_msgs::msg::Vector3 target_wrench_force, target_wrench_torque;
+  target_wrench_force = tf2::toMsg(tcp_force_vec, target_wrench_force);
+  target_wrench_torque = tf2::toMsg(Eigen::Vector3d::Zero(), target_wrench_torque);
+  geometry_msgs::msg::Wrench target_wrench;
+  target_wrench.force = target_wrench_force;
+  target_wrench.torque = target_wrench_torque;
+
+  cartesian_trajectory.header.frame_id = traj_config.base_frame;
+  cartesian_trajectory.tcp_frame = traj_config.tcp_frame;
+  for (size_t i = 0; i < cartesian_poses.poses.size(); ++i)
+  {
+    geometry_msgs::msg::Pose pose = cartesian_poses.poses[i];
+    cartesian_trajectory_msgs::msg::CartesianTrajectoryPoint curr_point;
+    curr_point.pose = pose;
+    curr_point.wrench = target_wrench;
+    curr_point.time_from_start = joint_trajectory.points[i].time_from_start;
+    cartesian_trajectory.points.push_back(curr_point);
+  }
+  cartesian_trajectory.points.back().wrench.force.z = 0;
+}
+
+void crs_motion_planning::genCartesianTrajectoryGoal(
+    const cartesian_trajectory_msgs::msg::CartesianTrajectory& cartesian_trajectory,
+    const cartesianTrajectoryConfig traj_config,
+    cartesian_trajectory_msgs::action::CartesianComplianceTrajectory::Goal& cartesian_trajectory_goal)
+{
+  Eigen::Vector3d tcp_force_vec = Eigen::Vector3d::Zero();
+  tcp_force_vec.z() = traj_config.target_force;
+  geometry_msgs::msg::Vector3 target_wrench_force, target_wrench_torque;
+  target_wrench_force = tf2::toMsg(tcp_force_vec, target_wrench_force);
+  target_wrench_torque = tf2::toMsg(Eigen::Vector3d::Zero(), target_wrench_torque);
+  geometry_msgs::msg::Wrench target_wrench;
+  target_wrench.force = target_wrench_force;
+  target_wrench.torque = target_wrench_torque;
+
+  cartesian_trajectory_goal.speed = traj_config.target_speed;
+  cartesian_trajectory_goal.force = target_wrench;
+  cartesian_trajectory_goal.path_tolerance.position_error = traj_config.path_pose_tolerance;
+  cartesian_trajectory_goal.path_tolerance.orientation_error = traj_config.path_ori_tolerance;
+  cartesian_trajectory_goal.goal_tolerance.position_error = traj_config.goal_pose_tolerance;
+  cartesian_trajectory_goal.goal_tolerance.orientation_error = traj_config.goal_ori_tolerance;
+  cartesian_trajectory_goal.path_tolerance.wrench_error.force = traj_config.force_tolerance;
+  cartesian_trajectory_goal.trajectory = cartesian_trajectory;
+}
+
+bool crs_motion_planning::execSurfaceTrajectory(
+    rclcpp_action::Client<cartesian_trajectory_msgs::action::CartesianComplianceTrajectory>::SharedPtr ac,
+    const rclcpp::Logger& logger,
+    const trajectory_msgs::msg::JointTrajectory& traj,
+    const crs_motion_planning::cartesianTrajectoryConfig& traj_config)
+{
+  using namespace cartesian_trajectory_msgs::action;
+  using namespace rclcpp_action;
+  using GoalHandleT = Client<CartesianComplianceTrajectory>::GoalHandle;
+
+  rclcpp::Duration traj_dur(traj.points.back().time_from_start);
+  bool res = false;
+  std::string err_msg;
+
+  auto print_traj_time = [&](const trajectory_msgs::msg::JointTrajectory& traj) {
+    RCLCPP_ERROR(logger, "Trajectory with %lu points time data", traj.points.size());
+    for (std::size_t i = 0; i < traj.points.size(); i++)
+    {
+      const auto& p = traj.points[i];
+      RCLCPP_ERROR(logger, "\tPoint %lu : %f secs", rclcpp::Duration(p.time_from_start).seconds());
+    }
+  };
+
+  CartesianComplianceTrajectory::Goal goal;
+  cartesian_trajectory_msgs::msg::CartesianTrajectory cart_traj;
+  crs_motion_planning::genCartesianTrajectory(traj, traj_config, cart_traj);
+  crs_motion_planning::genCartesianTrajectoryGoal(cart_traj, traj_config, goal);
+
+  auto goal_options = rclcpp_action::Client<CartesianComplianceTrajectory>::SendGoalOptions();
+
+  // send goal
+  std::shared_future<GoalHandleT::SharedPtr> trajectory_exec_fut = ac->async_send_goal(goal);
+  traj_dur = traj_dur + rclcpp::Duration(std::chrono::duration<double>(TRAJECTORY_TIME_TOLERANCE));
+
+  // wait for goal acceptance
+  std::future_status status = trajectory_exec_fut.wait_for(std::chrono::duration<double>(WAIT_RESULT_TIMEOUT));
+  if (status != std::future_status::ready)
+  {
+    err_msg = "Action request was not accepted in time";
+    RCLCPP_ERROR(logger, "%s", err_msg.c_str());
+    ac->async_cancel_all_goals();
+    return res;
+  }
+
+  auto gh = trajectory_exec_fut.get();
+  if (!gh)
+  {
+    RCLCPP_ERROR(logger, "Goal was rejected by server");
+    return res;
+  }
+
+  // getting result
+  RCLCPP_INFO(logger, "Waiting %f seconds for goal", traj_dur.seconds());
+  auto result_fut = ac->async_get_result(gh);
+  status = result_fut.wait_for(traj_dur.to_chrono<std::chrono::seconds>());
+  if (status != std::future_status::ready)
+  {
+    print_traj_time(traj);
+    err_msg = "trajectory execution timed out";
+    RCLCPP_ERROR(logger, "%s", err_msg.c_str());
+    return res;
+  }
+
+  rclcpp_action::ClientGoalHandle<CartesianComplianceTrajectory>::WrappedResult wrapped_result = result_fut.get();
+  if (wrapped_result.code != rclcpp_action::ResultCode::SUCCEEDED)
+  {
+    err_msg = wrapped_result.result->err_msg;
+    RCLCPP_ERROR(logger, "Trajectory execution failed with error message: %s", err_msg.c_str());
+    return res;
+  }
+
+  // reset future
+  RCLCPP_INFO(logger, "Trajectory completed");
+  return true;
+}
+
+bool crs_motion_planning::execSurfaceTrajectory(
+    rclcpp_action::Client<cartesian_trajectory_msgs::action::CartesianComplianceTrajectory>::SharedPtr ac,
+    const rclcpp::Logger& logger,
+    const cartesian_trajectory_msgs::msg::CartesianTrajectory& traj,
+    const cartesianTrajectoryConfig& traj_config)
+{
+  using namespace cartesian_trajectory_msgs::action;
+  using namespace rclcpp_action;
+  using GoalHandleT = Client<CartesianComplianceTrajectory>::GoalHandle;
+
+  rclcpp::Duration traj_dur(traj.points.back().time_from_start);
+  bool res = false;
+  std::string err_msg;
+
+  auto print_traj_time = [&](const cartesian_trajectory_msgs::msg::CartesianTrajectory& traj) {
+    RCLCPP_ERROR(logger, "Trajectory with %lu points time data", traj.points.size());
+    for (std::size_t i = 0; i < traj.points.size(); i++)
+    {
+      const auto& p = traj.points[i];
+      RCLCPP_ERROR(logger, "\tPoint %lu : %f secs", rclcpp::Duration(p.time_from_start).seconds());
+    }
+  };
+
+  CartesianComplianceTrajectory::Goal goal;
+  crs_motion_planning::genCartesianTrajectoryGoal(traj, traj_config, goal);
+
+  auto goal_options = rclcpp_action::Client<CartesianComplianceTrajectory>::SendGoalOptions();
+
+  // send goal
+  std::shared_future<GoalHandleT::SharedPtr> trajectory_exec_fut = ac->async_send_goal(goal);
+  traj_dur = traj_dur + rclcpp::Duration(std::chrono::duration<double>(TRAJECTORY_TIME_TOLERANCE));
+
+  // wait for goal acceptance
+  std::future_status status = trajectory_exec_fut.wait_for(std::chrono::duration<double>(WAIT_RESULT_TIMEOUT));
+  if (status != std::future_status::ready)
+  {
+    err_msg = "Action request was not accepted in time";
+    RCLCPP_ERROR(logger, "%s", err_msg.c_str());
+    ac->async_cancel_all_goals();
+    return res;
+  }
+
+  auto gh = trajectory_exec_fut.get();
+  if (!gh)
+  {
+    RCLCPP_ERROR(logger, "Goal was rejected by server");
+    return res;
+  }
+
+  // getting result
+  RCLCPP_INFO(logger, "Waiting %f seconds for goal", traj_dur.seconds());
+  auto result_fut = ac->async_get_result(gh);
+  status = result_fut.wait_for(traj_dur.to_chrono<std::chrono::seconds>());
+  if (status != std::future_status::ready)
+  {
+    print_traj_time(traj);
+    err_msg = "trajectory execution timed out";
+    RCLCPP_ERROR(logger, "%s", err_msg.c_str());
+    return res;
+  }
+
+  rclcpp_action::ClientGoalHandle<CartesianComplianceTrajectory>::WrappedResult wrapped_result = result_fut.get();
+  if (wrapped_result.code != rclcpp_action::ResultCode::SUCCEEDED)
+  {
+    err_msg = wrapped_result.result->err_msg;
+    RCLCPP_ERROR(logger, "Trajectory execution failed with error message: %s", err_msg.c_str());
+    return res;
+  }
+
+  // reset future
+  RCLCPP_INFO(logger, "Trajectory completed");
   return true;
 }

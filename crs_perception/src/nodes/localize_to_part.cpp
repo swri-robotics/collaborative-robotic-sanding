@@ -33,12 +33,10 @@
 #include <boost/filesystem.hpp>
 #include <boost/format.hpp>
 
-namespace crs_perception
-{
-class LocalizeToPart;
-}
 #include <rclcpp_components/register_node_macro.hpp>
-RCLCPP_COMPONENTS_REGISTER_NODE(crs_perception::LocalizeToPart)
+
+//#define EIGEN_DISABLE_UNALIGNED_ARRAY_ASSERT
+//#define EIGEN_DONT_VECTORIZE
 
 static const double VIEW_POINT_Z = 1000.0;
 static const std::string CROP_BOXES_PARAM_PREFIX = "crop_boxes.box";
@@ -163,6 +161,7 @@ namespace crs_perception
 class LocalizeToPart : public rclcpp::Node
 {
 public:
+  EIGEN_MAKE_ALIGNED_OPERATOR_NEW
   LocalizeToPart(const rclcpp::NodeOptions& options)
     : Node("localize_to_part", options)
     , part_loaded_(false)
@@ -327,7 +326,9 @@ private:
     }
 
     // transforming point cloud
-    tf2::fromMsg(request->part_origin, part_seed_transform_);
+    Eigen::Isometry3d part_seed_transform_ = Eigen::Isometry3d::Identity();
+    part_seed_msg_ = request->part_origin;
+    tf2::fromMsg(part_seed_msg_, part_seed_transform_);
     pcl::PointCloud<pcl::PointXYZ>::Ptr original_cloud = part_point_cloud_->makeShared();
     pcl::transformPointCloud(*original_cloud, *part_point_cloud_, part_seed_transform_.matrix());
     part_loaded_ = true;
@@ -596,6 +597,10 @@ private:
       return;
     }
 
+    // getting part seed transform
+    Eigen::Isometry3d part_seed_transform_;
+    tf2::fromMsg(part_seed_msg_, part_seed_transform_);
+
     // TODO: better input verification
     if (request->point_clouds.empty() && request->transforms.size() != request->point_clouds.size())
     {
@@ -761,10 +766,10 @@ private:
   rclcpp::TimerBase::SharedPtr markers_timer_;
 
   // data
+  geometry_msgs::msg::Pose part_seed_msg_;
   bool part_loaded_;
   std::string world_frame_;
   pcl::PointCloud<pcl::PointXYZ>::Ptr part_point_cloud_;
-  Eigen::Affine3d part_seed_transform_;
   visualization_msgs::msg::MarkerArray cropbox_markers_;
 
   // other
@@ -774,6 +779,8 @@ private:
 };
 
 }  // namespace crs_perception
+
+RCLCPP_COMPONENTS_REGISTER_NODE(crs_perception::LocalizeToPart)
 
 int main(int argc, char** argv)
 {

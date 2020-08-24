@@ -134,10 +134,10 @@ int main(int argc, char** argv)
             res->action_ids.push_back(id);
           }
         }
-        RCLCPP_WARN_EXPRESSION(node->get_logger(),
-                               res->action_ids.empty(),
-                               "No action ids matched the '%s' search pattern",
-                               req->search_pattern.c_str());
+        RCLCPP_DEBUG_EXPRESSION(node->get_logger(),
+                                res->action_ids.empty(),
+                                "No action ids matched the '%s' search pattern",
+                                req->search_pattern.c_str());
       });
 
   rclcpp::TimerBase::SharedPtr pub_timer =

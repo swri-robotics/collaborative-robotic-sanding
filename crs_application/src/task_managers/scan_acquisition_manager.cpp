@@ -39,15 +39,15 @@
 #include "crs_application/task_managers/scan_acquisition_manager.h"
 
 static const double WAIT_FOR_SERVICE_PERIOD = 10.0;
-static const double WAIT_MESSAGE_TIMEOUT = 2.0;
 static const double WAIT_ROBOT_STOP = 2.0;
-static const double WAIT_MOTION_COMPLETION = 30.0;
+static const double WAIT_MOTION_COMPLETION = 60.0;
 static const std::size_t POSES_ARRAY_SIZE = 6;
 static const std::string POINT_CLOUD_TOPIC = "camera/pointcloud";
 static const std::string FREESPACE_MOTION_PLAN_SERVICE = "plan_freespace_motion";
 static const std::string MANAGER_NAME = "ScanAcquisitionManager";
 static const std::string SCAN_POSES_TOPIC = "scan_poses";
 static const std::string DEFAULT_WORLD_FRAME_ID = "world";
+static const std::string CONTROLLER_CHANGER_SERVICE = "compliance_controller_on";
 
 namespace crs_application
 {
@@ -85,6 +85,8 @@ common::ActionResult ScanAcquisitionManager::init()
   // service client
   call_freespace_motion_client_ =
       node_->create_client<crs_msgs::srv::CallFreespaceMotion>(FREESPACE_MOTION_PLAN_SERVICE);
+
+  controller_changer_client_ = node_->create_client<std_srvs::srv::SetBool>(CONTROLLER_CHANGER_SERVICE);
 
   // waiting for services
   common::ActionResult res;
@@ -174,6 +176,11 @@ common::ActionResult ScanAcquisitionManager::moveRobot()
     RCLCPP_ERROR(node_->get_logger(), "%s Freespace Motion is not ready`", MANAGER_NAME.c_str());
     return false;
   }
+  if (!changeActiveController(false))
+  {
+    RCLCPP_ERROR(node_->get_logger(), "%s Unable to change controller to joint trajectory", MANAGER_NAME.c_str());
+    return false;
+  }
 
   auto freespace_motion_request = std::make_shared<crs_msgs::srv::CallFreespaceMotion::Request>();
   freespace_motion_request->target_link = tool_frame_;
@@ -192,7 +199,6 @@ common::ActionResult ScanAcquisitionManager::moveRobot()
 
   if (result->success)
   {
-    // todo(ayoungs): wait for robot to finish moving, for now
     std::chrono::duration<double> sleep_dur(WAIT_ROBOT_STOP);
     rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::seconds>(sleep_dur));
     return true;
@@ -216,8 +222,8 @@ common::ActionResult ScanAcquisitionManager::capture()
     geometry_msgs::msg::TransformStamped transform;
     try
     {
-      transform =
-          tf_buffer_.lookupTransform(DEFAULT_WORLD_FRAME_ID, captured_cloud.header.frame_id, tf2::TimePointZero);
+      transform = tf_buffer_.lookupTransform(
+          DEFAULT_WORLD_FRAME_ID, captured_cloud.header.frame_id, tf2::TimePointZero, tf2::Duration(5));
     }
     catch (tf2::TransformException ex)
     {
@@ -275,6 +281,35 @@ common::ActionResult ScanAcquisitionManager::checkPreReqs()
     RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
     return res;
   }
+  return true;
+}
+
+bool ScanAcquisitionManager::changeActiveController(const bool turn_on_cart)
+{
+  RCLCPP_INFO(node_->get_logger(), "Changing controller");
+  using namespace std_srvs::srv;
+  SetBool::Request::SharedPtr req = std::make_shared<std_srvs::srv::SetBool::Request>();
+  req->data = turn_on_cart;
+  if (req->data)
+    RCLCPP_INFO(node_->get_logger(), "Turning on cartesian compliance controller");
+  else
+    RCLCPP_INFO(node_->get_logger(), "Turning on joint trajectory controller");
+  std::shared_future<SetBool::Response::SharedPtr> result_future = controller_changer_client_->async_send_request(req);
+
+  std::future_status status = result_future.wait_for(std::chrono::seconds(15));
+  if (status != std::future_status::ready)
+  {
+    RCLCPP_ERROR(node_->get_logger(), "change controller service error or timeout");
+    return false;
+  }
+
+  if (!result_future.get()->success)
+  {
+    RCLCPP_ERROR(node_->get_logger(), "change controller service failed");
+    return false;
+  }
+
+  RCLCPP_INFO(node_->get_logger(), "change controller service succeeded");
   return true;
 }
 

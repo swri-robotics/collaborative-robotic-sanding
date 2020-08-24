@@ -52,53 +52,23 @@ static const std::string ROBOT_BASE_JOINT_NAME = "robot_base_joint";
 
 namespace param_names
 {
+static const std::string MOTION_PLANNING_CONFIG = "motion_planning_config";
 static const std::string URDF_PATH = "urdf_path";
 static const std::string SRDF_PATH = "srdf_path";
 static const std::string PROCESS_MOTION_PLANNING_SERVICE = "process_planner_service";
 static const std::string FREESPACE_MOTION_PLANNING_SERVICE = "freespace_motion_service";
-static const std::string ROOT_LINK_FRAME = "base_link_frame";
 static const std::string WORLD_FRAME = "world_frame";
-static const std::string TOOL0_FRAME = "tool0_frame";
-static const std::string MANIPULATOR_GROUP = "manipulator_group";
 static const std::string NUM_FREEPSACE_STEPS = "num_steps";
-static const std::string MAX_JOINT_VELOCITY = "max_joint_velocity";
-static const std::string MAX_JOINT_ACCELERATION = "max_joint_acceleration";
-static const std::string MIN_RASTER_LENGTH = "min_raster_length";
-static const std::string GAZEBO_SIM_TIMING = "use_gazebo_simulation_time";
-static const std::string TRAJOPT_VERBOSE = "set_trajopt_verbose";
 }  // namespace param_names
 
 class MotionPlanningServer : public rclcpp::Node
 {
 public:
-  MotionPlanningServer() : Node("motion_planning_server_node")
+  MotionPlanningServer(rclcpp::NodeOptions options) : Node("motion_planning_server_node", options)
   {
     namespace fs = boost::filesystem;
 
     // ROS parameters
-    this->declare_parameter(
-        param_names::URDF_PATH,
-        (fs::path(ament_index_cpp::get_package_share_directory(RESOURCES_PACKAGE_NAME)) / fs::path(DEFAULT_URDF_PATH))
-            .string());
-
-    this->declare_parameter(
-        param_names::SRDF_PATH,
-        (fs::path(ament_index_cpp::get_package_share_directory(RESOURCES_PACKAGE_NAME)) / fs::path(DEFAULT_SRDF_PATH))
-            .string());
-
-    this->declare_parameter(param_names::FREESPACE_MOTION_PLANNING_SERVICE, DEFAULT_FREESPACE_MOTION_PLANNING_SERVICE);
-    this->declare_parameter(param_names::PROCESS_MOTION_PLANNING_SERVICE, DEFAULT_PROCESS_MOTION_PLANNING_SERVICE);
-    this->declare_parameter(param_names::ROOT_LINK_FRAME, "base_link");
-    this->declare_parameter(param_names::WORLD_FRAME, "world");
-    this->declare_parameter(param_names::TOOL0_FRAME, "tool0");
-    this->declare_parameter(param_names::MANIPULATOR_GROUP, "manipulator");
-    this->declare_parameter(param_names::NUM_FREEPSACE_STEPS, 20);
-    this->declare_parameter(param_names::MAX_JOINT_VELOCITY, 0.2);
-    this->declare_parameter(param_names::MAX_JOINT_ACCELERATION, 0.5);
-    this->declare_parameter(param_names::MIN_RASTER_LENGTH, 3);
-    this->declare_parameter(param_names::GAZEBO_SIM_TIMING, false);
-    this->declare_parameter(param_names::TRAJOPT_VERBOSE, false);
-
     std::string process_planner_service = this->get_parameter(param_names::PROCESS_MOTION_PLANNING_SERVICE).as_string();
     std::string freespace_motion_service =
         this->get_parameter(param_names::FREESPACE_MOTION_PLANNING_SERVICE).as_string();
@@ -142,13 +112,13 @@ public:
     env_state_sub_ = this->create_subscription<tesseract_msgs::msg::TesseractState>(
         ENVIRONMENT_UPDATE_TOPIC_NAME, 10, std::bind(&MotionPlanningServer::envCallback, this, std::placeholders::_1));
 
-    // openning files
+    // openning robot files
     std::string urdf_path, srdf_path;
     urdf_path = this->get_parameter(param_names::URDF_PATH).as_string();
     srdf_path = this->get_parameter(param_names::SRDF_PATH).as_string();
-    std::vector<std::string> file_paths = { urdf_path, srdf_path };
-    std::vector<std::string> file_string_contents;
-    for (const auto& f : file_paths)
+    std::vector<std::string> robot_file_paths = { urdf_path, srdf_path };
+    std::vector<std::string> robot_file_contents;
+    for (const auto& f : robot_file_paths)
     {
       std::ifstream ifs(f);
       if (!ifs.is_open())
@@ -157,92 +127,18 @@ public:
       }
       std::stringstream ss;
       ss << ifs.rdbuf();
-      file_string_contents.push_back(ss.str());
+      robot_file_contents.push_back(ss.str());
     }
 
-    const std::string urdf_content = file_string_contents[0];
-    const std::string srdf_content = file_string_contents[1];
+    const std::string urdf_content = robot_file_contents[0];
+    const std::string srdf_content = robot_file_contents[1];
 
     tesseract_local_ = std::make_shared<tesseract::Tesseract>();
     tesseract_scene_graph::ResourceLocator::Ptr locator = std::make_shared<tesseract_rosutils::ROSResourceLocator>();
     tesseract_local_->init(urdf_content, srdf_content, locator);
 
-    // Set up planning config variable
-    crs_motion_planning::descartesConfig descartes_config;
-    descartes_config.axial_step = 0.075;
-    descartes_config.collision_safety_margin = 0.015;
-    descartes_config.tool_offset.translation().z() = 0.025;
-
-    crs_motion_planning::trajoptSurfaceConfig trajopt_surface_config;
-    trajopt_surface_config.smooth_velocities = false;
-    trajopt_surface_config.smooth_accelerations = false;
-    trajopt_surface_config.smooth_jerks = false;
-    tesseract_motion_planners::CollisionCostConfig coll_cost_config_srfc;
-    coll_cost_config_srfc.enabled = false;
-    trajopt_surface_config.coll_cst_cfg = coll_cost_config_srfc;
-    tesseract_motion_planners::CollisionConstraintConfig coll_cnt_config_srfc;
-    coll_cnt_config_srfc.enabled = true;
-    coll_cnt_config_srfc.safety_margin = 0.01;
-    trajopt_surface_config.coll_cnt_cfg = coll_cnt_config_srfc;
-    Eigen::VectorXd surface_coeffs(6);
-    surface_coeffs << 6, 6, 10, 10, 10, 0;
-    trajopt_surface_config.surface_coeffs = surface_coeffs;
-    trajopt_surface_config.waypoints_critical = false;
-    trajopt_surface_config.longest_valid_segment_fraction = 0.1;
-    trajopt_surface_config.special_collision_constraint.push_back({ "eoat_link", LOADED_PART_LINK_NAME, -0.02, 15.0 });
-    trajopt_surface_config.special_collision_constraint.push_back(
-        { "sander_center_link", LOADED_PART_LINK_NAME, -0.02, 15.0 });
-
-    crs_motion_planning::omplConfig ompl_config;
-    ompl_config.collision_safety_margin = 0.01;
-    ompl_config.planning_time = 120;
-    ompl_config.n_output_states = this->get_parameter(param_names::NUM_FREEPSACE_STEPS).as_int();
-    ompl_config.simplify = true;
-    ompl_config.longest_valid_segment_fraction = 0.015;
-    ompl_config.range = 0.25;
-    ompl_config.num_threads = 8;
-
-    crs_motion_planning::trajoptFreespaceConfig trajopt_freespace_config;
-    tesseract_motion_planners::CollisionCostConfig coll_cost_config_fs;
-    coll_cost_config_fs.enabled = true;
-    coll_cost_config_fs.buffer_margin = 0.02;
-    coll_cost_config_fs.coeff = 15;
-    tesseract_motion_planners::CollisionConstraintConfig coll_cnt_config_fs;
-    coll_cnt_config_fs.enabled = true;
-    coll_cnt_config_fs.safety_margin = 0.005;
-    trajopt_freespace_config.coll_cst_cfg = coll_cost_config_fs;
-    trajopt_freespace_config.coll_cnt_cfg = coll_cnt_config_fs;
-    trajopt_freespace_config.longest_valid_segment_length = 0.01;
-    trajopt_freespace_config.contact_test_type = tesseract_collision::ContactTestType::ALL;
-    trajopt_freespace_config.smooth_velocities = true;
-    trajopt_freespace_config.smooth_accelerations = true;
-    trajopt_freespace_config.smooth_jerks = true;
-    trajopt_freespace_config.special_collision_cost.push_back({ "eoat_link", LOADED_PART_LINK_NAME, 0.03, 20.0 });
-    trajopt_freespace_config.special_collision_cost.push_back({ "eoat_link", "robot_frame", 0.05, 15.0 });
-    trajopt_freespace_config.special_collision_cost.push_back({ "shoulder_link", "robot_frame", 0.03, 15.0 });
-
-    motion_planner_config_ = std::make_shared<crs_motion_planning::pathPlanningConfig>();
-    motion_planner_config_->tesseract_local = tesseract_local_;
-    motion_planner_config_->descartes_config = descartes_config;
-    motion_planner_config_->trajopt_surface_config = trajopt_surface_config;
-    motion_planner_config_->ompl_config = ompl_config;
-    motion_planner_config_->trajopt_freespace_config = trajopt_freespace_config;
-    motion_planner_config_->manipulator = this->get_parameter(param_names::MANIPULATOR_GROUP).as_string();
-    motion_planner_config_->robot_base_frame = this->get_parameter(param_names::ROOT_LINK_FRAME).as_string();
-    motion_planner_config_->world_frame = this->get_parameter(param_names::WORLD_FRAME).as_string();
-    motion_planner_config_->tool0_frame = this->get_parameter(param_names::TOOL0_FRAME).as_string();
-    motion_planner_config_->max_joint_vel =
-        this->get_parameter(param_names::MAX_JOINT_VELOCITY).as_double();  // 5.0;//1.5;
-    motion_planner_config_->max_joint_acc = this->get_parameter(param_names::MAX_JOINT_ACCELERATION).as_double();
-    motion_planner_config_->minimum_raster_length = this->get_parameter(param_names::MIN_RASTER_LENGTH).as_int();
-    motion_planner_config_->add_approach_and_retreat = true;
-    motion_planner_config_->required_tool_vel = true;
-    motion_planner_config_->use_gazebo_sim_timing = this->get_parameter(param_names::GAZEBO_SIM_TIMING).as_bool();
-    motion_planner_config_->trajopt_verbose_output = this->get_parameter(param_names::TRAJOPT_VERBOSE).as_bool();
-    motion_planner_config_->simplify_start_end_freespace = true;
-    motion_planner_config_->use_trajopt_freespace = false;
-    motion_planner_config_->combine_strips = false;
-    motion_planner_config_->global_descartes = true;
+    // motion planning config file
+    std::string motion_planing_config = this->get_parameter(param_names::MOTION_PLANNING_CONFIG).as_string();
   }
 
 private:
@@ -257,30 +153,35 @@ private:
   void planProcess(std::shared_ptr<crs_msgs::srv::PlanProcessMotions::Request> request,
                    std::shared_ptr<crs_msgs::srv::PlanProcessMotions::Response> response)
   {
+    namespace fs = boost::filesystem;
+    crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config =
+        std::make_unique<crs_motion_planning::pathPlanningConfig>();
+    std::string motion_planing_config = this->get_parameter(param_names::MOTION_PLANNING_CONFIG).as_string();
+    crs_motion_planning::loadPathPlanningConfig(motion_planing_config, *motion_planner_config);
+    motion_planner_config->tesseract_local = tesseract_local_;
+
     // Setup planner config with requested process planner service request data
-    motion_planner_config_->tcp_frame = request->tool_link;
-    motion_planner_config_->approach_distance = request->approach_dist;
-    motion_planner_config_->retreat_distance = request->retreat_dist;
-    motion_planner_config_->tool_speed = request->tool_speed;
+    motion_planner_config->tcp_frame = request->tool_link;
+    motion_planner_config->approach_distance = request->approach_dist;
+    motion_planner_config->retreat_distance = request->retreat_dist;
+    motion_planner_config->tool_speed = request->tool_speed;
     if (request->start_position.position.size() > 0)
     {
-      motion_planner_config_->use_start = true;
-      motion_planner_config_->start_pose = std::make_shared<tesseract_motion_planners::JointWaypoint>(
+      motion_planner_config->use_start = true;
+      motion_planner_config->start_pose = std::make_shared<tesseract_motion_planners::JointWaypoint>(
           request->start_position.position, request->start_position.name);
     }
     if (request->end_position.position.size() > 0)
     {
-      motion_planner_config_->use_end = true;
-      motion_planner_config_->end_pose = std::make_shared<tesseract_motion_planners::JointWaypoint>(
+      motion_planner_config->use_end = true;
+      motion_planner_config->end_pose = std::make_shared<tesseract_motion_planners::JointWaypoint>(
           request->end_position.position, request->end_position.name);
     }
-    tesseract_rosutils::fromMsg(motion_planner_config_->tool_offset, request->tool_offset);
-    motion_planner_config_->descartes_config.tool_offset = motion_planner_config_->tool_offset;
+    tesseract_rosutils::fromMsg(motion_planner_config->tool_offset, request->tool_offset);
 
     std::vector<crs_msgs::msg::ProcessMotionPlan> returned_plans;
     bool success;
     std::vector<trajectory_msgs::msg::JointTrajectory> trajopt_trajectories;
-    auto path_plan_results = std::make_shared<crs_motion_planning::pathPlanningResults>();
 
     // Clear old visualizations
     visualization_msgs::msg::Marker marker_eraser;
@@ -293,35 +194,41 @@ private:
 
     for (size_t i = 0; i < request->process_paths.size(); ++i)
     {
+      std::cout << "Planning " << i + 1 << " process of " << request->process_paths.size() << std::endl;
       // Load in current rasters
-      motion_planner_config_->rasters = request->process_paths[i].rasters;
+      motion_planner_config->rasters.clear();
+      motion_planner_config->rasters = request->process_paths[i].rasters;
 
       // Create marker array for original raster visualization
       visualization_msgs::msg::MarkerArray mark_array_msg;
-      crs_motion_planning::rasterStripsToMarkerArray(
-          motion_planner_config_->rasters, "world", mark_array_msg, { 1.0, 0.0, 0.0, 1.0 }, -0.01);
+      crs_motion_planning::rasterStripsToMarkerArray(motion_planner_config->rasters,
+                                                     motion_planner_config->world_frame,
+                                                     mark_array_msg,
+                                                     { 1.0, 0.0, 0.0, 1.0 },
+                                                     -0.01);
       original_path_publisher_->publish(mark_array_msg);
 
       // Create crsMotionPlanner class
-      crs_motion_planning::crsMotionPlanner crs_motion_planner(motion_planner_config_, this->get_logger());
+      crs_motion_planning::crsMotionPlanner crs_motion_planner(*motion_planner_config, this->get_logger());
 
       // Run process planner
-      success = crs_motion_planner.generateProcessPlan(path_plan_results);
+      auto path_plan_results = std::make_unique<crs_motion_planning::pathPlanningResults>();
+      success = crs_motion_planner.generateProcessPlan(path_plan_results) || success;
 
       // Create marker array for processed raster visualization
       visualization_msgs::msg::MarkerArray temp_mark_array_msg, pub_mark_array_msg;
       crs_motion_planning::rasterStripsToMarkerArray(path_plan_results->solved_rasters,
-                                                     motion_planner_config_->world_frame,
+                                                     motion_planner_config->world_frame,
                                                      temp_mark_array_msg,
                                                      { 1.0, 0.0, 1.0, 0.0 },
                                                      -0.025);
       crs_motion_planning::rasterStripsToMarkerArray(path_plan_results->failed_rasters,
-                                                     motion_planner_config_->world_frame,
+                                                     motion_planner_config->world_frame,
                                                      temp_mark_array_msg,
                                                      { 1.0, 1.0, 0.0, 0.0 },
                                                      -0.025);
       crs_motion_planning::rasterStripsToMarkerArray(path_plan_results->skipped_rasters,
-                                                     motion_planner_config_->world_frame,
+                                                     motion_planner_config->world_frame,
                                                      temp_mark_array_msg,
                                                      { 1.0, 1.0, 1.0, 0.0 },
                                                      -0.025);
@@ -332,7 +239,7 @@ private:
       // Create marker array for unreachable vertices
       visualization_msgs::msg::Marker failed_vertex_markers;
       crs_motion_planning::failedEdgesToMarkerArray(path_plan_results->unreachable_waypoints,
-                                                    motion_planner_config_->world_frame,
+                                                    motion_planner_config->world_frame,
                                                     failed_vertex_markers,
                                                     { 1.0, 0.0, 1.0, 1.0 },
                                                     0.01);
@@ -351,7 +258,26 @@ private:
       }
       resulting_process.free_motions = path_plan_results->final_freespace_trajectories;
       resulting_process.process_motions = path_plan_results->final_raster_trajectories;
+
+      crs_motion_planning::cartesianTrajectoryConfig cart_traj_config;
+      cart_traj_config.tcp_frame = motion_planner_config->tcp_frame;
+      cart_traj_config.base_frame = motion_planner_config->robot_base_frame;
+      cart_traj_config.manipulator = motion_planner_config->manipulator;
+      cart_traj_config.tool_frame = motion_planner_config->tool0_frame;
+      cart_traj_config.tesseract_local = motion_planner_config->tesseract_local;
+      cart_traj_config.target_force = request->target_force;
+      cart_traj_config.target_speed = motion_planner_config->tool_speed;
+      motion_planner_config->tool_speed = request->tool_speed;
+      for (size_t j = 0; j < resulting_process.process_motions.size(); ++j)
+      {
+        cartesian_trajectory_msgs::msg::CartesianTrajectory curr_cart_traj;
+        crs_motion_planning::genCartesianTrajectory(
+            resulting_process.process_motions[j], cart_traj_config, curr_cart_traj);
+        resulting_process.force_controlled_process_motions.push_back(curr_cart_traj);
+      }
+
       returned_plans.push_back(resulting_process);
+      path_plan_results.reset();
     }
     // Populate response
     response->plans = returned_plans;
@@ -366,29 +292,37 @@ private:
       response->succeeded = false;
       response->err_msg = "Failed to generate preplan";
     }
+    motion_planner_config.reset();
   }
 
   void planFreespace(std::shared_ptr<crs_msgs::srv::CallFreespaceMotion::Request> request,
                      std::shared_ptr<crs_msgs::srv::CallFreespaceMotion::Response> response)
   {
     using namespace crs_motion_planning;
+    namespace fs = boost::filesystem;
+
+    crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config =
+        std::make_unique<crs_motion_planning::pathPlanningConfig>();
+    std::string motion_planing_config = this->get_parameter(param_names::MOTION_PLANNING_CONFIG).as_string();
+    crs_motion_planning::loadPathPlanningConfig(motion_planing_config, *motion_planner_config);
+    motion_planner_config->tesseract_local = tesseract_local_;
 
     std::cout << "GOT REQUEST" << std::endl;
-    motion_planner_config_->tcp_frame = request->target_link;
+    motion_planner_config->tcp_frame = request->target_link;
     std::cout << "SET TARGET LINK" << std::endl;
     if (request->num_steps != 0)
     {
-      motion_planner_config_->ompl_config.n_output_states = request->num_steps;
+      motion_planner_config->ompl_config.n_output_states = request->num_steps;
     }
     else
     {
-      motion_planner_config_->ompl_config.n_output_states =
+      motion_planner_config->ompl_config.n_output_states =
           this->get_parameter(param_names::NUM_FREEPSACE_STEPS).as_int();
     }
     std::cout << "SET N STEPS" << std::endl;
 
     // Create crsMotionPlanner class
-    crs_motion_planning::crsMotionPlanner crs_motion_planner(motion_planner_config_, this->get_logger());
+    crs_motion_planning::crsMotionPlanner crs_motion_planner(*motion_planner_config, this->get_logger());
     std::cout << "INITIALIZED CLASS" << std::endl;
 
     // Define initial waypoint
@@ -436,11 +370,14 @@ private:
       tesseract_motion_planners::JointWaypoint::Ptr goal_waypoint =
           std::make_shared<tesseract_motion_planners::JointWaypoint>(request->goal_position.position,
                                                                      request->goal_position.name);
+      std::cout << "goal_pose_name " << request->goal_position.name.size() << std::endl;
       RCLCPP_INFO(this->get_logger(), "Planning FreeSpace motion to joint goal");
 
       success =
           crs_motion_planner.generateFreespacePlan(joint_start_waypoint, goal_waypoint, response->output_trajectory);
     }
+
+    motion_planner_config.reset();
 
     if (success && response->output_trajectory.points.size() > 0)
     {
@@ -643,7 +580,6 @@ private:
   rclcpp::callback_group::CallbackGroup::SharedPtr trajectory_exec_client_cbgroup_;
 
   tesseract::Tesseract::Ptr tesseract_local_;
-  crs_motion_planning::pathPlanningConfig::Ptr motion_planner_config_;
 
   sensor_msgs::msg::JointState curr_joint_state_;
   std::size_t tesseract_revision_ = 0;
@@ -653,7 +589,13 @@ int main(int argc, char** argv)
 {
   rclcpp::init(argc, argv);
   rclcpp::executors::MultiThreadedExecutor executor;
-  rclcpp::Node::SharedPtr node = std::make_shared<MotionPlanningServer>();
+
+  // This enables loading undeclared parameters
+  // best practice would be to declare parameters in the corresponding classes
+  // and provide descriptions about expected use
+  rclcpp::NodeOptions node_options;
+  node_options.automatically_declare_parameters_from_overrides(true);
+  rclcpp::Node::SharedPtr node = std::make_shared<MotionPlanningServer>(node_options);
   executor.add_node(node);
   executor.spin();
   return 0;

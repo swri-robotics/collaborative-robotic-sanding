@@ -9,8 +9,6 @@ endif()
 # Default to C++14
 if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 14)
-  set(CMAKE_CXX_STANDARD_REQUIRED ON)
-  set(CMAKE_CXX_EXTENSIONS OFF)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -18,10 +16,6 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
 endif()
 
 # find dependencies
-find_package(ament_cmake REQUIRED)
-# uncomment the following section in order to fill in
-# further dependencies manually.
-# find_package(<dependency> REQUIRED)
 find_package(crs_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
@@ -29,7 +23,10 @@ find_package(sensor_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(visualization_msgs REQUIRED)
-find_package(PCL 1.7 REQUIRED)
+find_package(cv_bridge REQUIRED)
+find_package(tf2_eigen REQUIRED)
+find_package(pcl_conversions REQUIRED)
+find_package(PCL REQUIRED)
 find_package(VTK REQUIRED NO_MODULE)
 
 include_directories(include
@@ -50,17 +47,21 @@ target_link_libraries(${PROJECT_NAME}_nodes ${PROJECT_NAME} ${PCL_LIBRARIES})
 ament_target_dependencies(${PROJECT_NAME}_nodes rclcpp rclcpp_components crs_msgs tf2_ros visualization_msgs)
 
 # node as executable, component plugin can't load parameters
-add_executable(localize_to_part src/nodes/localize_to_part.cpp)
-target_link_libraries(localize_to_part ${PROJECT_NAME} ${PCL_LIBRARIES})
-ament_target_dependencies(localize_to_part rclcpp rclcpp_components crs_msgs tf2_ros std_msgs visualization_msgs)
-install(TARGETS localize_to_part
-DESTINATION lib/${PROJECT_NAME})
+add_executable(localize_to_part src/nodes/localize_to_part.cpp src/model_to_point_cloud.cpp)
+target_include_directories(localize_to_part PUBLIC
+    "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>"
+    "$<INSTALL_INTERFACE:include>")
+target_include_directories(localize_to_part SYSTEM PUBLIC)
+target_link_libraries(localize_to_part ${PCL_LIBRARIES})
+ament_target_dependencies(localize_to_part rclcpp rclcpp_components crs_msgs tf2_eigen tf2_ros std_msgs visualization_msgs)
 
 # test executable
 add_executable(test_localize_to_part src/nodes/test_localize_to_part.cpp)
 target_link_libraries(test_localize_to_part ${PROJECT_NAME} ${PCL_LIBRARIES})
 ament_target_dependencies(test_localize_to_part rclcpp crs_msgs std_msgs)
-install(TARGETS test_localize_to_part
+
+### Install
+install(TARGETS localize_to_part test_localize_to_part
 DESTINATION lib/${PROJECT_NAME})
 
 install(DIRECTORY include/

@@ -92,7 +92,7 @@ common::ActionResult MotionPlanningManager::configure(const config::MotionPlanni
 {
   config_ = std::make_shared<config::MotionPlanningConfig>(config);
   home_js_.reset();
-  if (config_->joint_home_position.empty() || config_->joint_names.empty())
+  if (config_->joint_home_position.empty() || config_->home_joint_names.empty())
   {
     common::ActionResult res;
     res.succeeded = false;
@@ -103,21 +103,22 @@ common::ActionResult MotionPlanningManager::configure(const config::MotionPlanni
 
   // constructing home position
   home_js_ = std::make_shared<sensor_msgs::msg::JointState>();
-  home_js_->name = config_->joint_names;
+  home_js_->name = config_->home_joint_names;
   home_js_->position = config_->joint_home_position;
   home_js_->velocity.resize(home_js_->position.size(), 0.0);
   home_js_->effort.resize(home_js_->position.size(), 0.0);
   return true;
 }
 
-common::ActionResult MotionPlanningManager::setInput(const datatypes::ProcessToolpathData& input)
+common::ActionResult MotionPlanningManager::setInput(const std::vector<datatypes::ProcessToolpathData>& input)
 {
-  if (input.rasters.empty())
+  if (input.empty())
   {
     RCLCPP_ERROR(node_->get_logger(), "%s found no rasters in the process path", MANAGER_NAME.c_str());
     return false;
   }
-  input_ = std::make_shared<datatypes::ProcessToolpathData>(input);
+  input_process_toolpaths.clear();
+  input_process_toolpaths.assign(input.begin(), input.end());
   return true;
 }
 
@@ -130,7 +131,7 @@ common::ActionResult MotionPlanningManager::checkPreReq()
     return res;
   }
 
-  if (!input_)
+  if (input_process_toolpaths.empty())
   {
     common::ActionResult res = { succeeded : false, err_msg : "No input data has been provided, can not proceed" };
     RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
@@ -152,66 +153,74 @@ common::ActionResult MotionPlanningManager::splitToolpaths()
 
   // finding breakpoints
   std::vector<datatypes::ProcessToolpathData> toolpaths_processes;
+  media_change_indices_.clear();
   double current_dist = 0.0;
   Eigen::Vector3d p1, p2;
-  std::vector<std::vector<std::size_t> > rasters_breakpoints(input_->rasters.size());
-  for (std::size_t r_idx = 0; r_idx < input_->rasters.size(); r_idx++)
+  for (std::size_t i = 0; i < input_process_toolpaths.size(); i++)
   {
-    geometry_msgs::msg::PoseArray& raster = input_->rasters[r_idx];
-    for (std::size_t p_idx = 0; p_idx < raster.poses.size() - 1; p_idx++)
+    const datatypes::ProcessToolpathData& current_toolpath = input_process_toolpaths[i];
+    std::vector<std::vector<std::size_t> > rasters_breakpoints(current_toolpath.rasters.size());
+    for (std::size_t r_idx = 0; r_idx < current_toolpath.rasters.size(); r_idx++)
     {
-      p1 = toEigen(raster.poses[p_idx].position);
-      p2 = toEigen(raster.poses[p_idx + 1].position);
-
-      double d = (p2 - p1).norm();
-      if (current_dist + d > split_dist)
+      const geometry_msgs::msg::PoseArray& raster = current_toolpath.rasters[r_idx];
+      for (std::size_t p_idx = 0; p_idx < raster.poses.size() - 1; p_idx++)
       {
-        RCLCPP_INFO(node_->get_logger(), "Found split at point %lu of raster %lu", p_idx, r_idx);
-        rasters_breakpoints[r_idx].push_back(p_idx);
-        current_dist = 0;
+        p1 = toEigen(raster.poses[p_idx].position);
+        p2 = toEigen(raster.poses[p_idx + 1].position);
+
+        double d = (p2 - p1).norm();
+        if (current_dist + d > split_dist)
+        {
+          RCLCPP_INFO(node_->get_logger(), "Found split at point %lu of raster %lu", p_idx, r_idx);
+          rasters_breakpoints[r_idx].push_back(p_idx);
+          current_dist = 0;
+        }
+        current_dist += d;
       }
-      current_dist += d;
+    }
+
+    // splitting toolpath
+    toolpaths_processes.push_back(datatypes::ProcessToolpathData());
+    for (std::size_t r_idx = 0; r_idx < rasters_breakpoints.size(); r_idx++)
+    {
+      const geometry_msgs::msg::PoseArray& raster = current_toolpath.rasters[r_idx];
+      auto& breakpoints_indices = rasters_breakpoints[r_idx];
+      if (breakpoints_indices.empty())
+      {
+        toolpaths_processes.back().rasters.push_back(raster);
+        continue;
+      }
+
+      std::size_t start_idx = 0;
+      std::size_t end_idx;
+      geometry_msgs::msg::PoseArray new_raster;
+      for (std::size_t p_idx = 0; p_idx < breakpoints_indices.size(); p_idx++)
+      {
+        // copy portion of raster leading up to breakpoint into current toolpath
+        end_idx = breakpoints_indices[p_idx];
+        new_raster.poses.clear();
+        std::copy(
+            raster.poses.begin() + start_idx, raster.poses.begin() + end_idx, std::back_inserter(new_raster.poses));
+        toolpaths_processes.back().rasters.push_back(new_raster);
+
+        // create new toolpath
+        media_change_indices_.push_back(toolpaths_processes.size() - 1);
+        toolpaths_processes.resize(toolpaths_processes.size() + 1);
+        start_idx = end_idx;
+      }
+
+      // copy remaining segment of raster into toolpath
+      if (end_idx < raster.poses.size() - 1)
+      {
+        new_raster.poses.clear();
+        std::copy(raster.poses.begin() + end_idx, raster.poses.end(), std::back_inserter(new_raster.poses));
+        toolpaths_processes.back().rasters.push_back(new_raster);
+      }
     }
   }
 
-  // splitting toolpath
-  toolpaths_processes.resize(1);
-  for (std::size_t r_idx = 0; r_idx < rasters_breakpoints.size(); r_idx++)
-  {
-    geometry_msgs::msg::PoseArray& raster = input_->rasters[r_idx];
-    auto& breakpoints_indices = rasters_breakpoints[r_idx];
-    if (breakpoints_indices.empty())
-    {
-      toolpaths_processes.back().rasters.push_back(raster);
-      continue;
-    }
-
-    std::size_t start_idx = 0;
-    std::size_t end_idx;
-    std::remove_reference<decltype(raster)>::type new_raster;
-    for (std::size_t p_idx = 1; p_idx < breakpoints_indices.size(); p_idx++)
-    {
-      // copy portion of raster leading up to breakpoint into current toolpath
-      end_idx = breakpoints_indices[p_idx];
-      new_raster.poses.clear();
-      std::copy(raster.poses.begin() + start_idx, raster.poses.begin() + end_idx, std::back_inserter(new_raster.poses));
-      toolpaths_processes.back().rasters.push_back(new_raster);
-
-      // create new toolpath
-      toolpaths_processes.resize(toolpaths_processes.size() + 1);
-      start_idx = end_idx;
-    }
-
-    // copy remaining segment of raster into toolpath
-    if (end_idx < raster.poses.size() - 1)
-    {
-      new_raster.poses.clear();
-      std::copy(raster.poses.begin() + end_idx, raster.poses.end(), std::back_inserter(new_raster.poses));
-      toolpaths_processes.back().rasters.push_back(new_raster);
-    }
-  }
-
-  RCLCPP_INFO(node_->get_logger(), "Split original process into %lu", toolpaths_processes.size());
+  RCLCPP_INFO(
+      node_->get_logger(), "A total of %i process toolpaths were produced after splitting", toolpaths_processes.size());
   process_toolpaths_ = std::move(toolpaths_processes);
   return true;
 }
@@ -277,6 +286,7 @@ common::ActionResult MotionPlanningManager::planProcessPaths()
   req->retreat_dist = config_->retreat_dist;
   req->tool_speed = config_->tool_speed;
   req->tool_offset = tf2::toMsg(config_->offset_pose);
+  req->target_force = config_->target_force;
   req->start_position = start_position;
   req->end_position = start_position;
 
@@ -312,7 +322,27 @@ common::ActionResult MotionPlanningManager::planProcessPaths()
   // saving process plans
   RCLCPP_INFO(node_->get_logger(), "Successfully planned all process toolpaths");
   result_.process_plans = result_future.get()->plans;
-  return true;
+
+  // verifying plans
+  bool found_valid_plan = false;
+  for (std::size_t i = 0; i < result_.process_plans.size(); i++)
+  {
+    crs_msgs::msg::ProcessMotionPlan& plan = result_.process_plans[i];
+    if (plan.process_motions.empty())
+    {
+      continue;
+    }
+
+    if (plan.start.points.empty() || plan.end.points.empty())
+    {
+      RCLCPP_ERROR(node_->get_logger(), "Start or End move for process %i are empty, invalidating plan", i);
+      plan.process_motions.clear();
+      continue;
+    }
+
+    found_valid_plan = true;
+  }
+  return found_valid_plan;
 }
 
 boost::optional<trajectory_msgs::msg::JointTrajectory>
@@ -365,17 +395,53 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
 
   CallFreespaceMotion::Request::SharedPtr req = std::make_shared<CallFreespaceMotion::Request>();
   req->target_link = config_->tool_frame;
-  geometry_msgs::msg::Pose pose_msg = tf2::toMsg(config_->media_change_pose);
-  std::tie(req->goal_pose.translation.x, req->goal_pose.translation.y, req->goal_pose.translation.z) =
-      std::make_tuple(pose_msg.position.x, pose_msg.position.y, pose_msg.position.z);
-  req->goal_pose.rotation = pose_msg.orientation;
+  if (config_->joint_media_position.empty() || config_->media_joint_names.empty())
+  {
+    // use cartesian tool pose when no joint pose is available
+    geometry_msgs::msg::Pose pose_msg = tf2::toMsg(config_->media_change_pose);
+    std::tie(req->goal_pose.translation.x, req->goal_pose.translation.y, req->goal_pose.translation.z) =
+        std::make_tuple(pose_msg.position.x, pose_msg.position.y, pose_msg.position.z);
+    req->goal_pose.rotation = pose_msg.orientation;
+  }
+  else
+  {
+    req->goal_position.position = config_->joint_media_position;
+    req->goal_position.name = config_->media_joint_names;
+  }
   req->execute = false;
   req->num_steps = 0;  // planner should use default
 
+  // Create media change plans
+  std::vector<int> empty_process_indices;
   for (std::size_t i = 0; i < result_.process_plans.size() - 1; i++)
   {
     datatypes::MediaChangeMotionPlan media_change_plan;
+
+    // check if current motion plan is empty
+    if (result_.process_plans[i].process_motions.empty())
+    {
+      empty_process_indices.push_back(i);
+    }
+
+    // check if media change was assigned to the toolpath for the current process plan
+    if (std::find(media_change_indices_.begin(), media_change_indices_.end(), i) == media_change_indices_.end())
+    {
+      // no media change assigned so push empty one
+      result_.media_change_plans.push_back(media_change_plan);
+      continue;
+    }
+
+    // creating the media change plan now
     const trajectory_msgs::msg::JointTrajectory& traj = result_.process_plans[i].end;
+
+    // check trajectory
+    if (traj.points.empty())
+    {
+      RCLCPP_WARN(node_->get_logger(), "%s skipping empty process plan trajectory", MANAGER_NAME.c_str());
+      continue;
+    }
+
+    RCLCPP_INFO(node_->get_logger(), "Planning media change for process %i", i);
     req->start_position.name = traj.joint_names;
     req->start_position.position = traj.points.back().positions;
 
@@ -390,6 +456,7 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
     // free space motion planning for return move
     req->start_position.position = media_change_plan.start_traj.points.back().positions;
     req->goal_position.position = media_change_plan.start_traj.points.front().positions;
+    req->goal_position.name = media_change_plan.start_traj.joint_names;
     opt = planFreeSpace("RETURN TO PROCESS", req);
     if (!opt.is_initialized())
     {
@@ -399,6 +466,15 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
 
     // saving plan
     result_.media_change_plans.push_back(media_change_plan);
+  }
+
+  // pruning empty process plans and media changes
+  for (decltype(empty_process_indices)::reverse_iterator iter = empty_process_indices.rbegin();
+       iter != empty_process_indices.rend();
+       iter++)
+  {
+    result_.process_plans.erase(result_.process_plans.begin() + *iter);
+    result_.media_change_plans.erase(result_.media_change_plans.begin() + *iter);
   }
 
   return true;

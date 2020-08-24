@@ -31,6 +31,7 @@ find_package(crs_motion_planning REQUIRED)
 find_package(Eigen3 REQUIRED NO_MODULE)
 find_package(yaml_cpp_vendor REQUIRED)
 find_package(gazebo_msgs REQUIRED)
+find_package(region_detection_msgs REQUIRED)
 
 ##################################
 # build
@@ -62,7 +63,8 @@ ament_target_dependencies(${PROJECT_NAME}
  tf2_eigen
  rclcpp_action
  yaml_cpp_vendor
- gazebo_msgs)
+ gazebo_msgs
+ region_detection_msgs)
 
 add_executable(${PROJECT_NAME}_node src/crs_application.cpp)
 target_link_libraries(${PROJECT_NAME}_node 

@@ -163,7 +163,7 @@ static typename Srv::Response::SharedPtr waitForResponse(typename rclcpp::Client
     status = res.wait_for(duration<double>(interval));
     if (status == std::future_status::ready)
     {
-      RCLCPP_ERROR(logger, "future ready");
+      RCLCPP_DEBUG(logger, "future ready");
       break;
     }
   }
@@ -178,9 +178,8 @@ static typename Srv::Response::SharedPtr waitForResponse(typename rclcpp::Client
 }
 
 template <class Msg>
-static std::shared_ptr<Msg> waitForMessage(std::shared_ptr<rclcpp::Node> node,
-                                           const std::string& topic_name,
-                                           double timeout)
+static std::shared_ptr<Msg>
+waitForMessage(std::shared_ptr<rclcpp::Node> node, const std::string& topic_name, bool spin_node, double timeout)
 {
   std::shared_ptr<Msg> msg = nullptr;
   std::promise<Msg> promise_obj;
@@ -188,31 +187,55 @@ static std::shared_ptr<Msg> waitForMessage(std::shared_ptr<rclcpp::Node> node,
 
   std::shared_ptr<rclcpp::Subscription<Msg>> subs;
   subs = node->create_subscription<Msg>(
-      topic_name, rclcpp::QoS(1), [&promise_obj](const std::shared_ptr<Msg> msg) -> void {
-        promise_obj.set_value(*msg);
+      topic_name, rclcpp::QoS(1), [&promise_obj, node](const std::shared_ptr<Msg> msg) -> void {
+        try
+        {
+          promise_obj.set_value(*msg);
+        }
+        catch (std::future_error& e)
+        {
+          // dismiss message
+          RCLCPP_WARN(node->get_logger(), "Message already received, ignoring ...");
+        }
       });
 
   std::atomic<bool> done;
   done = false;
-  auto spinner_fut = std::async([&done, node, subs]() mutable -> bool {
-    while (!done)
-    {
-      rclcpp::spin_some(node);
-    }
-    /** @warning there's no clean way to close a subscription but according to this issue
-                             https://github.com/ros2/rclcpp/issues/205, destroying the subscription
-                             should accomplish the same */
-    subs.reset();
-    return true;
-  });
+  std::future<bool> spinner_fut;
+  if (spin_node)
+  {
+    spinner_fut = std::async(std::launch::async, [&done, node]() mutable -> bool {
+      while (!done)
+      {
+        rclcpp::spin_some(node);
+      }
+
+      return true;
+    });
+  }
 
   std::future_status sts = fut_obj.wait_for(std::chrono::duration<double>(timeout));
-  done = true;
-  spinner_fut.get();
+  done = true;  // should stop the spining thread
+
+  /** @warning there's no clean way to close a subscription but according to this issue
+                           https://github.com/ros2/rclcpp/issues/205, destroying the subscription
+                           should accomplish the same */
+  std::string true_topic_name = subs->get_topic_name();
+  subs.reset();  // stopping subscriber
+
+  // waiting for spinning thread to exit
+  if (spinner_fut.valid())
+  {
+    spinner_fut.get();
+  }
+
   if (sts != std::future_status::ready)
   {
     std::string err_code = sts == std::future_status::timeout ? std::string("Timeout") : std::string("Deferred");
-    RCLCPP_ERROR(node->get_logger(), "%s error while waiting for message", err_code.c_str());
+    RCLCPP_ERROR(node->get_logger(),
+                 "%s error while waiting for message in topic %s",
+                 err_code.c_str(),
+                 true_topic_name.c_str());
     return nullptr;
   }
   msg = std::make_shared<Msg>(fut_obj.get());
@@ -223,41 +246,8 @@ static sensor_msgs::msg::JointState::SharedPtr getCurrentState(std::shared_ptr<r
                                                                const std::string topic_name,
                                                                double timeout)
 {
-  sensor_msgs::msg::JointState::SharedPtr msg = nullptr;
-  std::promise<sensor_msgs::msg::JointState> promise_obj;
-  std::future<sensor_msgs::msg::JointState> fut_obj = promise_obj.get_future();
-
-  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr subs;
-  subs = node->create_subscription<sensor_msgs::msg::JointState>(
-      topic_name, rclcpp::QoS(1), [&promise_obj, node](const sensor_msgs::msg::JointState::SharedPtr msg) -> void {
-        RCLCPP_INFO(node->get_logger(), "Got current state message");
-        promise_obj.set_value(*msg);
-      });
-
-  /*  std::atomic<bool> done;
-    done = false;
-    auto spinner_fut = std::async([&done, node, subs]() mutable -> bool {
-      while (!done)
-      {
-        rclcpp::spin_some(node);
-      }
-      * @warning there's no clean way to close a subscription but according to this issue
-                               https://github.com/ros2/rclcpp/issues/205, destroying the subscription
-                               should accomplish the same
-      subs.reset();
-      return true;
-    });*/
-
-  RCLCPP_INFO(node->get_logger(), "Waiting for  current joint state");
-  std::future_status sts = fut_obj.wait_for(std::chrono::duration<double>(timeout));
-  /*  done = true;
-    spinner_fut.get();*/
-  RCLCPP_INFO(node->get_logger(), "Done waiting for current state");
-  if (sts != std::future_status::ready)
-  {
-    return nullptr;
-  }
-  msg = std::make_shared<sensor_msgs::msg::JointState>(fut_obj.get());
+  sensor_msgs::msg::JointState::SharedPtr msg =
+      waitForMessage<sensor_msgs::msg::JointState>(node, topic_name, false, timeout);
   return msg;
 }
 
