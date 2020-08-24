@@ -24,9 +24,7 @@
     </link>
 
     <joint name="world_to_table_joint" type="fixed">
-<!--      <origin xyz="0 0 -0.363"/>-->
-      <origin xyz="0 0 -0.353"/>
-<!--      <origin xyz="0 0 -0.385"/>-->
+      <origin xyz="0 0 ${-0.353 - 0.010}"/>
       <parent link="world"/>
       <child link="table"/>
     </joint>
@@ -422,7 +420,8 @@
     </joint>
     <link name="${prefix}camera_link_optical" />
     <joint name="${prefix}camera_optical_joint" type="fixed">
-        <origin xyz="-0.021 0.0797 0.06525" rpy="-0.7854 0 0"/>
+    	<!-- <origin xyz="-0.021 0.0797 0.06525" rpy="-0.7854 0 0"/> --> <!-- framos config -->    
+        <origin xyz="-0.021 0.0797 0.05" rpy="-0.7854 0 0"/><!-- realsense config -->
         <parent link="${prefix}eoat_link"/>
         <child link="${prefix}camera_link_optical"/>
     </joint>

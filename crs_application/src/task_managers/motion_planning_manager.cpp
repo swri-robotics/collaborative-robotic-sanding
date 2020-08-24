@@ -153,6 +153,7 @@ common::ActionResult MotionPlanningManager::splitToolpaths()
 
   // finding breakpoints
   std::vector<datatypes::ProcessToolpathData> toolpaths_processes;
+  media_change_indices_.clear();
   double current_dist = 0.0;
   Eigen::Vector3d p1, p2;
   for (std::size_t i = 0; i < input_process_toolpaths.size(); i++)
@@ -203,6 +204,7 @@ common::ActionResult MotionPlanningManager::splitToolpaths()
         toolpaths_processes.back().rasters.push_back(new_raster);
 
         // create new toolpath
+        media_change_indices_.push_back(toolpaths_processes.size() - 1);
         toolpaths_processes.resize(toolpaths_processes.size() + 1);
         start_idx = end_idx;
       }
@@ -217,7 +219,8 @@ common::ActionResult MotionPlanningManager::splitToolpaths()
     }
   }
 
-  RCLCPP_INFO(node_->get_logger(), "Split original process into %lu", toolpaths_processes.size());
+  RCLCPP_INFO(
+      node_->get_logger(), "A total of %i process toolpaths were produced after splitting", toolpaths_processes.size());
   process_toolpaths_ = std::move(toolpaths_processes);
   return true;
 }
@@ -319,7 +322,27 @@ common::ActionResult MotionPlanningManager::planProcessPaths()
   // saving process plans
   RCLCPP_INFO(node_->get_logger(), "Successfully planned all process toolpaths");
   result_.process_plans = result_future.get()->plans;
-  return true;
+
+  // verifying plans
+  bool found_valid_plan = false;
+  for (std::size_t i = 0; i < result_.process_plans.size(); i++)
+  {
+    crs_msgs::msg::ProcessMotionPlan& plan = result_.process_plans[i];
+    if (plan.process_motions.empty())
+    {
+      continue;
+    }
+
+    if (plan.start.points.empty() || plan.end.points.empty())
+    {
+      RCLCPP_ERROR(node_->get_logger(), "Start or End move for process %i are empty, invalidating plan", i);
+      plan.process_motions.clear();
+      continue;
+    }
+
+    found_valid_plan = true;
+  }
+  return found_valid_plan;
 }
 
 boost::optional<trajectory_msgs::msg::JointTrajectory>
@@ -388,15 +411,27 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
   req->execute = false;
   req->num_steps = 0;  // planner should use default
 
-  // Pruning empty plans
-  auto& plans = result_.process_plans;
-  plans.erase(std::remove_if(
-      plans.begin(), plans.end(), [](crs_msgs::msg::ProcessMotionPlan& p) { return p.process_motions.empty(); }));
-
   // Create media change plans
+  std::vector<int> empty_process_indices;
   for (std::size_t i = 0; i < result_.process_plans.size() - 1; i++)
   {
     datatypes::MediaChangeMotionPlan media_change_plan;
+
+    // check if current motion plan is empty
+    if (result_.process_plans[i].process_motions.empty())
+    {
+      empty_process_indices.push_back(i);
+    }
+
+    // check if media change was assigned to the toolpath for the current process plan
+    if (std::find(media_change_indices_.begin(), media_change_indices_.end(), i) == media_change_indices_.end())
+    {
+      // no media change assigned so push empty one
+      result_.media_change_plans.push_back(media_change_plan);
+      continue;
+    }
+
+    // creating the media change plan now
     const trajectory_msgs::msg::JointTrajectory& traj = result_.process_plans[i].end;
 
     // check trajectory
@@ -405,6 +440,8 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
       RCLCPP_WARN(node_->get_logger(), "%s skipping empty process plan trajectory", MANAGER_NAME.c_str());
       continue;
     }
+
+    RCLCPP_INFO(node_->get_logger(), "Planning media change for process %i", i);
     req->start_position.name = traj.joint_names;
     req->start_position.position = traj.points.back().positions;
 
@@ -429,6 +466,15 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
 
     // saving plan
     result_.media_change_plans.push_back(media_change_plan);
+  }
+
+  // pruning empty process plans and media changes
+  for (decltype(empty_process_indices)::reverse_iterator iter = empty_process_indices.rbegin();
+       iter != empty_process_indices.rend();
+       iter++)
+  {
+    result_.process_plans.erase(result_.process_plans.begin() + *iter);
+    result_.media_change_plans.erase(result_.media_change_plans.begin() + *iter);
   }
 
   return true;

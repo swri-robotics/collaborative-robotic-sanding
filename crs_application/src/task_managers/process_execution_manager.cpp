@@ -120,8 +120,15 @@ common::ActionResult ProcessExecutionManager::execProcess()
   cartesian_traj_config.target_speed = config_->tool_speed;
 
   const crs_msgs::msg::ProcessMotionPlan& process_plan = input_->process_plans[current_process_idx_];
+  if (process_plan.process_motions.empty())
+  {
+    RCLCPP_INFO(
+        node_->get_logger(), "%s Process Plan %i is empty, skipping", MANAGER_NAME.c_str(), current_process_idx_);
+    return true;
+  }
+
   RCLCPP_INFO(node_->get_logger(), "%s Executing process %i", MANAGER_NAME.c_str(), current_process_idx_);
-  RCLCPP_INFO(node_->get_logger(), "CHANGED CONTROLLER");
+
   if (!execTrajectory(process_plan.start))
   {
     common::ActionResult res;
@@ -200,7 +207,14 @@ common::ActionResult ProcessExecutionManager::execMediaChange()
     return true;
   }
 
+  // check media change plan
   datatypes::MediaChangeMotionPlan& mc_motion_plan = input_->media_change_plans[current_media_change_idx_];
+  if (mc_motion_plan.start_traj.points.empty())
+  {
+    RCLCPP_WARN(node_->get_logger(), "Media change start move is empty, skipping");
+    return true;
+  }
+
   RCLCPP_INFO(node_->get_logger(), "%s Executing media change %i", MANAGER_NAME.c_str(), current_media_change_idx_);
   if (!execTrajectory(mc_motion_plan.start_traj))
   {
@@ -252,20 +266,34 @@ common::ActionResult ProcessExecutionManager::checkQueue()
     return res;
   }
 
+  // Incrementing counters
   if (current_process_idx_ > current_media_change_idx_)
   {
     current_media_change_idx_ = current_process_idx_;
     current_process_idx_++;
-    if (current_media_change_idx_ < input_->media_change_plans.size())
-    {
-      res.succeeded = true;
-      res.opt_data = datatypes::ProcessExecActions::EXEC_MEDIA_CHANGE;
-      return res;
-    }
   }
 
+  if (current_media_change_idx_ >= input_->media_change_plans.size())
+  {
+    // no more media changes
+    res.succeeded = true;
+    res.opt_data = datatypes::ProcessExecActions::EXEC_PROCESS;
+    return res;
+  }
+
+  // check if media change has valid trajectories
+  datatypes::MediaChangeMotionPlan& mc_motion_plan = input_->media_change_plans[current_media_change_idx_];
+  if (mc_motion_plan.start_traj.points.empty() || mc_motion_plan.return_traj.points.empty())
+  {
+    RCLCPP_WARN(node_->get_logger(), "Media change moves are empty, skipping");
+    res.succeeded = true;
+    res.opt_data = datatypes::ProcessExecActions::EXEC_PROCESS;
+    return res;
+  }
+
+  // request media change then
   res.succeeded = true;
-  res.opt_data = datatypes::ProcessExecActions::EXEC_PROCESS;
+  res.opt_data = datatypes::ProcessExecActions::EXEC_MEDIA_CHANGE;
   return res;
 }
 
@@ -304,6 +332,14 @@ common::ActionResult ProcessExecutionManager::execMoveReturn()
               "%s Executing return move %i back to process ",
               MANAGER_NAME.c_str(),
               current_media_change_idx_);
+
+  // check media change plan
+  if (mc_motion_plan.return_traj.points.empty())
+  {
+    RCLCPP_WARN(node_->get_logger(), "Media change return move is empty, skipping");
+    return true;
+  }
+
   if (!execTrajectory(mc_motion_plan.return_traj))
   {
     common::ActionResult res;
@@ -397,7 +433,6 @@ common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_ms
   using namespace control_msgs::action;
   static const double GOAL_ACCEPT_TIMEOUT_PERIOD = 1.0;
 
-  // rclcpp::Duration traj_dur(traj.points.back().time_from_start);
   common::ActionResult res = false;
 
   if (config_->force_controlled_trajectories && !ProcessExecutionManager::changeActiveController(false))
@@ -410,62 +445,6 @@ common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_ms
   {
     return res;
   }
-  /*
-    TODO: Somehow this got commented out and the above crs_motion_planning::execTrajectory function
-        was added instead.  Revisit this section and remove the dependency on crs_motion_planning */
-  /*
-    FollowJointTrajectory::Goal goal;
-    goal.trajectory = traj;
-    auto goal_options = rclcpp_action::Client<FollowJointTrajectory>::SendGoalOptions();
-    // TODO populate tolerances
-
-    // send goal
-    trajectory_exec_fut_ = trajectory_exec_client_->async_send_goal(goal);
-    traj_dur = traj_dur + rclcpp::Duration(config_->traj_time_tolerance);
-
-    // wait for goal
-    if (trajectory_exec_fut_.wait_for(std::chrono::duration<double>(GOAL_ACCEPT_TIMEOUT_PERIOD)) !=
-        std::future_status::ready)
-    {
-      res.err_msg = "Timed out waiting for goal to be accepted";
-      RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
-      trajectory_exec_client_->async_cancel_all_goals();
-      return res;
-    }
-
-    // get goal handle
-    auto gh = trajectory_exec_fut_.get();
-    if (!gh)
-    {
-      res.err_msg = "Goal was rejected";
-      RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
-      trajectory_exec_client_->async_cancel_all_goals();
-      return res;
-    }
-
-    // wait for result
-    if (trajectory_exec_client_->async_get_result(gh).wait_for(traj_dur.to_chrono<std::chrono::seconds>()) !=
-        std::future_status::ready)
-    {
-      res.err_msg = "Trajectory execution timed out";
-      RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), res.err_msg.c_str());
-      trajectory_exec_client_->async_cancel_all_goals();
-      return res;
-    }
-
-    rclcpp_action::ClientGoalHandle<FollowJointTrajectory>::WrappedResult wrapped_result =
-        trajectory_exec_client_->async_get_result(gh).get();
-    if (wrapped_result.code != rclcpp_action::ResultCode::SUCCEEDED)
-    {
-      res.err_msg = wrapped_result.result->error_string;
-      RCLCPP_ERROR(node_->get_logger(), "Trajectory execution failed with error message: %s", res.err_msg.c_str());
-      return res;
-    }
-
-    // reset future
-    trajectory_exec_fut_ = std::shared_future<GoalHandleT::SharedPtr>();
-    RCLCPP_INFO(node_->get_logger(), "%s Trajectory completed", MANAGER_NAME.c_str());
-    */
 
   return true;
 }
