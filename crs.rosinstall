@@ -11,3 +11,4 @@
 - git: {local-name: iterative_spline_parameterization, uri: 'https://github.com/schornakj/iterative_spline_parameterization.git', version: 81df45a}
 - git: {local-name: Universal_Robots_ROS_Driver, uri: 'https://github.com/marrts/Universal_Robots_ROS_Driver.git', version: ros2}
 - git: {local-name: cartesian_trajectory_msgs, uri: 'https://github.com/marrts/cartesian_trajectory_msgs.git', version: ros2}
+- git: {local-name: region_detection, uri: 'https://github.com/swri-robotics/Region-Detection.git', version: master}
