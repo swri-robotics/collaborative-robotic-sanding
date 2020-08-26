@@ -29,7 +29,7 @@ jobs:
              UPSTREAM_CMAKE_ARGS: "-DCMAKE_BUILD_TYPE=Debug",
              TARGET_CMAKE_ARGS: "-DCMAKE_BUILD_TYPE=Debug",
              DOWNSTREAM_CMAKE_ARGS: "-DCMAKE_BUILD_TYPE=Debug",
-             ADDITIONAL_DEBS: "libompl-dev",
+             ADDITIONAL_DEBS: "libompl-dev libyaml-cpp-dev",
              NOT_TEST_BUILD: true,
              BUILDER: "colcon"}
 
