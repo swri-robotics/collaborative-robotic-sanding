@@ -16,20 +16,20 @@ jobs:
              OS_CODE_NAME: bionic,
              ROS_DISTRO: eloquent,
              ROS_REPO: main,
-             ROSDEP_SKIP_KEYS: "catkin ompl message_runtime message_generation dynamic_reconfigure roscpp roslib eigen_conversions scxml_core tesseract tesseract_kinematics tesseract_visualization trajopt trajopt_utils trajopt_sco descartes_light descartes_ikfast descartes_samplers ur_ikfast_kinematics iterative_spline_parameterization realsense2",
+             ROSDEP_SKIP_KEYS: "catkin ompl message_runtime message_generation dynamic_reconfigure roscpp roslib eigen_conversions scxml_core tesseract tesseract_kinematics tesseract_visualization trajopt trajopt_utils trajopt_sco descartes_light descartes_ikfast descartes_samplers ur_ikfast_kinematics iterative_spline_parameterization realsense2 pcl_ros",
              CLANG_FORMAT_CHECK: file,
              CLANG_FORMAT_VERSION: 8,
              BADGE: clang-format}
           - {OS_NAME: ubuntu,
              OS_CODE_NAME: bionic,
              UPSTREAM_WORKSPACE: 'crs.rosinstall',
-             ROSDEP_SKIP_KEYS: "catkin ompl message_runtime message_generation dynamic_reconfigure roscpp roslib eigen_conversions scxml_core tesseract tesseract_kinematics tesseract_visualization trajopt trajopt_utils trajopt_sco descartes_light descartes_ikfast descartes_samplers ur_ikfast_kinematics iterative_spline_parameterization realsense2",
+             ROSDEP_SKIP_KEYS: "catkin ompl message_runtime message_generation dynamic_reconfigure roscpp roslib eigen_conversions scxml_core tesseract tesseract_kinematics tesseract_visualization trajopt trajopt_utils trajopt_sco descartes_light descartes_ikfast descartes_samplers ur_ikfast_kinematics iterative_spline_parameterization realsense2 pcl_ros",
              DOCKER_IMAGE: "mpowelson/bionic-qt-ros:eloquent",
              BADGE: eloquent,
              UPSTREAM_CMAKE_ARGS: "-DCMAKE_BUILD_TYPE=Debug",
              TARGET_CMAKE_ARGS: "-DCMAKE_BUILD_TYPE=Debug",
              DOWNSTREAM_CMAKE_ARGS: "-DCMAKE_BUILD_TYPE=Debug",
-             ADDITIONAL_DEBS: "libompl-dev",
+             ADDITIONAL_DEBS: "libompl-dev libyaml-cpp-dev",
              NOT_TEST_BUILD: true,
              BUILDER: "colcon"}
 
