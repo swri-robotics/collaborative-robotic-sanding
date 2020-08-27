@@ -986,3 +986,68 @@ bool crs_motion_planning::execSurfaceTrajectory(
   RCLCPP_INFO(logger, "Trajectory completed");
   return true;
 }
+
+geometry_msgs::msg::PoseArray crs_motion_planning::transformWaypoints(const geometry_msgs::msg::PoseArray& input_waypoints,
+                                                                      const geometry_msgs::msg::TransformStamped& transform,
+                                                                      const bool inverse)
+{
+  geometry_msgs::msg::PoseArray transformed_waypoints;
+  Eigen::Isometry3d transform_eig = tf2::transformToEigen(transform);
+  for (auto pose : input_waypoints.poses)
+  {
+    Eigen::Affine3d given_point;
+    tf2::fromMsg(pose, given_point);
+    Eigen::Affine3d transformed_point = transform_eig.inverse() * given_point;
+    if (inverse)
+      transformed_point = transform_eig * given_point;
+    geometry_msgs::msg::Pose transformed_pose = tf2::toMsg(transformed_point);
+    transformed_waypoints.poses.push_back(transformed_pose);
+  }
+  return transformed_waypoints;
+}
+
+std::vector<geometry_msgs::msg::PoseArray> crs_motion_planning::transformWaypoints(const std::vector<geometry_msgs::msg::PoseArray>& input_waypoints,
+                                                                                   const geometry_msgs::msg::TransformStamped& transform,
+                                                                                   const bool inverse)
+{
+  std::vector<geometry_msgs::msg::PoseArray> transformed_waypoints;
+  for (auto waypoints : input_waypoints)
+  {
+    transformed_waypoints.push_back(crs_motion_planning::transformWaypoints(waypoints, transform, inverse));
+  }
+  return transformed_waypoints;
+}
+
+bool crs_motion_planning::filterReachabilitySphere(const geometry_msgs::msg::PoseArray& waypoints,
+                                                   const double& radius,
+                                                   geometry_msgs::msg::PoseArray& reachable_waypoints)
+{
+  bool some_points_reachable = false;
+  for (auto pose : waypoints.poses)
+  {
+    double distance = std::sqrt(std::pow(pose.position.x, 2) + std::pow(pose.position.y, 2) + std::pow(pose.position.z, 2));
+    if (distance < radius)
+    {
+      reachable_waypoints.poses.push_back(pose);
+      some_points_reachable = true;
+    }
+  }
+  return some_points_reachable;
+}
+
+bool crs_motion_planning::filterReachabilitySphere(const std::vector<geometry_msgs::msg::PoseArray>& waypoints_vec,
+                                                   const double& radius,
+                                                   std::vector<geometry_msgs::msg::PoseArray>& reachable_waypoints_vec)
+{
+  bool some_points_reachable = false;
+  for (auto waypoints : waypoints_vec)
+  {
+    geometry_msgs::msg::PoseArray reachable_waypoints;
+    if (crs_motion_planning::filterReachabilitySphere(waypoints, radius, reachable_waypoints))
+    {
+      some_points_reachable = true;
+      reachable_waypoints_vec.push_back(reachable_waypoints);
+    }
+  }
+  return some_points_reachable;
+}

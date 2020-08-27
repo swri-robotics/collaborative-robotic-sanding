@@ -168,6 +168,7 @@ bool loadPathPlanningConfig(const std::string& yaml_fp, pathPlanningConfig& moti
     motion_planner_config.max_joint_acc = general_yaml["max_joint_acc"].as<double>();
     motion_planner_config.add_approach_and_retreat = general_yaml["add_approach_and_retreat"].as<bool>();
     motion_planner_config.minimum_raster_length = general_yaml["minimum_raster_length"].as<std::size_t>();
+    motion_planner_config.reachable_radius = general_yaml["reachable_radius"].as<double>();
     motion_planner_config.trajopt_verbose_output = general_yaml["trajopt_verbose_output"].as<bool>();
     motion_planner_config.combine_strips = general_yaml["combine_strips"].as<bool>();
     motion_planner_config.global_descartes = general_yaml["global_descartes"].as<bool>();

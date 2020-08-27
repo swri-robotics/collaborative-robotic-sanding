@@ -225,6 +225,45 @@ bool execSurfaceTrajectory(
     const cartesian_trajectory_msgs::msg::CartesianTrajectory& traj,
     const cartesianTrajectoryConfig& traj_config);
 
+
+///
+/// \brief transformWaypoints Transform waypoints given transform
+/// \return transformed waypoints
+///
+geometry_msgs::msg::PoseArray transformWaypoints(const geometry_msgs::msg::PoseArray& input_waypoints,
+                                                 const geometry_msgs::msg::TransformStamped& transform,
+                                                 const bool inverse = false);
+
+///
+/// \brief transformWaypoints Transform waypoints given transform
+/// \return transformed waypoints
+///
+std::vector<geometry_msgs::msg::PoseArray> transformWaypoints(const std::vector<geometry_msgs::msg::PoseArray>& input_waypoints,
+                                                              const geometry_msgs::msg::TransformStamped& transform,
+                                                              const bool inverse = false);
+
+///
+/// \brief filterReachabilitySphere Removes any points outside of sphere of reachability from robot base
+/// \return success
+///
+bool filterReachabilitySphere(const geometry_msgs::msg::PoseArray& waypoints,
+                              const double& radius,
+                              geometry_msgs::msg::PoseArray& reachable_waypoints);
+
+///
+/// \brief filterReachabilitySphere Removes any points outside of sphere of reachability from robot base
+/// \return success
+///
+bool filterReachabilitySphere(const std::vector<geometry_msgs::msg::PoseArray>& waypoints_vec,
+                              const double& radius,
+                              std::vector<geometry_msgs::msg::PoseArray>& reachable_waypoints_vec);
+
+///
+/// \brief organizeRasters Puts rasters in alternating order
+/// \return success
+///
+std::vector<geometry_msgs::msg::PoseArray> organizeRasters(const std::vector<geometry_msgs::msg::PoseArray>& waypoints_vec);
+
 }  // namespace crs_motion_planning
 
 #endif  // CRS_MOTION_PLANNING_PATH_PROCESSING_UTILS_H

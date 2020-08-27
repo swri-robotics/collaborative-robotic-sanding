@@ -65,6 +65,8 @@ class MotionPlanningServer : public rclcpp::Node
 {
 public:
   MotionPlanningServer(rclcpp::NodeOptions options) : Node("motion_planning_server_node", options)
+  , tf_buffer_(std::make_shared<rclcpp::Clock>(RCL_ROS_TIME))
+  , tf_listener_(tf_buffer_)
   {
     namespace fs = boost::filesystem;
 
@@ -195,9 +197,31 @@ private:
     for (size_t i = 0; i < request->process_paths.size(); ++i)
     {
       std::cout << "Planning " << i + 1 << " process of " << request->process_paths.size() << std::endl;
+
+      geometry_msgs::msg::TransformStamped transform;
+      try
+      {
+        transform = tf_buffer_.lookupTransform(
+            request->process_paths[i].rasters[0].header.frame_id, motion_planner_config->robot_base_frame, tf2::TimePointZero, tf2::Duration(5));
+      }
+      catch (tf2::TransformException ex)
+      {
+        std::string error_msg = "Failed to get transform from '" + request->process_paths[i].rasters[0].header.frame_id + "' to '" +
+                                motion_planner_config->robot_base_frame + "' frame";
+
+        RCLCPP_ERROR(this->get_logger(), "Raster Frame error: %s: ", ex.what(), error_msg.c_str());
+        return;
+      }
+
+      std::vector<geometry_msgs::msg::PoseArray> transformed_waypoints = crs_motion_planning::transformWaypoints(request->process_paths[i].rasters, transform);
+      std::vector<geometry_msgs::msg::PoseArray> reachable_transformed_waypoints;
+      crs_motion_planning::filterReachabilitySphere(transformed_waypoints, motion_planner_config->reachable_radius, reachable_transformed_waypoints);
+      std::vector<geometry_msgs::msg::PoseArray> reachable_waypoints = crs_motion_planning::transformWaypoints(reachable_transformed_waypoints, transform, true);
+
       // Load in current rasters
       motion_planner_config->rasters.clear();
-      motion_planner_config->rasters = request->process_paths[i].rasters;
+//      motion_planner_config->rasters = request->process_paths[i].rasters;
+      motion_planner_config->rasters = reachable_waypoints;
 
       // Create marker array for original raster visualization
       visualization_msgs::msg::MarkerArray mark_array_msg;
@@ -583,6 +607,10 @@ private:
 
   sensor_msgs::msg::JointState curr_joint_state_;
   std::size_t tesseract_revision_ = 0;
+
+  // tf
+  tf2_ros::Buffer tf_buffer_;
+  tf2_ros::TransformListener tf_listener_;
 };
 
 int main(int argc, char** argv)

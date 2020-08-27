@@ -14,6 +14,7 @@ general:
   max_joint_acc: 0.8
   add_approach_and_retreat: true
   minimum_raster_length: 4
+  reachable_radius: 1.25
   trajopt_verbose_output: false
   combine_strips: true
   global_descartes: true

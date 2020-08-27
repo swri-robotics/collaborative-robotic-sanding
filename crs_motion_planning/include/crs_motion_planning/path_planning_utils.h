@@ -159,6 +159,7 @@ struct pathPlanningConfig
   double max_joint_acc = 0.5;  // rad/s^2
 
   size_t minimum_raster_length = 2;
+  double reachable_radius = 1.0;
 
   bool trajopt_verbose_output = false;
 
