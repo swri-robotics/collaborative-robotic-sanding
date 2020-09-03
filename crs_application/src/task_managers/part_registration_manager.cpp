@@ -264,9 +264,9 @@ common::ActionResult PartRegistrationManager::computeTransform()
 
 common::ActionResult PartRegistrationManager::applyTransform()
 {
-  std::vector<geometry_msgs::msg::PoseArray> raster_strips1, raster_strips;
-  crs_motion_planning::parsePathFromFile(config_->toolpath_file, config_->target_frame_id, raster_strips1);
-  raster_strips = crs_motion_planning::removeEdgeWaypoints(raster_strips1, config_->waypoint_edge_buffer);
+  std::vector<geometry_msgs::msg::PoseArray> original_rasters, cropped_raster_strips;
+  crs_motion_planning::parsePathFromFile(config_->toolpath_file, config_->target_frame_id, original_rasters);
+  cropped_raster_strips = crs_motion_planning::removeEdgeWaypoints(original_rasters, config_->waypoint_edge_buffer);
 
   auto apply_transform = [](const geometry_msgs::msg::Pose& p,
                             const geometry_msgs::msg::Transform& t) -> geometry_msgs::msg::Pose {
@@ -276,14 +276,14 @@ common::ActionResult PartRegistrationManager::applyTransform()
     tf2::fromMsg(p, p_eig);
     return tf2::toMsg(t_eig * p_eig);
   };
-  for (auto& poses : raster_strips)
+  for (auto& poses : cropped_raster_strips)
   {
     for (std::size_t i = 0; i < poses.poses.size(); i++)
     {
       poses.poses[i] = apply_transform(poses.poses[i], part_transform_.transform);
     }
   }
-  result_.rasters = raster_strips;
+  result_.rasters = cropped_raster_strips;
   RCLCPP_INFO_STREAM(node_->get_logger(), MANAGER_NAME << " Transformed raster strips and saved them");
 
   auto load_part_request = std::make_shared<crs_msgs::srv::LoadPart::Request>();
