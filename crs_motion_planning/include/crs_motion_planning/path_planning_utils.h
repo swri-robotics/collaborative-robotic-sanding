@@ -47,6 +47,8 @@ struct descartesConfig
   bool allow_collisions = false;
 
   Eigen::Isometry3d tool_offset = Eigen::Isometry3d::Identity();
+
+  std::vector<double> joint_min_vals;
 };
 
 struct trajoptSurfaceConfig
@@ -91,6 +93,10 @@ struct omplConfig
 
   double longest_valid_segment_fraction = 0.01;
   double longest_valid_segment_length = 0.5;
+
+  bool retry_failure = true;
+  double retry_distance = 0.002;
+  bool retry_at_zero = false;
 };
 
 struct trajoptFreespaceConfig
@@ -156,7 +162,8 @@ struct pathPlanningConfig
   double max_joint_vel = 0.2;  // rad/s
   double max_joint_vel_mult = 1.0;
   double max_surface_dist = 0.1;
-  double max_joint_acc = 0.5;  // rad/s^2
+  double max_rotation_rate = 3.0;  // rad/m
+  double max_joint_acc = 0.5;      // rad/s^2
 
   size_t minimum_raster_length = 2;
   double reachable_radius = 1.0;

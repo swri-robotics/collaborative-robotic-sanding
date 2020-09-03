@@ -461,6 +461,7 @@ bool crs_motion_planning::splitRastersByJointDist(const trajectory_msgs::msg::Jo
                                                   std::vector<trajectory_msgs::msg::JointTrajectory>& split_traj,
                                                   std::vector<geometry_msgs::msg::PoseArray>& split_rasters,
                                                   std::vector<std::vector<double>>& time_steps,
+                                                  const double& max_rotation_rate,
                                                   const double& joint_vel_mult)
 {
   double max_vel_adj = max_joint_vel * joint_vel_mult;
@@ -491,12 +492,16 @@ bool crs_motion_planning::splitRastersByJointDist(const trajectory_msgs::msg::Jo
     cart_pose_diff = curr_cart_pose.translation() - prev_cart_pose.translation();
     double dist_traveled = cart_pose_diff.norm();
 
+    // Calculate rotation rate in rad/m between adjacent points
+    double rotation_between = crs_motion_planning::calcRotation(given_raster.poses[i], given_raster.poses[i - 1]);
+    double rotation_rate = rotation_between / dist_traveled;
+
     // Calculate max required joint velocity
     double req_joint_vel = (desired_ee_vel * max_joint_diff) / dist_traveled;
     double curr_time_step = dist_traveled / desired_ee_vel;
 
     // If required joint velocity is higher than max allowable then split raster
-    if (req_joint_vel > max_vel_adj || dist_traveled > max_dist)
+    if (req_joint_vel > max_vel_adj || dist_traveled > max_dist || rotation_rate > max_rotation_rate)
     {
       split_exists = true;
       split_traj.push_back(curr_traj);
@@ -987,9 +992,40 @@ bool crs_motion_planning::execSurfaceTrajectory(
   return true;
 }
 
-geometry_msgs::msg::PoseArray crs_motion_planning::transformWaypoints(const geometry_msgs::msg::PoseArray& input_waypoints,
-                                                                      const geometry_msgs::msg::TransformStamped& transform,
-                                                                      const bool inverse)
+geometry_msgs::msg::PoseArray
+crs_motion_planning::removeEdgeWaypoints(const geometry_msgs::msg::PoseArray& input_waypoints, const double& buffer)
+{
+  geometry_msgs::msg::PoseArray cropped_waypoints;
+  cropped_waypoints.header = input_waypoints.header;
+  geometry_msgs::msg::Pose first_point = input_waypoints.poses.front();
+  geometry_msgs::msg::Pose last_point = input_waypoints.poses.back();
+  for (auto pose : input_waypoints.poses)
+  {
+    if (abs(crs_motion_planning::calcPoseDist(pose, first_point)) > buffer &&
+        abs(crs_motion_planning::calcPoseDist(pose, last_point)) > buffer)
+      cropped_waypoints.poses.push_back(pose);
+  }
+  return cropped_waypoints;
+}
+
+std::vector<geometry_msgs::msg::PoseArray>
+crs_motion_planning::removeEdgeWaypoints(const std::vector<geometry_msgs::msg::PoseArray>& input_waypoints,
+                                         const double& buffer)
+{
+  std::vector<geometry_msgs::msg::PoseArray> cropped_waypoints;
+  for (auto waypoints : input_waypoints)
+  {
+    geometry_msgs::msg::PoseArray cropped_raster = crs_motion_planning::removeEdgeWaypoints(waypoints, buffer);
+    if (cropped_raster.poses.size() > 0)
+      cropped_waypoints.push_back(cropped_raster);
+  }
+  return cropped_waypoints;
+}
+
+geometry_msgs::msg::PoseArray
+crs_motion_planning::transformWaypoints(const geometry_msgs::msg::PoseArray& input_waypoints,
+                                        const geometry_msgs::msg::TransformStamped& transform,
+                                        const bool inverse)
 {
   geometry_msgs::msg::PoseArray transformed_waypoints;
   Eigen::Isometry3d transform_eig = tf2::transformToEigen(transform);
@@ -1006,9 +1042,10 @@ geometry_msgs::msg::PoseArray crs_motion_planning::transformWaypoints(const geom
   return transformed_waypoints;
 }
 
-std::vector<geometry_msgs::msg::PoseArray> crs_motion_planning::transformWaypoints(const std::vector<geometry_msgs::msg::PoseArray>& input_waypoints,
-                                                                                   const geometry_msgs::msg::TransformStamped& transform,
-                                                                                   const bool inverse)
+std::vector<geometry_msgs::msg::PoseArray>
+crs_motion_planning::transformWaypoints(const std::vector<geometry_msgs::msg::PoseArray>& input_waypoints,
+                                        const geometry_msgs::msg::TransformStamped& transform,
+                                        const bool inverse)
 {
   std::vector<geometry_msgs::msg::PoseArray> transformed_waypoints;
   for (auto waypoints : input_waypoints)
@@ -1025,7 +1062,8 @@ bool crs_motion_planning::filterReachabilitySphere(const geometry_msgs::msg::Pos
   bool some_points_reachable = false;
   for (auto pose : waypoints.poses)
   {
-    double distance = std::sqrt(std::pow(pose.position.x, 2) + std::pow(pose.position.y, 2) + std::pow(pose.position.z, 2));
+    double distance =
+        std::sqrt(std::pow(pose.position.x, 2) + std::pow(pose.position.y, 2) + std::pow(pose.position.z, 2));
     if (distance < radius)
     {
       reachable_waypoints.poses.push_back(pose);
@@ -1050,4 +1088,110 @@ bool crs_motion_planning::filterReachabilitySphere(const std::vector<geometry_ms
     }
   }
   return some_points_reachable;
+}
+
+double crs_motion_planning::calcPoseDist(const geometry_msgs::msg::Pose& waypoint1,
+                                         const geometry_msgs::msg::Pose& waypoint2)
+{
+  Eigen::Affine3d wp1, wp2;
+  tf2::fromMsg(waypoint1, wp1);
+  tf2::fromMsg(waypoint2, wp2);
+  double dist = (wp1.translation() - wp2.translation()).norm();
+  return dist;
+}
+
+double crs_motion_planning::calcRotation(const geometry_msgs::msg::Pose& waypoint1,
+                                         const geometry_msgs::msg::Pose& waypoint2)
+{
+  Eigen::Affine3d wp1, wp2;
+  tf2::fromMsg(waypoint1, wp1);
+  tf2::fromMsg(waypoint2, wp2);
+  Eigen::Affine3d wp1_2_wp2_transform = wp1.inverse() * wp2;
+  Eigen::AngleAxisd rot_between_waypoints = Eigen::AngleAxisd(wp1_2_wp2_transform.rotation());
+  return abs(rot_between_waypoints.angle());
+}
+
+std::vector<geometry_msgs::msg::PoseArray>
+crs_motion_planning::organizeRasters(const std::vector<geometry_msgs::msg::PoseArray>& waypoints_vec)
+{
+  std::vector<geometry_msgs::msg::PoseArray> organized_rasters;
+  std::vector<std::size_t> available_rasters;
+  for (size_t i = 1; i < waypoints_vec.size(); ++i)
+  {
+    available_rasters.push_back(i);
+  }
+  organized_rasters.push_back(waypoints_vec.front());
+  geometry_msgs::msg::Pose prev_end = organized_rasters.front().poses.back();
+  for (size_t i = 1; i < waypoints_vec.size(); ++i)
+  {
+    double min_dist = 1000;
+    size_t next_i = i;
+    bool back = false;
+    int element_num_remove = 0, count = 0;
+    for (size_t raster_i : available_rasters)
+    {
+      geometry_msgs::msg::Pose front_pose, back_pose;
+      front_pose = waypoints_vec[raster_i].poses.front();
+      back_pose = waypoints_vec[raster_i].poses.back();
+      double front_dist = crs_motion_planning::calcPoseDist(prev_end, front_pose);
+      double back_dist = crs_motion_planning::calcPoseDist(prev_end, back_pose);
+      if (front_dist < min_dist)
+      {
+        min_dist = front_dist;
+        next_i = raster_i;
+        back = false;
+        element_num_remove = count;
+      }
+      if (back_dist < min_dist)
+      {
+        min_dist = back_dist;
+        next_i = raster_i;
+        back = true;
+        element_num_remove = count;
+      }
+      count++;
+    }
+    geometry_msgs::msg::PoseArray added_vec;
+    if (!back)
+    {
+      added_vec = waypoints_vec[next_i];
+    }
+    else
+    {
+      for (size_t pose_i = waypoints_vec[next_i].poses.size(); pose_i > 0; --pose_i)
+      {
+        added_vec.poses.push_back(waypoints_vec[next_i].poses[pose_i - 1]);
+      }
+    }
+    organized_rasters.push_back(added_vec);
+    prev_end = organized_rasters.back().poses.back();
+    available_rasters.erase(available_rasters.begin() + element_num_remove);
+  }
+  return organized_rasters;
+}
+
+std::vector<double> crs_motion_planning::findRasterRotation(const geometry_msgs::msg::PoseArray& waypoints)
+{
+  Eigen::Affine3d prev_waypoint;
+  double rotation_sum = 0;
+  double distance_sum = 0;
+  double max_rot_rate = 0;
+  tf2::fromMsg(waypoints.poses.front(), prev_waypoint);
+  for (size_t i = 1; i < waypoints.poses.size(); ++i)
+  {
+    Eigen::Affine3d curr_waypoint;
+    tf2::fromMsg(waypoints.poses[i], curr_waypoint);
+    Eigen::Affine3d prev_2_curr_transform = prev_waypoint.inverse() * curr_waypoint;
+    Eigen::AngleAxisd rot_between_waypoints = Eigen::AngleAxisd(prev_2_curr_transform.rotation());
+    rotation_sum += abs(rot_between_waypoints.angle());
+    distance_sum += prev_2_curr_transform.translation().norm();
+    double rot_rate = abs(rot_between_waypoints.angle()) / prev_2_curr_transform.translation().norm();
+    if (rot_rate > max_rot_rate)
+      max_rot_rate = rot_rate;
+    prev_waypoint = curr_waypoint;
+  }
+  std::vector<double> return_vals;
+  return_vals.push_back(max_rot_rate);
+  return_vals.push_back(rotation_sum / distance_sum);
+  return return_vals;
 }
