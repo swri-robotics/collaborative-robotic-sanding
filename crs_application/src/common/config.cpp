@@ -93,6 +93,7 @@ static const std::string SEED_POSE = "seed_pose";
 static const std::string TARGET_FRAME_ID = "target_frame_id";
 static const std::string PART_FILE = "part_file";
 static const std::string TOOLPATH_FILE = "toolpath_file";
+static const std::string TOOLPATH_EDGE_BUFFER = "toolpath_edge_buffer";
 }  // namespace part_registration
 
 namespace part_rework
@@ -386,11 +387,14 @@ boost::optional<PartRegistrationConfig> parse(YAML::Node& config, std::string& e
       return boost::none;
     }
 
-    if (hasFields(root_node, TOP_LEVEL, { SIMULATION_POSE, SEED_POSE, TARGET_FRAME_ID, PART_FILE, TOOLPATH_FILE }))
+    if (hasFields(root_node,
+                  TOP_LEVEL,
+                  { SIMULATION_POSE, SEED_POSE, TARGET_FRAME_ID, PART_FILE, TOOLPATH_FILE, TOOLPATH_EDGE_BUFFER }))
     {
       cfg.target_frame_id = root_node[TARGET_FRAME_ID].as<std::string>();
       cfg.part_file = root_node[PART_FILE].as<std::string>();
       cfg.toolpath_file = root_node[TOOLPATH_FILE].as<std::string>();
+      cfg.waypoint_edge_buffer = root_node[TOOLPATH_EDGE_BUFFER].as<double>();
 
       // seed pose
       std::vector<double> pose_vals = root_node[SEED_POSE].as<std::vector<double>>();

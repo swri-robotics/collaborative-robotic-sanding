@@ -264,8 +264,9 @@ common::ActionResult PartRegistrationManager::computeTransform()
 
 common::ActionResult PartRegistrationManager::applyTransform()
 {
-  std::vector<geometry_msgs::msg::PoseArray> raster_strips;
-  crs_motion_planning::parsePathFromFile(config_->toolpath_file, config_->target_frame_id, raster_strips);
+  std::vector<geometry_msgs::msg::PoseArray> raster_strips1, raster_strips;
+  crs_motion_planning::parsePathFromFile(config_->toolpath_file, config_->target_frame_id, raster_strips1);
+  raster_strips = crs_motion_planning::removeEdgeWaypoints(raster_strips1, config_->waypoint_edge_buffer);
 
   auto apply_transform = [](const geometry_msgs::msg::Pose& p,
                             const geometry_msgs::msg::Transform& t) -> geometry_msgs::msg::Pose {

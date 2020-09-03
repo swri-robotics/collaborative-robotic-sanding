@@ -60,7 +60,6 @@ ompl:
   collision_safety_margin: 0.01
   planning_time: 120.0
   simplify: true
-  # range: 0.25
   range: 0.15
   num_threads: 8
   max_solutions: 10
