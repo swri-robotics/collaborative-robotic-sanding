@@ -11,6 +11,7 @@ crs:
       retreat_dist: 0.03
       approach_dist: 0.03
       tool_frame: sander_center_link
+      target_force: 20
     media_change:
       change_time: 300.0
       change_pose: [-0.381, -0.202, 1.5, 0.0, -0.786, 1.57]

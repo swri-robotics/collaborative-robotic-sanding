@@ -227,6 +227,7 @@ boost::optional<ProcessExecutionConfig> parse(YAML::Node& config, std::string& e
   using namespace config_fields::process_execution;
   ProcessExecutionConfig cfg;
 
+  // required parameters
   try
   {
     Node root_node = config[TOP_LEVEL];
@@ -268,6 +269,9 @@ boost::optional<ProcessExecutionConfig> parse(YAML::Node& config, std::string& e
     }
     else
     {
+      err_msg = boost::str(boost::format("Failed to find required fields  in %s yaml, using defaults") %
+                           typeid(ProcessExecutionConfig).name());
+      RCLCPP_ERROR(CONFIG_LOGGER, "%s", err_msg.c_str());
       return boost::none;
     }
   }
@@ -292,6 +296,7 @@ boost::optional<ProcessExecutionConfig> parse(YAML::Node& config, std::string& e
     RCLCPP_ERROR(CONFIG_LOGGER, "%s", err_msg.c_str());
     return boost::none;
   }
+
   return cfg;
 }
 
@@ -369,6 +374,8 @@ boost::optional<PartRegistrationConfig> parse(YAML::Node& config, std::string& e
   using namespace YAML;
   using namespace config_fields::part_registration;
   PartRegistrationConfig cfg;
+
+  // required parameters;
   try
   {
     Node root_node = config[TOP_LEVEL];
@@ -379,14 +386,11 @@ boost::optional<PartRegistrationConfig> parse(YAML::Node& config, std::string& e
       return boost::none;
     }
 
-    if (hasFields(root_node,
-                  TOP_LEVEL,
-                  { SIMULATION_POSE, SEED_POSE, TARGET_FRAME_ID, PART_FILE, TOOLPATH_FILE, TOOLPATH_EDGE_BUFFER }))
+    if (hasFields(root_node, TOP_LEVEL, { SIMULATION_POSE, SEED_POSE, TARGET_FRAME_ID, PART_FILE, TOOLPATH_FILE }))
     {
       cfg.target_frame_id = root_node[TARGET_FRAME_ID].as<std::string>();
       cfg.part_file = root_node[PART_FILE].as<std::string>();
       cfg.toolpath_file = root_node[TOOLPATH_FILE].as<std::string>();
-      cfg.waypoint_edge_buffer = root_node[TOOLPATH_EDGE_BUFFER].as<double>();
 
       // seed pose
       std::vector<double> pose_vals = root_node[SEED_POSE].as<std::vector<double>>();
@@ -421,6 +425,30 @@ boost::optional<PartRegistrationConfig> parse(YAML::Node& config, std::string& e
                          typeid(PartRegistrationConfig).name() % e.what());
     RCLCPP_ERROR(CONFIG_LOGGER, "%s", err_msg.c_str());
     return boost::none;
+  }
+
+  // optional parameters
+  try
+  {
+    Node root_node = config[TOP_LEVEL];
+    cfg.waypoint_edge_buffer = 0.0;
+
+    if (hasFields(root_node, TOP_LEVEL, { TOOLPATH_EDGE_BUFFER }))
+    {
+      cfg.waypoint_edge_buffer = root_node[TOOLPATH_EDGE_BUFFER].as<double>();
+    }
+    else
+    {
+      err_msg = boost::str(boost::format("Failed to find optional fields  in %s yaml, using defaults") %
+                           typeid(PartRegistrationConfig).name());
+      RCLCPP_WARN(CONFIG_LOGGER, "%s", err_msg.c_str());
+    }
+  }
+  catch (std::exception& e)
+  {
+    err_msg = boost::str(boost::format("Failed to parse optional fields  in %s yaml, using defaults") %
+                         typeid(PartRegistrationConfig).name());
+    RCLCPP_WARN(CONFIG_LOGGER, "%s", err_msg.c_str());
   }
   return cfg;
 }
