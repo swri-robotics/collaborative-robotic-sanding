@@ -151,6 +151,7 @@ bool splitRastersByJointDist(const trajectory_msgs::msg::JointTrajectory& given_
                              std::vector<trajectory_msgs::msg::JointTrajectory>& split_traj,
                              std::vector<geometry_msgs::msg::PoseArray>& split_rasters,
                              std::vector<std::vector<double>>& time_steps,
+                             const double& max_rotation_rate = 3.0,
                              const double& joint_vel_mult = 1.0);
 
 void addApproachAndRetreat(const geometry_msgs::msg::PoseArray& given_raster,
@@ -224,6 +225,78 @@ bool execSurfaceTrajectory(
     const rclcpp::Logger& logger,
     const cartesian_trajectory_msgs::msg::CartesianTrajectory& traj,
     const cartesianTrajectoryConfig& traj_config);
+
+///
+/// \brief removeEdgeWaypoints remove buffer from either side of the waypoints
+/// \return cropped waypoints
+///
+geometry_msgs::msg::PoseArray removeEdgeWaypoints(const geometry_msgs::msg::PoseArray& input_waypoints,
+                                                  const double& buffer);
+
+///
+/// \brief removeEdgeWaypoints remove buffer from either side of the waypoints
+/// \return cropped waypoints
+///
+std::vector<geometry_msgs::msg::PoseArray>
+removeEdgeWaypoints(const std::vector<geometry_msgs::msg::PoseArray>& input_waypoints, const double& buffer);
+
+///
+/// \brief transformWaypoints Transform waypoints given transform
+/// \return transformed waypoints
+///
+geometry_msgs::msg::PoseArray transformWaypoints(const geometry_msgs::msg::PoseArray& input_waypoints,
+                                                 const geometry_msgs::msg::TransformStamped& transform,
+                                                 const bool inverse = false);
+
+///
+/// \brief transformWaypoints Transform waypoints given transform
+/// \return transformed waypoints
+///
+std::vector<geometry_msgs::msg::PoseArray>
+transformWaypoints(const std::vector<geometry_msgs::msg::PoseArray>& input_waypoints,
+                   const geometry_msgs::msg::TransformStamped& transform,
+                   const bool inverse = false);
+
+///
+/// \brief filterReachabilitySphere Removes any points outside of sphere of reachability from robot base
+/// \return success
+///
+bool filterReachabilitySphere(const geometry_msgs::msg::PoseArray& waypoints,
+                              const double& radius,
+                              geometry_msgs::msg::PoseArray& reachable_waypoints);
+
+///
+/// \brief filterReachabilitySphere Removes any points outside of sphere of reachability from robot base
+/// \return success
+///
+bool filterReachabilitySphere(const std::vector<geometry_msgs::msg::PoseArray>& waypoints_vec,
+                              const double& radius,
+                              std::vector<geometry_msgs::msg::PoseArray>& reachable_waypoints_vec);
+
+///
+/// \brief calcPoseDist calculates distance between two geometry_msgs Pose msgs
+/// \return distance between poses
+///
+double calcPoseDist(const geometry_msgs::msg::Pose& waypoint1, const geometry_msgs::msg::Pose& waypoint2);
+
+///
+/// \brief calcRotation calculates rotation between two geometry_msgs Pose msgs
+/// \return rotation between poses
+///
+double calcRotation(const geometry_msgs::msg::Pose& waypoint1, const geometry_msgs::msg::Pose& waypoint2);
+
+///
+/// \brief organizeRasters Puts rasters in alternating order
+/// \return organized waypoints
+///
+std::vector<geometry_msgs::msg::PoseArray>
+organizeRasters(const std::vector<geometry_msgs::msg::PoseArray>& waypoints_vec);
+
+///
+/// \brief findRasterRotation finds the rotation rate of a raster
+/// \return [max rotation in radians/m, avg rotation in radians/m]
+///
+std::vector<double> findRasterRotation(const geometry_msgs::msg::PoseArray& waypoints);
 
 }  // namespace crs_motion_planning
 

@@ -56,10 +56,7 @@ static const std::string PREVIEW_ROOT = "preview";
 static const std::vector<std::string> HOME_POS_ITEMS = { "joint_names", "joint_position" };
 static const std::vector<std::string> PROCESS_PATH_ITEMS = { "tool_speed",    "offset_pose", "retreat_dist",
                                                              "approach_dist", "tool_frame",  "target_force" };
-static const std::vector<std::string> MEDIA_CHANGE_ITEMS = { "change_time",
-                                                             "change_pose",
-                                                             "joint_names",
-                                                             "joint_position" };
+static const std::vector<std::string> MEDIA_CHANGE_ITEMS = { "change_time", "joint_names", "joint_position" };
 static const std::vector<std::string> PREVIEW_ITEMS = { "time_scaling" };
 }  // namespace motion_planning
 
@@ -93,6 +90,7 @@ static const std::string SEED_POSE = "seed_pose";
 static const std::string TARGET_FRAME_ID = "target_frame_id";
 static const std::string PART_FILE = "part_file";
 static const std::string TOOLPATH_FILE = "toolpath_file";
+static const std::string TOOLPATH_EDGE_BUFFER = "toolpath_edge_buffer";
 }  // namespace part_registration
 
 namespace part_rework
@@ -180,13 +178,8 @@ boost::optional<MotionPlanningConfig> parse(YAML::Node& config, std::string& err
     if (media_change_node && hasFields(media_change_node, MEDIA_CHANGE_ROOT, MEDIA_CHANGE_ITEMS))
     {
       cfg.media_change_time = media_change_node[MEDIA_CHANGE_ITEMS[0]].as<double>();
-      std::vector<double> xyzrpy = media_change_node[MEDIA_CHANGE_ITEMS[1]].as<std::vector<double>>();
-      cfg.media_change_pose = Eigen::Translation3d(Eigen::Vector3d(xyzrpy[0], xyzrpy[1], xyzrpy[2])) *
-                              Eigen::AngleAxisd(xyzrpy[3], Eigen::Vector3d::UnitX()) *
-                              Eigen::AngleAxisd(xyzrpy[4], Eigen::Vector3d::UnitY()) *
-                              Eigen::AngleAxisd(xyzrpy[5], Eigen::Vector3d::UnitZ());
-      cfg.media_joint_names = media_change_node[MEDIA_CHANGE_ITEMS[2]].as<std::vector<std::string>>();
-      cfg.joint_media_position = media_change_node[MEDIA_CHANGE_ITEMS[3]].as<std::vector<double>>();
+      cfg.media_joint_names = media_change_node[MEDIA_CHANGE_ITEMS[1]].as<std::vector<std::string>>();
+      cfg.joint_media_position = media_change_node[MEDIA_CHANGE_ITEMS[2]].as<std::vector<double>>();
     }
     else
     {
@@ -234,6 +227,7 @@ boost::optional<ProcessExecutionConfig> parse(YAML::Node& config, std::string& e
   using namespace config_fields::process_execution;
   ProcessExecutionConfig cfg;
 
+  // required parameters
   try
   {
     Node root_node = config[TOP_LEVEL];
@@ -275,6 +269,9 @@ boost::optional<ProcessExecutionConfig> parse(YAML::Node& config, std::string& e
     }
     else
     {
+      err_msg = boost::str(boost::format("Failed to find required fields  in %s yaml, using defaults") %
+                           typeid(ProcessExecutionConfig).name());
+      RCLCPP_ERROR(CONFIG_LOGGER, "%s", err_msg.c_str());
       return boost::none;
     }
   }
@@ -299,6 +296,7 @@ boost::optional<ProcessExecutionConfig> parse(YAML::Node& config, std::string& e
     RCLCPP_ERROR(CONFIG_LOGGER, "%s", err_msg.c_str());
     return boost::none;
   }
+
   return cfg;
 }
 
@@ -376,6 +374,8 @@ boost::optional<PartRegistrationConfig> parse(YAML::Node& config, std::string& e
   using namespace YAML;
   using namespace config_fields::part_registration;
   PartRegistrationConfig cfg;
+
+  // required parameters;
   try
   {
     Node root_node = config[TOP_LEVEL];
@@ -425,6 +425,30 @@ boost::optional<PartRegistrationConfig> parse(YAML::Node& config, std::string& e
                          typeid(PartRegistrationConfig).name() % e.what());
     RCLCPP_ERROR(CONFIG_LOGGER, "%s", err_msg.c_str());
     return boost::none;
+  }
+
+  // optional parameters
+  try
+  {
+    Node root_node = config[TOP_LEVEL];
+    cfg.waypoint_edge_buffer = 0.0;
+
+    if (hasFields(root_node, TOP_LEVEL, { TOOLPATH_EDGE_BUFFER }))
+    {
+      cfg.waypoint_edge_buffer = root_node[TOOLPATH_EDGE_BUFFER].as<double>();
+    }
+    else
+    {
+      err_msg = boost::str(boost::format("Failed to find optional fields  in %s yaml, using defaults") %
+                           typeid(PartRegistrationConfig).name());
+      RCLCPP_WARN(CONFIG_LOGGER, "%s", err_msg.c_str());
+    }
+  }
+  catch (std::exception& e)
+  {
+    err_msg = boost::str(boost::format("Failed to parse optional fields  in %s yaml, using defaults") %
+                         typeid(PartRegistrationConfig).name());
+    RCLCPP_WARN(CONFIG_LOGGER, "%s", err_msg.c_str());
   }
   return cfg;
 }

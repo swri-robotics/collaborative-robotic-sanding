@@ -2,7 +2,6 @@
 #include <tesseract_rosutils/conversions.h>
 
 static const rclcpp::Logger LOGGER = rclcpp::get_logger("PATH_PLANNING_UTILS");
-static const double MINIMUM_WRIST_2_ABS_VAL = 0.1;
 
 namespace crs_motion_planning
 {
@@ -32,6 +31,7 @@ bool loadPathPlanningConfig(const std::string& yaml_fp, pathPlanningConfig& moti
                                    Eigen::AngleAxisd(xyzrpy[4], Eigen::Vector3d::UnitY()) *
                                    Eigen::AngleAxisd(xyzrpy[5], Eigen::Vector3d::UnitZ());
     descartes_config.allow_collisions = false;
+    descartes_config.joint_min_vals = descartes_yaml["joint_min_vals"].as<std::vector<double>>();
 
     // TRAJOPT SURFACE CONFIG
     YAML::Node trajopt_surface_yaml = full_yaml_node["trajopt_surface"];
@@ -100,6 +100,9 @@ bool loadPathPlanningConfig(const std::string& yaml_fp, pathPlanningConfig& moti
     ompl_config.n_output_states = ompl_yaml["default_n_output_states"].as<double>();
     ompl_config.longest_valid_segment_fraction = ompl_yaml["longest_valid_segment_fraction"].as<double>();
     ompl_config.longest_valid_segment_length = ompl_yaml["longest_valid_segment_length"].as<double>();
+    ompl_config.retry_failure = ompl_yaml["retry_failure"].as<bool>();
+    ompl_config.retry_distance = ompl_yaml["retry_distance"].as<double>();
+    ompl_config.retry_at_zero = ompl_yaml["retry_at_zero"].as<bool>();
 
     // TRAJOPT FREESPACE CONFIG
     YAML::Node trajopt_freespace_yaml = full_yaml_node["trajopt_freespace"];
@@ -165,9 +168,11 @@ bool loadPathPlanningConfig(const std::string& yaml_fp, pathPlanningConfig& moti
     motion_planner_config.max_joint_vel = general_yaml["max_joint_vel"].as<double>();
     motion_planner_config.max_joint_vel_mult = general_yaml["max_joint_vel_mult"].as<double>();
     motion_planner_config.max_surface_dist = general_yaml["max_surface_dist"].as<double>();
+    motion_planner_config.max_rotation_rate = general_yaml["max_rotation_rate"].as<double>();
     motion_planner_config.max_joint_acc = general_yaml["max_joint_acc"].as<double>();
     motion_planner_config.add_approach_and_retreat = general_yaml["add_approach_and_retreat"].as<bool>();
     motion_planner_config.minimum_raster_length = general_yaml["minimum_raster_length"].as<std::size_t>();
+    motion_planner_config.reachable_radius = general_yaml["reachable_radius"].as<double>();
     motion_planner_config.trajopt_verbose_output = general_yaml["trajopt_verbose_output"].as<bool>();
     motion_planner_config.combine_strips = general_yaml["combine_strips"].as<bool>();
     motion_planner_config.global_descartes = general_yaml["global_descartes"].as<bool>();
@@ -238,8 +243,13 @@ bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray
 
   // Function to make sure wrist 2 isn't close to zero to avoid wrist singularities
   std::function<bool(const double*)> isValidFn = [&](const double* joints) {
-    if (abs(joints[4]) < MINIMUM_WRIST_2_ABS_VAL)
-      return false;
+    for (size_t i = 0; i < config_->descartes_config.joint_min_vals.size(); ++i)
+    {
+      if (abs(joints[i]) < config_->descartes_config.joint_min_vals[i])
+      {
+        return false;
+      }
+    }
     return true;
   };
 
@@ -457,6 +467,7 @@ bool crsMotionPlanner::generateSurfacePlans(pathPlanningResults::Ptr& results)
                                                        double_split_traj,
                                                        resplit_rasters,
                                                        time_steps,
+                                                       config_->max_rotation_rate,
                                                        config_->max_joint_vel_mult))
       {
         RCLCPP_INFO(logger_, "FOUND A SPLIT");
@@ -828,7 +839,36 @@ bool crsMotionPlanner::generateOMPLSeed(const tesseract_motion_planners::JointWa
 
   if (!ompl_planner.setConfiguration(ompl_planner_config))
   {
-    return false;
+    if (config_->ompl_config.retry_failure)
+    {
+      RCLCPP_WARN(logger_,
+                  "Failed to set configuration for OMPL, retrying with %f collision distance",
+                  config_->ompl_config.retry_distance);
+      ompl_planner_config->collision_safety_margin = config_->ompl_config.retry_distance;
+      if (!ompl_planner.setConfiguration(ompl_planner_config))
+      {
+        if (config_->ompl_config.retry_at_zero)
+        {
+          RCLCPP_WARN(logger_, "Failed to set configuration for OMPL, retrying with 0 collision distance");
+          ompl_planner_config->collision_safety_margin = 0;
+          if (!ompl_planner.setConfiguration(ompl_planner_config))
+          {
+            RCLCPP_ERROR(logger_, "Failed to set configuration for OMPL again");
+            return false;
+          }
+        }
+        else
+        {
+          RCLCPP_ERROR(logger_, "Failed to set configuration for OMPL again");
+          return false;
+        }
+      }
+    }
+    else
+    {
+      RCLCPP_ERROR(logger_, "Failed to set configuration for OMPL again");
+      return false;
+    }
   }
   RCLCPP_INFO(logger_, "OMPL CONFIGURATION SET");
 

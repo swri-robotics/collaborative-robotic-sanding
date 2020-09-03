@@ -9,11 +9,13 @@ general:
   tool0_frame: "tool0"
   required_tool_vel: true
   max_joint_vel: 0.3
-  max_joint_vel_mult: 1.5
+  max_joint_vel_mult: 1.80
   max_surface_dist: 0.15
+  max_rotation_rate: 3.0
   max_joint_acc: 0.8
   add_approach_and_retreat: true
   minimum_raster_length: 2
+  reachable_radius: 2.5
   trajopt_verbose_output: false
   combine_strips: true
   global_descartes: true
@@ -21,6 +23,7 @@ descartes:
   axial_step: 0.5 # Pi/36
   collision_safety_margin: 0.00
   additional_tool_offset: [0.0, 0.0, 0.005, 0.0, 0.0, 0.0]
+  joint_min_vals: [-0.1, -0.1, -0.4, -0.1, 0.1, -0.1]
 trajopt_surface:
   smooth_velocities: false
   smooth_accelerations: false
@@ -67,6 +70,9 @@ ompl:
   default_n_output_states: 20
   longest_valid_segment_fraction: 0.01
   longest_valid_segment_length: 0.5
+  retry_failure: true
+  retry_distance: 0.002
+  retry_at_zero: true
 trajopt_freespace:
   smooth_velocities: true
   smooth_accelerations: true
