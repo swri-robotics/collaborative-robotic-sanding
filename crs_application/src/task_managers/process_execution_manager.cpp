@@ -232,7 +232,7 @@ common::ActionResult ProcessExecutionManager::execMediaChange()
     run_robot_script_req->filename = config_->ur_tool_change_script;
     std::shared_future<crs_msgs::srv::RunRobotScript::Response::SharedPtr> run_robot_script_future =
         run_robot_script_client_->async_send_request(run_robot_script_req);
-    std::future_status run_robot_script_status = run_robot_script_future.wait_for(std::chrono::seconds(30));
+    std::future_status run_robot_script_status = run_robot_script_future.wait_for(std::chrono::seconds(600));
     if (run_robot_script_status != std::future_status::ready)
     {
       common::ActionResult res;
