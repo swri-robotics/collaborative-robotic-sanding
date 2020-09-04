@@ -433,7 +433,7 @@ boost::optional<PartRegistrationConfig> parse(YAML::Node& config, std::string& e
   {
     Node root_node = config[TOP_LEVEL];
     cfg.waypoint_edge_buffer = 0.0;
-    cfg.reachable_radius = 1.5;
+    cfg.reachable_radius = 5.0;
 
     if (hasFields(root_node, TOP_LEVEL, { TOOLPATH_EDGE_BUFFER }))
     {

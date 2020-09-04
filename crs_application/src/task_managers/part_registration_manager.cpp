@@ -301,7 +301,9 @@ common::ActionResult PartRegistrationManager::applyTransform()
     return false;
   }
 
-  std::vector<geometry_msgs::msg::PoseArray> organized_rasters = crs_motion_planning::organizeRasters(original_rasters);
+  cropped_raster_strips = crs_motion_planning::removeEdgeWaypoints(original_rasters, config_->waypoint_edge_buffer);
+  std::vector<geometry_msgs::msg::PoseArray> organized_rasters =
+      crs_motion_planning::organizeRasters(cropped_raster_strips);
   std::vector<geometry_msgs::msg::PoseArray> transformed_waypoints =
       crs_motion_planning::transformWaypoints(organized_rasters, transform);
   std::vector<geometry_msgs::msg::PoseArray> reachable_transformed_waypoints;
@@ -310,9 +312,7 @@ common::ActionResult PartRegistrationManager::applyTransform()
   std::vector<geometry_msgs::msg::PoseArray> reachable_waypoints =
       crs_motion_planning::transformWaypoints(reachable_transformed_waypoints, transform, true);
 
-  cropped_raster_strips = crs_motion_planning::removeEdgeWaypoints(reachable_waypoints, config_->waypoint_edge_buffer);
-
-  result_.rasters = cropped_raster_strips;
+  result_.rasters = reachable_waypoints;
   RCLCPP_INFO_STREAM(node_->get_logger(), MANAGER_NAME << " Transformed raster strips and saved them");
 
   auto load_part_request = std::make_shared<crs_msgs::srv::LoadPart::Request>();
