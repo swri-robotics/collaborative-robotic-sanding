@@ -159,6 +159,7 @@ bool loadPathPlanningConfig(const std::string& yaml_fp, pathPlanningConfig& moti
     motion_planner_config.use_trajopt_freespace = general_yaml["use_trajopt_freespace"].as<bool>();
     motion_planner_config.use_trajopt_surface = general_yaml["use_trajopt_surface"].as<bool>();
     motion_planner_config.default_to_descartes = general_yaml["default_to_descartes"].as<bool>();
+    motion_planner_config.default_to_ompl = general_yaml["default_to_ompl"].as<bool>();
     motion_planner_config.simplify_start_end_freespace = general_yaml["simplify_start_end_freespace"].as<bool>();
     motion_planner_config.manipulator = general_yaml["manipulator"].as<std::string>();
     motion_planner_config.world_frame = general_yaml["world_frame"].as<std::string>();
@@ -958,9 +959,21 @@ bool crsMotionPlanner::trajoptFreespaceFromOMPL(const tesseract_motion_planners:
                             config_->trajopt_verbose_output);
   if (plan_resp.status.value() != 0)
   {
-    RCLCPP_ERROR(logger_, "FAILED TO OPTIMIZE WITH TRAJOPT");
-    RCLCPP_ERROR(logger_, "%s", plan_resp.status.message().c_str());
-    return false;
+    if (config_->default_to_ompl)
+    {
+      RCLCPP_WARN(logger_, "FAILED TO OPTIMIZE WITH TRAJOPT DEFAULTING TO OMPL");
+      RCLCPP_WARN(logger_, "%s", plan_resp.status.message().c_str());
+      Eigen::MatrixXd cumulative_trajectory(seed_trajectory.trajectory.rows(), seed_trajectory.trajectory.cols());
+      cumulative_trajectory << seed_trajectory.trajectory;
+      tesseract_rosutils::toMsg(joint_trajectory, seed_trajectory.joint_names, cumulative_trajectory);
+      return true;
+    }
+    else
+    {
+      RCLCPP_ERROR(logger_, "FAILED TO OPTIMIZE WITH TRAJOPT");
+      RCLCPP_ERROR(logger_, "%s", plan_resp.status.message().c_str());
+      return false;
+    }
   }
   RCLCPP_INFO(logger_, "OPTIMIZED WITH TRAJOPT");
   // Store generated trajectory

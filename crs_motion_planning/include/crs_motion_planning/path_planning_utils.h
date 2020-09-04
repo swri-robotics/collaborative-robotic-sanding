@@ -133,6 +133,7 @@ struct pathPlanningConfig
   bool use_trajopt_freespace = true;
   bool use_trajopt_surface = true;
   bool default_to_descartes = false;
+  bool default_to_ompl = true;
 
   tesseract::Tesseract::Ptr tesseract_local;
 
