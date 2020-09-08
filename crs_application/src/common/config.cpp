@@ -91,6 +91,7 @@ static const std::string TARGET_FRAME_ID = "target_frame_id";
 static const std::string PART_FILE = "part_file";
 static const std::string TOOLPATH_FILE = "toolpath_file";
 static const std::string TOOLPATH_EDGE_BUFFER = "toolpath_edge_buffer";
+static const std::string REACHABLE_RADIUS = "reachable_radius";
 }  // namespace part_registration
 
 namespace part_rework
@@ -432,10 +433,22 @@ boost::optional<PartRegistrationConfig> parse(YAML::Node& config, std::string& e
   {
     Node root_node = config[TOP_LEVEL];
     cfg.waypoint_edge_buffer = 0.0;
+    cfg.reachable_radius = 5.0;
 
     if (hasFields(root_node, TOP_LEVEL, { TOOLPATH_EDGE_BUFFER }))
     {
       cfg.waypoint_edge_buffer = root_node[TOOLPATH_EDGE_BUFFER].as<double>();
+    }
+    else
+    {
+      err_msg = boost::str(boost::format("Failed to find optional fields  in %s yaml, using defaults") %
+                           typeid(PartRegistrationConfig).name());
+      RCLCPP_WARN(CONFIG_LOGGER, "%s", err_msg.c_str());
+    }
+
+    if (hasFields(root_node, TOP_LEVEL, { REACHABLE_RADIUS }))
+    {
+      cfg.reachable_radius = root_node[REACHABLE_RADIUS].as<double>();
     }
     else
     {

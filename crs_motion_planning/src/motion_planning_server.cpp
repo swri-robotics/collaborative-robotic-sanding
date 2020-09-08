@@ -199,37 +199,9 @@ private:
     {
       std::cout << "Planning " << i + 1 << " process of " << request->process_paths.size() << std::endl;
 
-      geometry_msgs::msg::TransformStamped transform;
-      try
-      {
-        transform = tf_buffer_.lookupTransform(request->process_paths[i].rasters[0].header.frame_id,
-                                               motion_planner_config->robot_base_frame,
-                                               tf2::TimePointZero,
-                                               tf2::Duration(5));
-      }
-      catch (tf2::TransformException ex)
-      {
-        std::string error_msg = "Failed to get transform from '" +
-                                request->process_paths[i].rasters[0].header.frame_id + "' to '" +
-                                motion_planner_config->robot_base_frame + "' frame";
-
-        RCLCPP_ERROR(this->get_logger(), "Raster Frame error: %s: ", ex.what(), error_msg.c_str());
-        return;
-      }
-
-      std::vector<geometry_msgs::msg::PoseArray> organized_rasters =
-          crs_motion_planning::organizeRasters(request->process_paths[i].rasters);
-      std::vector<geometry_msgs::msg::PoseArray> transformed_waypoints =
-          crs_motion_planning::transformWaypoints(organized_rasters, transform);
-      std::vector<geometry_msgs::msg::PoseArray> reachable_transformed_waypoints;
-      crs_motion_planning::filterReachabilitySphere(
-          transformed_waypoints, motion_planner_config->reachable_radius, reachable_transformed_waypoints);
-      std::vector<geometry_msgs::msg::PoseArray> reachable_waypoints =
-          crs_motion_planning::transformWaypoints(reachable_transformed_waypoints, transform, true);
-
       // Load in current rasters
       motion_planner_config->rasters.clear();
-      motion_planner_config->rasters = reachable_waypoints;
+      motion_planner_config->rasters = request->process_paths[i].rasters;
 
       // Create marker array for original raster visualization
       visualization_msgs::msg::MarkerArray mark_array_msg;

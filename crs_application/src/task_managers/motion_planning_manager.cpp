@@ -201,6 +201,7 @@ common::ActionResult MotionPlanningManager::splitToolpaths()
         new_raster.poses.clear();
         std::copy(
             raster.poses.begin() + start_idx, raster.poses.begin() + end_idx, std::back_inserter(new_raster.poses));
+        new_raster.header = raster.header;
         toolpaths_processes.back().rasters.push_back(new_raster);
 
         // create new toolpath

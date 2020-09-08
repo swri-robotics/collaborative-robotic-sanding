@@ -38,6 +38,7 @@
 
 static const double WAIT_SERVER_TIMEOUT = 10.0;  // seconds
 static const double WAIT_ROBOT_STOP = 2.0;
+static const int WAIT_TOOL_CHANGE_COMPLETION = 600;  // seconds
 static const std::string MANAGER_NAME = "ProcessExecutionManager";
 static const std::string FOLLOW_JOINT_TRAJECTORY_ACTION = "follow_joint_trajectory";
 static const std::string SURFACE_TRAJECTORY_ACTION = "execute_surface_motion";
@@ -232,7 +233,8 @@ common::ActionResult ProcessExecutionManager::execMediaChange()
     run_robot_script_req->filename = config_->ur_tool_change_script;
     std::shared_future<crs_msgs::srv::RunRobotScript::Response::SharedPtr> run_robot_script_future =
         run_robot_script_client_->async_send_request(run_robot_script_req);
-    std::future_status run_robot_script_status = run_robot_script_future.wait_for(std::chrono::seconds(30));
+    std::future_status run_robot_script_status =
+        run_robot_script_future.wait_for(std::chrono::seconds(WAIT_TOOL_CHANGE_COMPLETION));
     if (run_robot_script_status != std::future_status::ready)
     {
       common::ActionResult res;
