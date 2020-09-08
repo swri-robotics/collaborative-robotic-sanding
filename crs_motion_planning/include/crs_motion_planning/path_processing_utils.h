@@ -274,6 +274,20 @@ bool filterReachabilitySphere(const std::vector<geometry_msgs::msg::PoseArray>& 
                               std::vector<geometry_msgs::msg::PoseArray>& reachable_waypoints_vec);
 
 ///
+/// \brief filterSingularityCylinder Removes any points inside cylinder coming from UR base
+/// \return filtered points
+///
+geometry_msgs::msg::PoseArray filterSingularityCylinder(const geometry_msgs::msg::PoseArray& waypoints,
+                                                        const double& radius);
+
+///
+/// \brief filterSingularityCylinder Removes any points inside cylinder coming from UR base
+/// \return filtered points
+///
+std::vector<geometry_msgs::msg::PoseArray>
+filterSingularityCylinder(const std::vector<geometry_msgs::msg::PoseArray>& waypoints, const double& radius);
+
+///
 /// \brief calcPoseDist calculates distance between two geometry_msgs Pose msgs
 /// \return distance between poses
 ///
