@@ -329,12 +329,12 @@
             </geometry>
             <origin rpy="0 0 0" xyz="-0.5 -1.1 1.38" />
         </collision>
-        <collision> <!-- Left Wall-->
+       <!-- <collision> Left Wall
             <geometry>
                 <box size="3.0 2.14 0.1" />
             </geometry>
             <origin rpy="0 0 0" xyz="-0.5 -1.1 -1.33" />
-        </collision>
+        </collision>-->
         <collision> Front Wall
             <geometry>
                 <box size="0.1 2.14 3.0" />
@@ -371,13 +371,13 @@
             </geometry>
             <origin rpy="0 0 0" xyz="-1.0 -2.135 0.0" />
         </collision>
-        <collision> <!-- Corner Bracket 1-->
+        <!--<collision> Corner Bracket 1
             <geometry>
                 <box size="1.25 0.12 1.25" />
             </geometry>
             <origin rpy="0 0.785 0" xyz="-2.06 -2.135 -1.33" />
-        </collision>
-        <collision> <!-- Corner Bracket 2-->
+        </collision>-->
+        <collision> Corner Bracket 2
             <geometry>
                 <box size="1.25 0.12 1.25" />
             </geometry>
@@ -399,7 +399,8 @@
     <joint name="${prefix}robot_base_joint" type="fixed">
         <parent link="${prefix}robot_stand" />
         <child link="${prefix}base" />
-        <origin rpy="-1.570796 -1.570796 0.0" xyz="-1.030659 -2.037406 0.7977 " />
+<!--        <origin rpy="-1.570796 -1.570796 0.0" xyz="-1.030659 -2.037406 0.7977 " />-->
+        <origin rpy="-1.570796 -1.570796 0.0" xyz="-1.030659 -2.037406 0.2 " />
         <axis xyz="1 0 0"/>
         <limit effort="1.0" lower="-0.1" upper="1.9" velocity=".01" />
     </joint>
