@@ -514,7 +514,6 @@ private:
                   std::shared_ptr<crs_msgs::srv::RobotPositioner::Response> response)
   {
     Eigen::Isometry3d ur_base_pose = Eigen::Isometry3d::Identity();
-//    ur_base_pose.rotate(Eigen::Quaterniond(0.7071, 0, 0.7071, 0));
     ur_base_pose.rotate(Eigen::Quaterniond(0.5, -0.5, -0.5, -0.5));
     if (request->robot_rail == crs_msgs::srv::RobotPositioner::Request::RAIL1)
     {
@@ -522,24 +521,20 @@ private:
     }
     else
     {
-//      ur_base_pose.translation().x() = -1.050659;
       ur_base_pose.translation().x() = -1.030659;
     }
     if (request->robot_position == crs_msgs::srv::RobotPositioner::Request::POSITION1)
     {
-//      ur_base_pose.translation().z() = 0.6277;
       ur_base_pose.translation().z() = 0.7977;
     }
     else if (request->robot_position == crs_msgs::srv::RobotPositioner::Request::POSITION2)
     {
-//      ur_base_pose.translation().z() = -0.0277;
       ur_base_pose.translation().z() = 0.1532;
     }
     else
     {
       ur_base_pose.translation().z() = -0.6677;
     }
-//    ur_base_pose.translation().y() = -2.047406;
     ur_base_pose.translation().y() = -2.037406;
 
     std::vector<tesseract_msgs::msg::EnvironmentCommand> env_command_vector;
