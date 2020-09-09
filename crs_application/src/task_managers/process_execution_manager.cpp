@@ -451,7 +451,8 @@ common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_ms
     return res;
   }
 
-  // Check if joint state is in correct position before executing, if not then call a freespace motion from current joint state to beginning of trajectory
+  // Check if joint state is in correct position before executing, if not then call a freespace motion from current
+  // joint state to beginning of trajectory
   if (!crs_motion_planning::checkJointState(traj, curr_joint_state_, config_->joint_tolerance[0]))
   {
     RCLCPP_WARN(node_->get_logger(), "Not at the correct joint state to start freespace motion");
@@ -460,7 +461,8 @@ common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_ms
       RCLCPP_ERROR(node_->get_logger(), "%s Freespace Motion is not ready`", MANAGER_NAME.c_str());
       return false;
     }
-    crs_msgs::srv::CallFreespaceMotion::Request::SharedPtr freespace_req = std::make_shared<crs_msgs::srv::CallFreespaceMotion::Request>();
+    crs_msgs::srv::CallFreespaceMotion::Request::SharedPtr freespace_req =
+        std::make_shared<crs_msgs::srv::CallFreespaceMotion::Request>();
     freespace_req->goal_position.name = traj.joint_names;
     freespace_req->goal_position.position = traj.points.front().positions;
     freespace_req->start_position = curr_joint_state_;

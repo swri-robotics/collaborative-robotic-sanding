@@ -317,7 +317,9 @@ std::vector<double> findRasterRotation(const geometry_msgs::msg::PoseArray& wayp
 /// \brief checkJointState checks if current joint state is expected starting joint state
 /// \return bool of yes or no
 ///
-bool checkJointState(const trajectory_msgs::msg::JointTrajectory& traj, const sensor_msgs::msg::JointState joint_state, const double tolerance = 0.01);
+bool checkJointState(const trajectory_msgs::msg::JointTrajectory& traj,
+                     const sensor_msgs::msg::JointState joint_state,
+                     const double tolerance = 0.01);
 
 }  // namespace crs_motion_planning
 

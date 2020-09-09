@@ -1097,7 +1097,7 @@ crs_motion_planning::filterSingularityCylinder(const geometry_msgs::msg::PoseArr
   filtered_waypoints.header = waypoints.header;
   for (auto pose : waypoints.poses)
   {
-    double rad_point = sqrt(pow(pose.position.x,2) + pow(pose.position.y,2));
+    double rad_point = sqrt(pow(pose.position.x, 2) + pow(pose.position.y, 2));
     if (rad_point > radius)
     {
       filtered_waypoints.poses.push_back(pose);
@@ -1107,7 +1107,8 @@ crs_motion_planning::filterSingularityCylinder(const geometry_msgs::msg::PoseArr
 }
 
 std::vector<geometry_msgs::msg::PoseArray>
-crs_motion_planning::filterSingularityCylinder(const std::vector<geometry_msgs::msg::PoseArray>& waypoints, const double& radius)
+crs_motion_planning::filterSingularityCylinder(const std::vector<geometry_msgs::msg::PoseArray>& waypoints,
+                                               const double& radius)
 {
   std::vector<geometry_msgs::msg::PoseArray> filtered_waypoints;
   for (auto waypoints : waypoints)
@@ -1237,7 +1238,8 @@ bool crs_motion_planning::checkJointState(const trajectory_msgs::msg::JointTraje
       if (traj.joint_names[i] == joint_state.name[j])
       {
         double current_joint_value = joint_state.position[j];
-        if (current_joint_value >= target_traj_value - tolerance && current_joint_value <= target_traj_value + tolerance)
+        if (current_joint_value >= target_traj_value - tolerance &&
+            current_joint_value <= target_traj_value + tolerance)
           break;
         else
           return false;
