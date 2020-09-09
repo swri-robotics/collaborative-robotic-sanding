@@ -138,7 +138,7 @@ common::ActionResult ProcessExecutionManager::execProcess()
 
   RCLCPP_INFO(node_->get_logger(), "%s Executing process %i", MANAGER_NAME.c_str(), current_process_idx_);
 
-  if (!execTrajectory(process_plan.start))
+  if (process_plan.start.points.size() > 0 && !execTrajectory(process_plan.start))
   {
     common::ActionResult res;
     res.err_msg = boost::str(boost::format("%s failed to execute start motion") % MANAGER_NAME.c_str());
@@ -195,7 +195,7 @@ common::ActionResult ProcessExecutionManager::execProcess()
   }
 
   RCLCPP_INFO(node_->get_logger(), "%s Executing end motion", MANAGER_NAME.c_str());
-  if (!execTrajectory(process_plan.end))
+  if (process_plan.end.points.size() > 0 && !execTrajectory(process_plan.end))
   {
     common::ActionResult res;
     res.err_msg = boost::str(boost::format("%s failed to execute end motion") % MANAGER_NAME.c_str());

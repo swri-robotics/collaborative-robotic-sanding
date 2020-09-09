@@ -334,13 +334,6 @@ common::ActionResult MotionPlanningManager::planProcessPaths()
       continue;
     }
 
-    if (plan.start.points.empty() || plan.end.points.empty())
-    {
-      RCLCPP_ERROR(node_->get_logger(), "Start or End move for process %i are empty, invalidating plan", i);
-      plan.process_motions.clear();
-      continue;
-    }
-
     found_valid_plan = true;
   }
   return found_valid_plan;
@@ -394,17 +387,16 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
     return true;
   }
 
-  CallFreespaceMotion::Request::SharedPtr req = std::make_shared<CallFreespaceMotion::Request>();
-  req->target_link = config_->tool_frame;
-  req->goal_position.position = config_->joint_media_position;
-  req->goal_position.name = config_->media_joint_names;
-  req->execute = false;
-  req->num_steps = 0;  // planner should use default
-
   // Create media change plans
   std::vector<int> empty_process_indices;
   for (std::size_t i = 0; i < result_.process_plans.size() - 1; i++)
   {
+    CallFreespaceMotion::Request::SharedPtr req = std::make_shared<CallFreespaceMotion::Request>();
+    req->target_link = config_->tool_frame;
+    req->goal_position.position = config_->joint_media_position;
+    req->goal_position.name = config_->media_joint_names;
+    req->execute = false;
+    req->num_steps = 0;  // planner should use default
     datatypes::MediaChangeMotionPlan media_change_plan;
 
     // check if current motion plan is empty
@@ -422,7 +414,7 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
     }
 
     // creating the media change plan now
-    const trajectory_msgs::msg::JointTrajectory& traj = result_.process_plans[i].end;
+    const trajectory_msgs::msg::JointTrajectory& traj = result_.process_plans[i].process_motions.back();
 
     // check trajectory
     if (traj.points.empty())

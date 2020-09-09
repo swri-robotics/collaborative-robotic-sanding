@@ -183,7 +183,7 @@ private:
     tesseract_rosutils::fromMsg(motion_planner_config->tool_offset, request->tool_offset);
 
     std::vector<crs_msgs::msg::ProcessMotionPlan> returned_plans;
-    bool success;
+    bool success = false;
     std::vector<trajectory_msgs::msg::JointTrajectory> trajopt_trajectories;
 
     // Clear old visualizations
@@ -195,9 +195,27 @@ private:
     corrected_path_publisher_->publish(marker_eraser_array);
     failed_vertex_publisher_->publish(marker_eraser);
 
+    std::vector<bool> successes;
+
     for (size_t i = 0; i < request->process_paths.size(); ++i)
     {
       std::cout << "Planning " << i + 1 << " process of " << request->process_paths.size() << std::endl;
+      if (i != 0 && success)
+      {
+        size_t last_success_i = 0;
+        for (size_t j = 0; j < successes.size(); ++j)
+        {
+          if (successes[j])
+            last_success_i = j;
+        }
+        std::vector<double> last_pose = returned_plans[last_success_i].process_motions.back().points.back().positions;
+        std::vector<std::string> last_joint_names = returned_plans[last_success_i].process_motions.back().joint_names;
+        motion_planner_config->use_start = true;
+        motion_planner_config->start_pose =
+            std::make_shared<tesseract_motion_planners::JointWaypoint>(last_pose, last_joint_names);
+        returned_plans[last_success_i].end.points.clear();
+        returned_plans[last_success_i].end.joint_names.clear();
+      }
 
       // Load in current rasters
       motion_planner_config->rasters.clear();
@@ -217,7 +235,11 @@ private:
 
       // Run process planner
       auto path_plan_results = std::make_unique<crs_motion_planning::pathPlanningResults>();
-      success = crs_motion_planner.generateProcessPlan(path_plan_results) || success;
+
+      bool curr_success =
+          crs_motion_planner.generateProcessPlan(path_plan_results);  // Check if current plan was successful
+      successes.push_back(curr_success);                              // Update list of successes
+      success = curr_success || success;                              // Update whether any has been successful
 
       // Create marker array for processed raster visualization
       visualization_msgs::msg::MarkerArray temp_mark_array_msg, pub_mark_array_msg;
