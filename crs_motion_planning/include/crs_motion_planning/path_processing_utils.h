@@ -11,6 +11,7 @@
 #include <geometry_msgs/msg/pose_array.hpp>
 #include <trajectory_msgs/msg/joint_trajectory.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
+#include <sensor_msgs/msg/joint_state.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/transform_storage.h>
 #include <tf2/transform_datatypes.h>
@@ -311,6 +312,12 @@ organizeRasters(const std::vector<geometry_msgs::msg::PoseArray>& waypoints_vec)
 /// \return [max rotation in radians/m, avg rotation in radians/m]
 ///
 std::vector<double> findRasterRotation(const geometry_msgs::msg::PoseArray& waypoints);
+
+///
+/// \brief checkJointState checks if current joint state is expected starting joint state
+/// \return bool of yes or no
+///
+bool checkJointState(const trajectory_msgs::msg::JointTrajectory& traj, const sensor_msgs::msg::JointState joint_state, const double tolerance = 0.01);
 
 }  // namespace crs_motion_planning
 

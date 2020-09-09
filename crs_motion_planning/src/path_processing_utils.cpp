@@ -1224,3 +1224,25 @@ std::vector<double> crs_motion_planning::findRasterRotation(const geometry_msgs:
   return_vals.push_back(rotation_sum / distance_sum);
   return return_vals;
 }
+
+bool crs_motion_planning::checkJointState(const trajectory_msgs::msg::JointTrajectory& traj,
+                                          const sensor_msgs::msg::JointState joint_state,
+                                          const double tolerance)
+{
+  for (size_t i = 0; i < traj.joint_names.size(); ++i)
+  {
+    double target_traj_value = traj.points.front().positions[i];
+    for (size_t j = 0; j < joint_state.name.size(); ++j)
+    {
+      if (traj.joint_names[i] == joint_state.name[j])
+      {
+        double current_joint_value = joint_state.position[j];
+        if (current_joint_value >= target_traj_value - tolerance && current_joint_value <= target_traj_value + tolerance)
+          break;
+        else
+          return false;
+      }
+    }
+  }
+  return true;
+}
