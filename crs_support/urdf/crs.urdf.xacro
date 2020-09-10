@@ -400,7 +400,7 @@
         <parent link="${prefix}robot_stand" />
         <child link="${prefix}base" />
 <!--        <origin rpy="-1.570796 -1.570796 0.0" xyz="-1.030659 -2.037406 0.7977 " /> Original position -->
-        <origin rpy="-1.570796 -1.570796 0.0" xyz="-1.030659 -2.037406 0.2 " /> Middle position
+        <origin rpy="-1.570796 -1.570796 0.0" xyz="-1.030659 -2.037406 0.153175 " /> Middle position
         <axis xyz="1 0 0"/>
         <limit effort="1.0" lower="-0.1" upper="1.9" velocity=".01" />
     </joint>
