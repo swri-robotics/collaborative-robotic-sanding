@@ -112,7 +112,6 @@ protected:
   rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr controller_changer_client_;
   rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr toggle_sander_client_;
   rclcpp::Client<crs_msgs::srv::RunRobotScript>::SharedPtr run_robot_script_client_;
-  rclcpp::Subscription<sensor_msgs::msg::JointState>::SharedPtr joint_state_listener_;
   rclcpp::Client<crs_msgs::srv::CallFreespaceMotion>::SharedPtr call_freespace_client_;
 
   // process data
@@ -120,7 +119,6 @@ protected:
   std::shared_ptr<datatypes::ProcessExecutionData> input_ = nullptr;
 
   // other
-  sensor_msgs::msg::JointState curr_joint_state_;
   int current_process_idx_ = 0;
   int current_media_change_idx_ = 0;
   bool no_more_media_changes_ = false;

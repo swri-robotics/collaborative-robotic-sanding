@@ -78,9 +78,6 @@ ProcessExecutionManager::ProcessExecutionManager(std::shared_ptr<rclcpp::Node> n
 
   run_robot_script_client_ = node_->create_client<crs_msgs::srv::RunRobotScript>(RUN_ROBOT_SCRIPT_SERVICE);
 
-  joint_state_listener_ = node_->create_subscription<sensor_msgs::msg::JointState>(
-      JOINT_STATES_TOPIC, 1, std::bind(&ProcessExecutionManager::jointCallback, this, std::placeholders::_1));
-
   call_freespace_client_ = node_->create_client<crs_msgs::srv::CallFreespaceMotion>(FREESPACE_MOTION_PLANNING_SERVICE);
 }
 
@@ -453,7 +450,9 @@ common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_ms
 
   // Check if joint state is in correct position before executing, if not then call a freespace motion from current
   // joint state to beginning of trajectory
-  if (!crs_motion_planning::checkJointState(traj, curr_joint_state_, config_->joint_tolerance[0]))
+  sensor_msgs::msg::JointState::SharedPtr curr_joint_state =
+      crs_application::common::getCurrentState(node_, JOINT_STATES_TOPIC, 1.0);
+  if (!crs_motion_planning::checkStartState(traj, *curr_joint_state, config_->joint_tolerance[0]))
   {
     RCLCPP_WARN(node_->get_logger(), "Not at the correct joint state to start freespace motion");
     if (!call_freespace_client_->service_is_ready())
@@ -465,7 +464,7 @@ common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_ms
         std::make_shared<crs_msgs::srv::CallFreespaceMotion::Request>();
     freespace_req->goal_position.name = traj.joint_names;
     freespace_req->goal_position.position = traj.points.front().positions;
-    freespace_req->start_position = curr_joint_state_;
+    freespace_req->start_position = *curr_joint_state;
     freespace_req->execute = true;
 
     auto result_future = call_freespace_client_->async_send_request(freespace_req);
@@ -558,11 +557,6 @@ common::ActionResult ProcessExecutionManager::checkPreReq()
     return res;
   }
   return true;
-}
-
-void ProcessExecutionManager::jointCallback(const sensor_msgs::msg::JointState::SharedPtr joint_msg)
-{
-  curr_joint_state_ = *joint_msg;
 }
 
 } /* namespace task_managers */

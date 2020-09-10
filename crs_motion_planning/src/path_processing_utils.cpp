@@ -1226,7 +1226,7 @@ std::vector<double> crs_motion_planning::findRasterRotation(const geometry_msgs:
   return return_vals;
 }
 
-bool crs_motion_planning::checkJointState(const trajectory_msgs::msg::JointTrajectory& traj,
+bool crs_motion_planning::checkStartState(const trajectory_msgs::msg::JointTrajectory& traj,
                                           const sensor_msgs::msg::JointState joint_state,
                                           const double tolerance)
 {

@@ -275,14 +275,14 @@ bool filterReachabilitySphere(const std::vector<geometry_msgs::msg::PoseArray>& 
                               std::vector<geometry_msgs::msg::PoseArray>& reachable_waypoints_vec);
 
 ///
-/// \brief filterSingularityCylinder Removes any points inside cylinder coming from UR base
+/// \brief filterSingularityCylinder Removes any points inside cylinder coming from robot base
 /// \return filtered points
 ///
 geometry_msgs::msg::PoseArray filterSingularityCylinder(const geometry_msgs::msg::PoseArray& waypoints,
                                                         const double& radius);
 
 ///
-/// \brief filterSingularityCylinder Removes any points inside cylinder coming from UR base
+/// \brief filterSingularityCylinder Removes any points inside cylinder coming from robot base
 /// \return filtered points
 ///
 std::vector<geometry_msgs::msg::PoseArray>
@@ -314,10 +314,10 @@ organizeRasters(const std::vector<geometry_msgs::msg::PoseArray>& waypoints_vec)
 std::vector<double> findRasterRotation(const geometry_msgs::msg::PoseArray& waypoints);
 
 ///
-/// \brief checkJointState checks if current joint state is expected starting joint state
+/// \brief checkStartState checks if current joint state is expected starting joint state
 /// \return bool of yes or no
 ///
-bool checkJointState(const trajectory_msgs::msg::JointTrajectory& traj,
+bool checkStartState(const trajectory_msgs::msg::JointTrajectory& traj,
                      const sensor_msgs::msg::JointState joint_state,
                      const double tolerance = 0.01);
 
