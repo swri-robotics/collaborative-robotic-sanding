@@ -11,6 +11,7 @@
 #include <geometry_msgs/msg/pose_array.hpp>
 #include <trajectory_msgs/msg/joint_trajectory.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
+#include <sensor_msgs/msg/joint_state.hpp>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <tf2/transform_storage.h>
 #include <tf2/transform_datatypes.h>
@@ -274,6 +275,20 @@ bool filterReachabilitySphere(const std::vector<geometry_msgs::msg::PoseArray>& 
                               std::vector<geometry_msgs::msg::PoseArray>& reachable_waypoints_vec);
 
 ///
+/// \brief filterSingularityCylinder Removes any points inside cylinder coming from robot base
+/// \return filtered points
+///
+geometry_msgs::msg::PoseArray filterSingularityCylinder(const geometry_msgs::msg::PoseArray& waypoints,
+                                                        const double& radius);
+
+///
+/// \brief filterSingularityCylinder Removes any points inside cylinder coming from robot base
+/// \return filtered points
+///
+std::vector<geometry_msgs::msg::PoseArray>
+filterSingularityCylinder(const std::vector<geometry_msgs::msg::PoseArray>& waypoints, const double& radius);
+
+///
 /// \brief calcPoseDist calculates distance between two geometry_msgs Pose msgs
 /// \return distance between poses
 ///
@@ -297,6 +312,14 @@ organizeRasters(const std::vector<geometry_msgs::msg::PoseArray>& waypoints_vec)
 /// \return [max rotation in radians/m, avg rotation in radians/m]
 ///
 std::vector<double> findRasterRotation(const geometry_msgs::msg::PoseArray& waypoints);
+
+///
+/// \brief checkStartState checks if current joint state is expected starting joint state
+/// \return bool of yes or no
+///
+bool checkStartState(const trajectory_msgs::msg::JointTrajectory& traj,
+                     const sensor_msgs::msg::JointState joint_state,
+                     const double tolerance = 0.01);
 
 }  // namespace crs_motion_planning
 

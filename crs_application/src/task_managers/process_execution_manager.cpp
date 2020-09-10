@@ -38,6 +38,7 @@
 
 static const double WAIT_SERVER_TIMEOUT = 10.0;  // seconds
 static const double WAIT_ROBOT_STOP = 2.0;
+static const double WAIT_MOTION_COMPLETION = 60.0;
 static const int WAIT_TOOL_CHANGE_COMPLETION = 600;  // seconds
 static const std::string MANAGER_NAME = "ProcessExecutionManager";
 static const std::string FOLLOW_JOINT_TRAJECTORY_ACTION = "follow_joint_trajectory";
@@ -45,6 +46,8 @@ static const std::string SURFACE_TRAJECTORY_ACTION = "execute_surface_motion";
 static const std::string CONTROLLER_CHANGER_SERVICE = "compliance_controller_on";
 static const std::string RUN_ROBOT_SCRIPT_SERVICE = "run_robot_script";
 static const std::string TOGGLE_SANDER_SERVICE = "toggle_sander";
+static const std::string JOINT_STATES_TOPIC = "joint_states";
+static const std::string FREESPACE_MOTION_PLANNING_SERVICE = "plan_freespace_motion";
 
 namespace crs_application
 {
@@ -74,6 +77,8 @@ ProcessExecutionManager::ProcessExecutionManager(std::shared_ptr<rclcpp::Node> n
   toggle_sander_client_ = node_->create_client<std_srvs::srv::SetBool>(TOGGLE_SANDER_SERVICE);
 
   run_robot_script_client_ = node_->create_client<crs_msgs::srv::RunRobotScript>(RUN_ROBOT_SCRIPT_SERVICE);
+
+  call_freespace_client_ = node_->create_client<crs_msgs::srv::CallFreespaceMotion>(FREESPACE_MOTION_PLANNING_SERVICE);
 }
 
 ProcessExecutionManager::~ProcessExecutionManager() {}
@@ -130,7 +135,7 @@ common::ActionResult ProcessExecutionManager::execProcess()
 
   RCLCPP_INFO(node_->get_logger(), "%s Executing process %i", MANAGER_NAME.c_str(), current_process_idx_);
 
-  if (!execTrajectory(process_plan.start))
+  if (process_plan.start.points.size() > 0 && !execTrajectory(process_plan.start))
   {
     common::ActionResult res;
     res.err_msg = boost::str(boost::format("%s failed to execute start motion") % MANAGER_NAME.c_str());
@@ -187,7 +192,7 @@ common::ActionResult ProcessExecutionManager::execProcess()
   }
 
   RCLCPP_INFO(node_->get_logger(), "%s Executing end motion", MANAGER_NAME.c_str());
-  if (!execTrajectory(process_plan.end))
+  if (process_plan.end.points.size() > 0 && !execTrajectory(process_plan.end))
   {
     common::ActionResult res;
     res.err_msg = boost::str(boost::format("%s failed to execute end motion") % MANAGER_NAME.c_str());
@@ -442,6 +447,43 @@ common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_ms
     res.succeeded = false;
     return res;
   }
+
+  // Check if joint state is in correct position before executing, if not then call a freespace motion from current
+  // joint state to beginning of trajectory
+  sensor_msgs::msg::JointState::SharedPtr curr_joint_state =
+      crs_application::common::getCurrentState(node_, JOINT_STATES_TOPIC, 1.0);
+  if (!crs_motion_planning::checkStartState(traj, *curr_joint_state, config_->joint_tolerance[0]))
+  {
+    RCLCPP_WARN(node_->get_logger(), "Not at the correct joint state to start freespace motion");
+    if (!call_freespace_client_->service_is_ready())
+    {
+      RCLCPP_ERROR(node_->get_logger(), "%s Freespace Motion is not ready`", MANAGER_NAME.c_str());
+      return false;
+    }
+    crs_msgs::srv::CallFreespaceMotion::Request::SharedPtr freespace_req =
+        std::make_shared<crs_msgs::srv::CallFreespaceMotion::Request>();
+    freespace_req->goal_position.name = traj.joint_names;
+    freespace_req->goal_position.position = traj.points.front().positions;
+    freespace_req->start_position = *curr_joint_state;
+    freespace_req->execute = true;
+
+    auto result_future = call_freespace_client_->async_send_request(freespace_req);
+
+    std::future_status status = result_future.wait_for(std::chrono::duration<double>(WAIT_MOTION_COMPLETION));
+    if (status != std::future_status::ready)
+    {
+      RCLCPP_ERROR(node_->get_logger(), "%s Call Freespace Motion service call timedout", MANAGER_NAME.c_str());
+      return false;
+    }
+    auto result = result_future.get();
+
+    if (!result->success)
+    {
+      RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), result->message.c_str());
+      return false;
+    }
+  }
+
   res.succeeded = crs_motion_planning::execTrajectory(trajectory_exec_client_, node_->get_logger(), traj);
   if (!res)
   {
@@ -466,7 +508,6 @@ ProcessExecutionManager::execSurfaceTrajectory(const cartesian_trajectory_msgs::
     res.succeeded = false;
     return res;
   }
-
   res.succeeded = crs_motion_planning::execSurfaceTrajectory(
       surface_trajectory_exec_client_, node_->get_logger(), traj, traj_config);
   if (!ProcessExecutionManager::toggleSander(false))

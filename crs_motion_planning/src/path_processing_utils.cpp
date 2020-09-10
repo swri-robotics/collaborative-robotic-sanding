@@ -1090,6 +1090,36 @@ bool crs_motion_planning::filterReachabilitySphere(const std::vector<geometry_ms
   return some_points_reachable;
 }
 
+geometry_msgs::msg::PoseArray
+crs_motion_planning::filterSingularityCylinder(const geometry_msgs::msg::PoseArray& waypoints, const double& radius)
+{
+  geometry_msgs::msg::PoseArray filtered_waypoints;
+  filtered_waypoints.header = waypoints.header;
+  for (auto pose : waypoints.poses)
+  {
+    double rad_point = sqrt(pow(pose.position.x, 2) + pow(pose.position.y, 2));
+    if (rad_point > radius)
+    {
+      filtered_waypoints.poses.push_back(pose);
+    }
+  }
+  return filtered_waypoints;
+}
+
+std::vector<geometry_msgs::msg::PoseArray>
+crs_motion_planning::filterSingularityCylinder(const std::vector<geometry_msgs::msg::PoseArray>& waypoints,
+                                               const double& radius)
+{
+  std::vector<geometry_msgs::msg::PoseArray> filtered_waypoints;
+  for (auto waypoints : waypoints)
+  {
+    geometry_msgs::msg::PoseArray filtered_raster = crs_motion_planning::filterSingularityCylinder(waypoints, radius);
+    if (filtered_raster.poses.size() > 0)
+      filtered_waypoints.push_back(filtered_raster);
+  }
+  return filtered_waypoints;
+}
+
 double crs_motion_planning::calcPoseDist(const geometry_msgs::msg::Pose& waypoint1,
                                          const geometry_msgs::msg::Pose& waypoint2)
 {
@@ -1194,4 +1224,27 @@ std::vector<double> crs_motion_planning::findRasterRotation(const geometry_msgs:
   return_vals.push_back(max_rot_rate);
   return_vals.push_back(rotation_sum / distance_sum);
   return return_vals;
+}
+
+bool crs_motion_planning::checkStartState(const trajectory_msgs::msg::JointTrajectory& traj,
+                                          const sensor_msgs::msg::JointState joint_state,
+                                          const double tolerance)
+{
+  for (size_t i = 0; i < traj.joint_names.size(); ++i)
+  {
+    double target_traj_value = traj.points.front().positions[i];
+    for (size_t j = 0; j < joint_state.name.size(); ++j)
+    {
+      if (traj.joint_names[i] == joint_state.name[j])
+      {
+        double current_joint_value = joint_state.position[j];
+        if (current_joint_value >= target_traj_value - tolerance &&
+            current_joint_value <= target_traj_value + tolerance)
+          break;
+        else
+          return false;
+      }
+    }
+  }
+  return true;
 }
