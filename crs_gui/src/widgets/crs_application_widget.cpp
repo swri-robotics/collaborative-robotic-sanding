@@ -80,6 +80,7 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node, QWidget
   namespace fs = boost::filesystem;
   ui_->setupUi(this);
 
+
   // Set up ROS Interfaces to crs_application
   auto get_configuration_cb =
       std::bind(&CRSApplicationWidget::getConfigurationCb, this, std::placeholders::_1, std::placeholders::_2);
@@ -137,7 +138,6 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node, QWidget
 
   //  // Add the widgets to the UI
   ui_->vertical_layout_part_selector->addWidget(part_selector_widget_.get());
-  ui_->vertical_layout_area_selection->addWidget(area_selection_widget_.get());
   ui_->vertical_layout_sm_interface->addWidget(state_machine_interface_widget_.get());
 
   // disable sm gui at startup

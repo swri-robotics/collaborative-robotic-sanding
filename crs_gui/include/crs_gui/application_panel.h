@@ -34,6 +34,7 @@ class ApplicationPanel : public rviz_common::Panel
   Q_OBJECT
 public:
   ApplicationPanel(QWidget* parent = nullptr);
+  virtual ~ApplicationPanel();
 
   virtual void onInitialize() override;
 

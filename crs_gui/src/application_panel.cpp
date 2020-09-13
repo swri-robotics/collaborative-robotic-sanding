@@ -30,7 +30,12 @@ ApplicationPanel::ApplicationPanel(QWidget* parent)
   {
     executor_.add_node(n);
   }
-  QtConcurrent::run([this]() { executor_.spin(); });
+  std::thread([this]() { executor_.spin(); }).detach();
+}
+
+ApplicationPanel::~ApplicationPanel()
+{
+  executor_.cancel();
 }
 
 void ApplicationPanel::onInitialize()
