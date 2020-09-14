@@ -263,8 +263,8 @@
         </state>
         <state id="PR_Save_Results">
             <qt:editorinfo geometry="571.93;338.45;-80.38;-50;140.38;100" scenegeometry="2392.73;1177.07;2312.35;1127.07;140.38;100"/>
-            <transition type="external" event="sm_done" target="Motion_Planning">
-                <qt:editorinfo endTargetFactors="58.26;96.15" movePoint="964.29;-94.42" localGeometry="-108.51;95.59;-1702.21;95.59" startTargetFactors="9.21;80.38"/>
+            <transition type="external" event="sm_done" target="Split_ToolPaths">
+                <qt:editorinfo endTargetFactors="16.51;69.16" movePoint="964.29;-94.42" localGeometry="-108.51;95.59;-2191.33;95.59;-2191.33;-308.68" startTargetFactors="9.21;80.38"/>
             </transition>
         </state>
         <transition type="external" event="sm_failure" target="At_Fault">
