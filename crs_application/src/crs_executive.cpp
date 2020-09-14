@@ -387,9 +387,7 @@ bool CRSExecutive::setupMotionPlanningStates()
   std::map<std::string, StateCallbackInfo> st_callbacks_map;
 
   st_callbacks_map[motion_planning::SET_INPUT_DATA] = StateCallbackInfo{
-    entry_cb : [this](){
-      return motion_planning_mngr_->setInput({ part_regt_mngr_->getResult() });
-    },
+    entry_cb : [this]() { return motion_planning_mngr_->setInput({ part_regt_mngr_->getResult() }); },
     async : false
   };
 
@@ -573,9 +571,7 @@ bool CRSExecutive::setupPartReworkStates()
   std::map<std::string, StateCallbackInfo> st_callbacks_map;
 
   st_callbacks_map[part_rework::PARENT] = StateCallbackInfo{
-    entry_cb : [this](){
-      return part_rework_mngr_->setInput(part_regt_mngr_->getResult());
-    },
+    entry_cb : [this]() { return part_rework_mngr_->setInput(part_regt_mngr_->getResult()); },
     async : true,
     exit_cb : nullptr,
     on_done_action : action_names::SM_DONE,

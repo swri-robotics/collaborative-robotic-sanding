@@ -33,10 +33,7 @@ ApplicationPanel::ApplicationPanel(QWidget* parent)
   std::thread([this]() { executor_.spin(); }).detach();
 }
 
-ApplicationPanel::~ApplicationPanel()
-{
-  executor_.cancel();
-}
+ApplicationPanel::~ApplicationPanel() { executor_.cancel(); }
 
 void ApplicationPanel::onInitialize()
 {

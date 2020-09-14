@@ -80,7 +80,6 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node, QWidget
   namespace fs = boost::filesystem;
   ui_->setupUi(this);
 
-
   // Set up ROS Interfaces to crs_application
   auto get_configuration_cb =
       std::bind(&CRSApplicationWidget::getConfigurationCb, this, std::placeholders::_1, std::placeholders::_2);
