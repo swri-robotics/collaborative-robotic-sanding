@@ -78,6 +78,7 @@ public:
   common::ActionResult doneScanning();
   common::ActionResult detectRegions();
   common::ActionResult showRegions();
+  common::ActionResult hideRegions();
   common::ActionResult trimToolpaths();
   common::ActionResult showToolpathsPreview();
   common::ActionResult hideToolPathsPreview();

@@ -59,6 +59,7 @@ static const std::string WAIT_USER_CMD = "Wait_User_Cmd";
 // scan acquisition
 namespace scan
 {
+static const std::string PARENT = "Scan_Acquisition";
 static const std::string MOVE_ROBOT = "SC_Move_Robot";
 static const std::string VERIFICATION = "SC_Verification";
 static const std::string CAPTURE = "SC_Capture";
@@ -387,7 +388,9 @@ bool CRSExecutive::setupMotionPlanningStates()
   std::map<std::string, StateCallbackInfo> st_callbacks_map;
 
   st_callbacks_map[motion_planning::SET_INPUT_DATA] = StateCallbackInfo{
-    entry_cb : [this]() { return motion_planning_mngr_->setInput({ part_regt_mngr_->getResult() }); },
+    entry_cb : [this]() {
+      part_rework_mngr_->hideToolPathsPreview();
+      return motion_planning_mngr_->setInput({ part_regt_mngr_->getResult() }); },
     async : false
   };
 
@@ -531,6 +534,13 @@ bool CRSExecutive::setupScanAcquisitionStates()
 
   std::map<std::string, StateCallbackInfo> st_callbacks_map;
 
+  st_callbacks_map[scan::PARENT] = StateCallbackInfo{
+    entry_cb : [this]() -> common::ActionResult{
+      return part_rework_mngr_->hideToolPathsPreview();
+    },
+    async : false
+  };
+
   st_callbacks_map[scan::CAPTURE] = StateCallbackInfo{
     entry_cb : std::bind(&task_managers::ScanAcquisitionManager::capture, scan_acqt_mngr_.get()),
     async : false
@@ -571,9 +581,12 @@ bool CRSExecutive::setupPartReworkStates()
   std::map<std::string, StateCallbackInfo> st_callbacks_map;
 
   st_callbacks_map[part_rework::PARENT] = StateCallbackInfo{
-    entry_cb : [this]() { return part_rework_mngr_->setInput(part_regt_mngr_->getResult()); },
+    entry_cb : [this]() {
+      part_rework_mngr_->hideRegions();
+      part_rework_mngr_->hideToolPathsPreview();
+      return part_rework_mngr_->setInput(part_regt_mngr_->getResult()); },
     async : true,
-    exit_cb : nullptr,
+    exit_cb : std::bind(&task_managers::PartReworkManager::hideRegions, part_rework_mngr_.get()),
     on_done_action : action_names::SM_DONE,
   };
 

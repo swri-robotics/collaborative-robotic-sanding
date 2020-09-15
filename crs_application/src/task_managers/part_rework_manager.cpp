@@ -267,6 +267,28 @@ common::ActionResult PartReworkManager::showRegions()
   return true;
 }
 
+common::ActionResult PartReworkManager::hideRegions()
+{
+  using namespace region_detection_msgs::srv;
+
+  ShowSelectableRegions::Request::SharedPtr srv_req = std::make_shared<ShowSelectableRegions::Request>();
+  srv_req->start_selected = false;
+  ShowSelectableRegions::Response::SharedPtr srv_res = common::waitForResponse<ShowSelectableRegions>(
+      show_selectable_regions_client_, srv_req, WAIT_SERVICE_COMPLETION_TIMEOUT);
+
+  if (!srv_res)
+  {
+    common::ActionResult res;
+    res.succeeded = false;
+    res.err_msg = boost::str(boost::format("%s service call to hide selectable regions failed") % MANAGER_NAME);
+    RCLCPP_ERROR_STREAM(node_->get_logger(), res.err_msg);
+    return res;
+  }
+
+  return true;
+
+}
+
 common::ActionResult PartReworkManager::trimToolpaths()
 {
   using namespace crs_msgs;
