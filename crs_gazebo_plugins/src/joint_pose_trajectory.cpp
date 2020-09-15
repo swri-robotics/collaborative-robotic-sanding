@@ -124,6 +124,40 @@ void JointPoseTrajectory::Load(gazebo::physics::ModelPtr model, sdf::ElementPtr 
   }
   impl_->last_update_time_ = impl_->world_->SimTime();
 
+  // initial joint values
+  if (sdf->HasElement("initial_joint_positions"))
+  {
+    sdf::ElementPtr initial_joints_parent_elmt = sdf->GetElement("initial_joint_positions");
+    sdf::ElementPtr joint_elmt = initial_joints_parent_elmt->GetFirstElement();
+    while (joint_elmt && joint_elmt->GetName() == "joint")
+    {
+      if (!joint_elmt->HasAttribute("name") || !joint_elmt->HasAttribute("value"))
+      {
+        continue;
+      }
+
+      double jval = 0.0;
+      std::string jname = joint_elmt->GetAttribute("name")->GetAsString();
+      joint_elmt->GetAttribute("value")->Get<double>(jval);
+
+      gazebo::physics::JointPtr joint = model->GetJoint(jname);
+      if (joint)
+      {
+        joint->SetPosition(0, jval);
+        RCLCPP_WARN(
+            impl_->ros_node_->get_logger(), "Set initial position value for joint %s to %f", jname.c_str(), jval);
+      }
+      else
+      {
+        RCLCPP_ERROR(
+            impl_->ros_node_->get_logger(), "Failed to find joint %s, can not set initial value", jname.c_str());
+      }
+
+      // setting joint value
+      joint_elmt = joint_elmt->GetNextElement();
+    }
+  }
+
   // creating action interface
   impl_->ac_cbgroup_ =
       impl_->ros_node_->create_callback_group(rclcpp::callback_group::CallbackGroupType::MutuallyExclusive);

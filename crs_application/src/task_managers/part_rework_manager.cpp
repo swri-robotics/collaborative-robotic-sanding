@@ -286,7 +286,6 @@ common::ActionResult PartReworkManager::hideRegions()
   }
 
   return true;
-
 }
 
 common::ActionResult PartReworkManager::trimToolpaths()

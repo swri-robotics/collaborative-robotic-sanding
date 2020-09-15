@@ -390,7 +390,8 @@ bool CRSExecutive::setupMotionPlanningStates()
   st_callbacks_map[motion_planning::SET_INPUT_DATA] = StateCallbackInfo{
     entry_cb : [this]() {
       part_rework_mngr_->hideToolPathsPreview();
-      return motion_planning_mngr_->setInput({ part_regt_mngr_->getResult() }); },
+      return motion_planning_mngr_->setInput({ part_regt_mngr_->getResult() });
+    },
     async : false
   };
 
@@ -535,9 +536,7 @@ bool CRSExecutive::setupScanAcquisitionStates()
   std::map<std::string, StateCallbackInfo> st_callbacks_map;
 
   st_callbacks_map[scan::PARENT] = StateCallbackInfo{
-    entry_cb : [this]() -> common::ActionResult{
-      return part_rework_mngr_->hideToolPathsPreview();
-    },
+    entry_cb : [this]() -> common::ActionResult { return part_rework_mngr_->hideToolPathsPreview(); },
     async : false
   };
 
@@ -584,7 +583,8 @@ bool CRSExecutive::setupPartReworkStates()
     entry_cb : [this]() {
       part_rework_mngr_->hideRegions();
       part_rework_mngr_->hideToolPathsPreview();
-      return part_rework_mngr_->setInput(part_regt_mngr_->getResult()); },
+      return part_rework_mngr_->setInput(part_regt_mngr_->getResult());
+    },
     async : true,
     exit_cb : std::bind(&task_managers::PartReworkManager::hideRegions, part_rework_mngr_.get()),
     on_done_action : action_names::SM_DONE,
