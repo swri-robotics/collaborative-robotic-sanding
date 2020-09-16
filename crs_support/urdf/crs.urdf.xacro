@@ -651,6 +651,10 @@
               <argument>follow_joint_trajectory:=${prefix}follow_joint_trajectory</argument>
             </ros>
             <update_rate>20</update_rate>
+            <initial_joint_positions>
+              <joint name="${prefix}shoulder_lift_joint" value="-0.5"/>
+              <joint name="${prefix}elbow_joint" value="0.5"/>
+            </initial_joint_positions>
         </plugin>
     </gazebo>
   </xacro:macro>
