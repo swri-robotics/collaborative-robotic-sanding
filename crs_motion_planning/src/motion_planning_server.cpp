@@ -164,6 +164,8 @@ private:
     motion_planner_config->tesseract_local = tesseract_local_;
 
     // Setup planner config with requested process planner service request data
+    if (request->accept_all_rasters)
+      motion_planner_config->minimum_raster_length = 0;
     motion_planner_config->tcp_frame = request->tool_link;
     motion_planner_config->approach_distance = request->approach_dist;
     motion_planner_config->retreat_distance = request->retreat_dist;

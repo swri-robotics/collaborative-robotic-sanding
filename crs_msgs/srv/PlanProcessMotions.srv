@@ -7,6 +7,7 @@ float64 retreat_dist
 float64 tool_speed
 float64 target_force
 crs_msgs/ToolProcessPath[] process_paths
+bool accept_all_rasters
 
 ---
 crs_msgs/ProcessMotionPlan[] plans	# The motion plans											
