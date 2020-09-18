@@ -92,6 +92,7 @@ static const std::string PART_FILE = "part_file";
 static const std::string TOOLPATH_FILE = "toolpath_file";
 static const std::string TOOLPATH_EDGE_BUFFER = "toolpath_edge_buffer";
 static const std::string REACHABLE_RADIUS = "reachable_radius";
+static const std::string SINGULARITY_RADIUS = "singularity_radius";
 }  // namespace part_registration
 
 namespace part_rework
@@ -434,6 +435,7 @@ boost::optional<PartRegistrationConfig> parse(YAML::Node& config, std::string& e
     Node root_node = config[TOP_LEVEL];
     cfg.waypoint_edge_buffer = 0.0;
     cfg.reachable_radius = 5.0;
+    cfg.singularity_radius = -0.1;
 
     if (hasFields(root_node, TOP_LEVEL, { TOOLPATH_EDGE_BUFFER }))
     {
@@ -449,6 +451,17 @@ boost::optional<PartRegistrationConfig> parse(YAML::Node& config, std::string& e
     if (hasFields(root_node, TOP_LEVEL, { REACHABLE_RADIUS }))
     {
       cfg.reachable_radius = root_node[REACHABLE_RADIUS].as<double>();
+    }
+    else
+    {
+      err_msg = boost::str(boost::format("Failed to find optional fields  in %s yaml, using defaults") %
+                           typeid(PartRegistrationConfig).name());
+      RCLCPP_WARN(CONFIG_LOGGER, "%s", err_msg.c_str());
+    }
+
+    if (hasFields(root_node, TOP_LEVEL, { SINGULARITY_RADIUS }))
+    {
+      cfg.singularity_radius = root_node[SINGULARITY_RADIUS].as<double>();
     }
     else
     {

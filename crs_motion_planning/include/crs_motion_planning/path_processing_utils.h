@@ -278,8 +278,8 @@ bool filterReachabilitySphere(const std::vector<geometry_msgs::msg::PoseArray>& 
 /// \brief filterSingularityCylinder Removes any points inside cylinder coming from robot base
 /// \return filtered points
 ///
-geometry_msgs::msg::PoseArray filterSingularityCylinder(const geometry_msgs::msg::PoseArray& waypoints,
-                                                        const double& radius);
+std::vector<geometry_msgs::msg::PoseArray> filterSingularityCylinder(const geometry_msgs::msg::PoseArray& waypoints,
+                                                                     const double& radius);
 
 ///
 /// \brief filterSingularityCylinder Removes any points inside cylinder coming from robot base

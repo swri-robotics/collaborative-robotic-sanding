@@ -302,13 +302,15 @@ common::ActionResult PartRegistrationManager::applyTransform()
   }
 
   cropped_raster_strips = crs_motion_planning::removeEdgeWaypoints(original_rasters, config_->waypoint_edge_buffer);
-  std::vector<geometry_msgs::msg::PoseArray> organized_rasters =
-      crs_motion_planning::organizeRasters(cropped_raster_strips);
   std::vector<geometry_msgs::msg::PoseArray> transformed_waypoints =
-      crs_motion_planning::transformWaypoints(organized_rasters, transform);
+      crs_motion_planning::transformWaypoints(cropped_raster_strips, transform);
+  std::vector<geometry_msgs::msg::PoseArray> singularity_filtered =
+      crs_motion_planning::filterSingularityCylinder(transformed_waypoints, config_->singularity_radius);
+  std::vector<geometry_msgs::msg::PoseArray> organized_rasters =
+      crs_motion_planning::organizeRasters(singularity_filtered);
   std::vector<geometry_msgs::msg::PoseArray> reachable_transformed_waypoints;
   crs_motion_planning::filterReachabilitySphere(
-      transformed_waypoints, config_->reachable_radius, reachable_transformed_waypoints);
+      organized_rasters, config_->reachable_radius, reachable_transformed_waypoints);
   std::vector<geometry_msgs::msg::PoseArray> reachable_waypoints =
       crs_motion_planning::transformWaypoints(reachable_transformed_waypoints, transform, true);
 
