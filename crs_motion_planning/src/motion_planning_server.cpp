@@ -210,7 +210,7 @@ private:
         }
         std::vector<double> last_pose = returned_plans[last_success_i].process_motions.back().points.back().positions;
         std::vector<std::string> last_joint_names = returned_plans[last_success_i].process_motions.back().joint_names;
-        motion_planner_config->use_start = true;
+        motion_planner_config->use_start = false;
         motion_planner_config->start_pose =
             std::make_shared<tesseract_motion_planners::JointWaypoint>(last_pose, last_joint_names);
         returned_plans[last_success_i].end.points.clear();
@@ -274,13 +274,13 @@ private:
       // Store trajectories for service response
       trajopt_trajectories = path_plan_results->final_trajectories;
       crs_msgs::msg::ProcessMotionPlan resulting_process;
-      if (path_plan_results->final_start_end_trajectories.size() > 0)
+      if (path_plan_results->final_start_trajectory.points.size() > 0)
       {
-        resulting_process.start = path_plan_results->final_start_end_trajectories[0];
+        resulting_process.start = path_plan_results->final_start_trajectory;
       }
-      if (path_plan_results->final_start_end_trajectories.size() > 1)
+      if (path_plan_results->final_end_trajectory.points.size() > 0)
       {
-        resulting_process.end = path_plan_results->final_start_end_trajectories[1];
+        resulting_process.end = path_plan_results->final_end_trajectory;
       }
       resulting_process.free_motions = path_plan_results->final_freespace_trajectories;
       resulting_process.process_motions = path_plan_results->final_raster_trajectories;

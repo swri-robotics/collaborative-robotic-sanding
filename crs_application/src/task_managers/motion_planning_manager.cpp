@@ -435,10 +435,20 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
     }
     media_change_plan.start_traj = opt.get();
 
+    const trajectory_msgs::msg::JointTrajectory& next_traj = result_.process_plans[i + 1].process_motions.front();
+    if (!next_traj.points.empty())
+    {
+      req->goal_position.position = next_traj.points.front().positions;
+      req->goal_position.name = next_traj.joint_names;
+    }
+    else
+    {
+      req->goal_position.position = media_change_plan.start_traj.points.front().positions;
+      req->goal_position.name = media_change_plan.start_traj.joint_names;
+    }
+
     // free space motion planning for return move
     req->start_position.position = media_change_plan.start_traj.points.back().positions;
-    req->goal_position.position = media_change_plan.start_traj.points.front().positions;
-    req->goal_position.name = media_change_plan.start_traj.joint_names;
     opt = planFreeSpace("RETURN TO PROCESS", req);
     if (!opt.is_initialized())
     {
