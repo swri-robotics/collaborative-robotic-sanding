@@ -277,6 +277,9 @@ bool crsMotionPlanner::generateDescartesSeed(const geometry_msgs::msg::PoseArray
 
   descartes_light::SolverD graph_builder(kin_interface->dof());
 
+  if (sampler_result.empty())
+    return false;
+
   if (!graph_builder.build(std::move(sampler_result), std::move(timing_constraint), std::move(edge_eval)))
   {
     failed_edges = graph_builder.getFailedEdges();
@@ -1043,8 +1046,8 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr& results)
       curr_joint_traj = new_traj;
     }
     RCLCPP_INFO(logger_, "STORING TRAJECTORIES");
-    results->ompl_start_end_trajectories.push_back(ompl_joint_traj);
-    results->final_start_end_trajectories.push_back(curr_joint_traj);
+    results->ompl_start_trajectory = ompl_joint_traj;
+    results->final_start_trajectory = curr_joint_traj;
     results->final_trajectories.push_back(curr_joint_traj);
   }
   RCLCPP_INFO(logger_, "STORING FIRST RASTER");
@@ -1169,8 +1172,8 @@ bool crsMotionPlanner::generateFreespacePlans(pathPlanningResults::Ptr& results)
       curr_joint_traj = new_traj;
     }
     RCLCPP_INFO(logger_, "STORING TRAJECTORIES");
-    results->ompl_start_end_trajectories.push_back(ompl_joint_traj);
-    results->final_start_end_trajectories.push_back(curr_joint_traj);
+    results->ompl_end_trajectory = ompl_joint_traj;
+    results->final_end_trajectory = curr_joint_traj;
     results->final_trajectories.push_back(curr_joint_traj);
   }
 
