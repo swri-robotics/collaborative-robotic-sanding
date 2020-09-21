@@ -228,6 +228,7 @@ common::ActionResult PartRegistrationManager::computeTransform()
 {
   auto remove_part_request = std::make_shared<std_srvs::srv::Trigger::Request>();
   auto remove_result_future = remove_part_tesseract_client_->async_send_request(remove_part_request);
+  RCLCPP_INFO(node_->get_logger(), "REMOVED PART");
 
   common::ActionResult res;
   if (!config_)
@@ -328,7 +329,7 @@ common::ActionResult PartRegistrationManager::applyTransform()
 
   // calling load part service
   auto result_future = load_part_tesseract_client_->async_send_request(load_part_request);
-
+  RCLCPP_INFO(node_->get_logger(), "ADDED PART");
   return true;
 }
 

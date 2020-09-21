@@ -1108,7 +1108,6 @@ crs_motion_planning::filterSingularityCylinder(const geometry_msgs::msg::PoseArr
       filtered_waypoints.push_back(filtered_raster);
       filtered_raster.poses.clear();
     }
-    std::cout << std::endl;
   }
   if (filtered_raster.poses.size() > 0)
   {

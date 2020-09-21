@@ -187,6 +187,7 @@ common::ActionResult ScanAcquisitionManager::moveRobot()
   freespace_motion_request->goal_pose = scan_poses_.at(scan_index_);
   freespace_motion_request->execute = true;
 
+
   auto result_future = call_freespace_motion_client_->async_send_request(freespace_motion_request);
 
   std::future_status status = result_future.wait_for(std::chrono::duration<double>(WAIT_MOTION_COMPLETION));

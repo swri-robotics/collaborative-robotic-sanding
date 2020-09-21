@@ -537,7 +537,10 @@ bool CRSExecutive::setupScanAcquisitionStates()
 
   st_callbacks_map[scan::PARENT] = StateCallbackInfo{
     entry_cb : [this]() -> common::ActionResult { return part_rework_mngr_->hideToolPathsPreview(); },
-    async : false
+    async : false,
+    exit_cb : nullptr,
+    on_done_action : "",
+    on_failed_action: ""
   };
 
   st_callbacks_map[scan::CAPTURE] = StateCallbackInfo{
@@ -547,7 +550,7 @@ bool CRSExecutive::setupScanAcquisitionStates()
 
   st_callbacks_map[scan::MOVE_ROBOT] = StateCallbackInfo{
     entry_cb : std::bind(&task_managers::ScanAcquisitionManager::moveRobot, scan_acqt_mngr_.get()),
-    async : true
+    async : false
   };
 
   st_callbacks_map[scan::VERIFICATION] = StateCallbackInfo{
@@ -587,7 +590,7 @@ bool CRSExecutive::setupPartReworkStates()
     },
     async : true,
     exit_cb : std::bind(&task_managers::PartReworkManager::hideRegions, part_rework_mngr_.get()),
-    on_done_action : action_names::SM_DONE,
+    on_done_action : "",
   };
 
   st_callbacks_map[part_rework::RESET] = StateCallbackInfo{
