@@ -1,7 +1,7 @@
 general:
   use_trajopt_freespace: true
   use_trajopt_surface: true
-  default_to_descartes: true
+  default_to_descartes: false
   default_to_ompl: true
   simplify_start_end_freespace: true
   manipulator: "manipulator"
