@@ -836,7 +836,6 @@ bool crsMotionPlanner::generateOMPLSeed(const tesseract_motion_planners::JointWa
   ompl_planner_config->n_output_states = config_->ompl_config.n_output_states;
   ompl_planner_config->longest_valid_segment_fraction = config_->ompl_config.longest_valid_segment_fraction;
   ompl_planner_config->longest_valid_segment_length = config_->ompl_config.longest_valid_segment_length;
-  //  ompl_planner_config->
   RCLCPP_INFO(logger_, "OUTPUT STATES: %i", config_->ompl_config.n_output_states);
   std::cout << "GENERATING OMPL SEED FROM \n"
             << start_pose->getPositions().matrix() << "\nTO\n"
