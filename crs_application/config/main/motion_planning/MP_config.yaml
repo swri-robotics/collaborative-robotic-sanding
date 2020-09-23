@@ -15,7 +15,7 @@ general:
   max_rotation_rate: 3.0
   max_joint_acc: 0.8
   add_approach_and_retreat: true
-  minimum_raster_length: 5
+  minimum_raster_length: 4
   reachable_radius: 1.35
   trajopt_verbose_output: false
   combine_strips: true
@@ -59,7 +59,7 @@ trajopt_surface:
       cost: 10.0
 ompl:
   collision_safety_margin: 0.01
-  planning_time: 120.0
+  planning_time: 240.0
   simplify: true
   range: 0.15
   num_threads: 8

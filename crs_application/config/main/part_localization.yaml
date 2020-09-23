@@ -1,16 +1,17 @@
 general:
   mesh_num_samples: 100000
-  leaf_size: 0.02
+  leaf_size: 0.025
+  part_leaf_size: 0.0175
   part_frame: "part"
   enable_debug_visualizations: True
 icp:
-  max_correspondence_dist: 0.3
+  max_correspondence_dist: 0.08
   max_iter: 15000
   transformation_eps: 1e-12
   rotation_eps: 1e-12  # transformation rotation epsilon in order for an optimization to be considered as having converged to the final solution (epsilon is the cos(angle)
   euclidean_fitness: 1e-12
   ransac_threshold: 0.05
-  use_correspondences: True
+  use_correspondences: False
   use_cog_alignment: False
 sac:
   normal_est_rad: 0.1
@@ -27,7 +28,7 @@ crop_boxes:
     size: [2.0, 2.0, 0.8]
     reverse: True
   box2:
-    xyz: [-0.4, 0.0, 0.56]
+    xyz: [-0.4, 0.0, 0.4]
     size: [0.7, 3.0, 0.8]
     reverse: False # deletes what's inside the box
   box3:

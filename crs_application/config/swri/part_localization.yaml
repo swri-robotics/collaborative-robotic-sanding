@@ -1,6 +1,7 @@
 general:
   mesh_num_samples: 100000
   leaf_size: 0.02
+  part_leaf_size: 0.0175
   part_frame: "part"
   enable_debug_visualizations: True
 icp:

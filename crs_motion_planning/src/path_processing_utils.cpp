@@ -368,7 +368,7 @@ void crs_motion_planning::rasterStripsToMarkerArray(const geometry_msgs::msg::Po
     arrow.color.b = color[3];
     arrow.scale.x = 0.0025;
     arrow.scale.y = 0.005;
-    arrow.scale.z = 0.005;
+    arrow.scale.z = 0.025;
     arrow.id = arrow_count++;
 
     arrow.pose = tf2::toMsg(Eigen::Isometry3d::Identity());
