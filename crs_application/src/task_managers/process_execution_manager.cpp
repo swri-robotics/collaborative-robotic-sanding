@@ -485,7 +485,6 @@ common::ActionResult ProcessExecutionManager::moveRobotIfNotAtStart(const trajec
 common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_msgs::msg::JointTrajectory& traj)
 {
   using namespace control_msgs::action;
-  static const double GOAL_ACCEPT_TIMEOUT_PERIOD = 1.0;
 
   common::ActionResult res = false;
 
@@ -513,7 +512,6 @@ ProcessExecutionManager::execSurfaceTrajectory(const cartesian_trajectory_msgs::
                                                const trajectory_msgs::msg::JointTrajectory& joint_traj)
 {
   using namespace control_msgs::action;
-  static const double GOAL_ACCEPT_TIMEOUT_PERIOD = 1.0;
 
   // rclcpp::Duration traj_dur(traj.points.back().time_from_start);
   common::ActionResult res = false;
