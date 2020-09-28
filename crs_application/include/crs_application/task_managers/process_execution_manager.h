@@ -94,9 +94,11 @@ protected:
   void resetIndexes();
   bool changeActiveController(const bool turn_on_cart);
   bool toggleSander(const bool turn_on_sander);
+  common::ActionResult moveRobotIfNotAtStart(const trajectory_msgs::msg::JointTrajectory& traj);
   common::ActionResult execTrajectory(const trajectory_msgs::msg::JointTrajectory& traj);
   common::ActionResult execSurfaceTrajectory(const cartesian_trajectory_msgs::msg::CartesianTrajectory& traj,
-                                             const crs_motion_planning::cartesianTrajectoryConfig& traj_config);
+                                             const crs_motion_planning::cartesianTrajectoryConfig& traj_config,
+                                             const trajectory_msgs::msg::JointTrajectory& joint_traj);
   common::ActionResult checkPreReq();
 
   void jointCallback(const sensor_msgs::msg::JointState::SharedPtr joint_msg);

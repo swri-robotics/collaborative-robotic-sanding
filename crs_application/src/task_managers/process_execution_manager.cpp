@@ -147,12 +147,10 @@ common::ActionResult ProcessExecutionManager::execProcess()
   for (std::size_t i = 0; i < process_plan.process_motions.size(); i++)
   {
     RCLCPP_INFO(node_->get_logger(), "%s Executing process path %i", MANAGER_NAME.c_str(), i);
-    std::chrono::duration<double> sleep_dur(WAIT_ROBOT_STOP);
-    RCLCPP_INFO(node_->get_logger(), "Waiting %f seconds for robot to fully stop", WAIT_ROBOT_STOP);
-    rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::seconds>(sleep_dur));
     if (config_->force_controlled_trajectories)
     {
-      if (!execSurfaceTrajectory(process_plan.force_controlled_process_motions[i], cartesian_traj_config))
+      if (!execSurfaceTrajectory(
+              process_plan.force_controlled_process_motions[i], cartesian_traj_config, process_plan.process_motions[i]))
       {
         common::ActionResult res;
         res.err_msg = boost::str(boost::format("%s failed to execute process motion %i") % MANAGER_NAME.c_str() % i);
@@ -435,30 +433,27 @@ bool ProcessExecutionManager::toggleSander(const bool turn_on_sander)
   return true;
 }
 
-common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_msgs::msg::JointTrajectory& traj)
+common::ActionResult ProcessExecutionManager::moveRobotIfNotAtStart(const trajectory_msgs::msg::JointTrajectory& traj)
 {
-  using namespace control_msgs::action;
-  static const double GOAL_ACCEPT_TIMEOUT_PERIOD = 1.0;
+  // Check if joint state is in correct position before executing, if not then call a freespace motion from current
+  // joint state to beginning of trajectory
 
   common::ActionResult res = false;
 
-  if (config_->force_controlled_trajectories && !ProcessExecutionManager::changeActiveController(false))
-  {
-    res.succeeded = false;
-    return res;
-  }
-
-  // Check if joint state is in correct position before executing, if not then call a freespace motion from current
-  // joint state to beginning of trajectory
   sensor_msgs::msg::JointState::SharedPtr curr_joint_state =
       crs_application::common::getCurrentState(node_, JOINT_STATES_TOPIC, 1.0);
   if (!crs_motion_planning::checkStartState(traj, *curr_joint_state, config_->joint_tolerance[0]))
   {
+    if (!ProcessExecutionManager::changeActiveController(false))
+    {
+      res.succeeded = false;
+      return res;
+    }
     RCLCPP_WARN(node_->get_logger(), "Not at the correct joint state to start freespace motion");
     if (!call_freespace_client_->service_is_ready())
     {
       RCLCPP_ERROR(node_->get_logger(), "%s Freespace Motion is not ready`", MANAGER_NAME.c_str());
-      return false;
+      return res;
     }
     crs_msgs::srv::CallFreespaceMotion::Request::SharedPtr freespace_req =
         std::make_shared<crs_msgs::srv::CallFreespaceMotion::Request>();
@@ -473,16 +468,34 @@ common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_ms
     if (status != std::future_status::ready)
     {
       RCLCPP_ERROR(node_->get_logger(), "%s Call Freespace Motion service call timedout", MANAGER_NAME.c_str());
-      return false;
+      return res;
     }
     auto result = result_future.get();
 
     if (!result->success)
     {
       RCLCPP_ERROR(node_->get_logger(), "%s %s", MANAGER_NAME.c_str(), result->message.c_str());
-      return false;
+      return res;
     }
   }
+
+  return true;
+}
+
+common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_msgs::msg::JointTrajectory& traj)
+{
+  using namespace control_msgs::action;
+
+  common::ActionResult res = false;
+
+  if (config_->force_controlled_trajectories && !ProcessExecutionManager::changeActiveController(false))
+  {
+    res.succeeded = false;
+    return res;
+  }
+
+  if (!ProcessExecutionManager::moveRobotIfNotAtStart(traj))
+    return res;
 
   res.succeeded = crs_motion_planning::execTrajectory(trajectory_exec_client_, node_->get_logger(), traj);
   if (!res)
@@ -495,13 +508,20 @@ common::ActionResult ProcessExecutionManager::execTrajectory(const trajectory_ms
 
 common::ActionResult
 ProcessExecutionManager::execSurfaceTrajectory(const cartesian_trajectory_msgs::msg::CartesianTrajectory& traj,
-                                               const crs_motion_planning::cartesianTrajectoryConfig& traj_config)
+                                               const crs_motion_planning::cartesianTrajectoryConfig& traj_config,
+                                               const trajectory_msgs::msg::JointTrajectory& joint_traj)
 {
   using namespace control_msgs::action;
-  static const double GOAL_ACCEPT_TIMEOUT_PERIOD = 1.0;
 
   // rclcpp::Duration traj_dur(traj.points.back().time_from_start);
   common::ActionResult res = false;
+
+  if (!ProcessExecutionManager::moveRobotIfNotAtStart(joint_traj))
+    return res;
+
+  std::chrono::duration<double> sleep_dur(WAIT_ROBOT_STOP);
+  RCLCPP_INFO(node_->get_logger(), "Waiting %f seconds for robot to fully stop", WAIT_ROBOT_STOP);
+  rclcpp::sleep_for(std::chrono::duration_cast<std::chrono::seconds>(sleep_dur));
 
   if (config_->force_controlled_trajectories && !ProcessExecutionManager::changeActiveController(true))
   {

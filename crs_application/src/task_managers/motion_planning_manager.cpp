@@ -438,6 +438,11 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
     const trajectory_msgs::msg::JointTrajectory& next_traj = result_.process_plans[i + 1].process_motions.front();
     if (!next_traj.points.empty())
     {
+      if (!result_.process_plans[i + 1].start.points.empty())
+      {
+        result_.process_plans[i + 1].start.points.clear();
+        result_.process_plans[i + 1].start.joint_names.clear();
+      }
       req->goal_position.position = next_traj.points.front().positions;
       req->goal_position.name = next_traj.joint_names;
     }

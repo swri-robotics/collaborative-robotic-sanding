@@ -210,7 +210,7 @@ private:
         }
         std::vector<double> last_pose = returned_plans[last_success_i].process_motions.back().points.back().positions;
         std::vector<std::string> last_joint_names = returned_plans[last_success_i].process_motions.back().joint_names;
-        motion_planner_config->use_start = false;
+        motion_planner_config->use_start = true;
         motion_planner_config->start_pose =
             std::make_shared<tesseract_motion_planners::JointWaypoint>(last_pose, last_joint_names);
         returned_plans[last_success_i].end.points.clear();

@@ -540,7 +540,7 @@ bool CRSExecutive::setupScanAcquisitionStates()
     async : false,
     exit_cb : nullptr,
     on_done_action : "",
-    on_failed_action: ""
+    on_failed_action : ""
   };
 
   st_callbacks_map[scan::CAPTURE] = StateCallbackInfo{
