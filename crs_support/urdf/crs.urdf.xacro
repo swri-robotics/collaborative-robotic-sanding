@@ -298,6 +298,7 @@
         <child link="${prefix}eoat_link" />
         <origin rpy="0.0 0.0 0" xyz="0.00 0.00 0.00" />
     </joint>
+
     <link name="${prefix}robot_stand">
         <visual>
             <origin rpy="1.57079632679 0 0" xyz="0 0 -0.1168" />
@@ -309,7 +310,9 @@
             </material>
         </visual>
         <visual>
-            <origin rpy="1.57079632679 0 0" xyz="0.20 0.2 -0.1168" />
+<!--            <origin rpy="1.57079632679 0 0" xyz="0.20 0.2 -0.1168" />-->
+<!--            <origin rpy="1.57079632679 0 0" xyz="0.53 0.2 -0.1168" />-->
+            <origin rpy="1.57079632679 0.42 0" xyz="0.7 0.2 -0.1168" />
             <geometry>
                 <mesh filename="package://crs_support/meshes/Mockup/visual/mockup_cart_v4.stl" />
             </geometry>
@@ -318,41 +321,47 @@
             </material>
         </visual>
         <collision>
-            <origin rpy="1.57079632679 0 0" xyz="0.20 0.2 -0.1168" />
+            <!--<origin rpy="1.57079632679 0 0" xyz="0.20 0.2 -0.1168" />-->
+<!--            <origin rpy="1.57079632679 0 0" xyz="0.53 0.2 -0.1168" />-->
+            <origin rpy="1.57079632679 0.42 0" xyz="0.7 0.2 -0.1168" />
             <geometry>
                 <mesh filename="package://crs_support/meshes/Mockup/collision/Mockup3_6_Cart_collision.stl" />
             </geometry>
         </collision>
-        <collision> <!-- Right Wall-->
+        <collision>  Right Wall
             <geometry>
-                <box size="3.0 2.14 0.1" />
+<!--                <box size="3.0 2.14 0.1" />-->
+                <box size="3.0 2.14 0.2" />
             </geometry>
             <origin rpy="0 0 0" xyz="-0.5 -1.1 1.38" />
         </collision>
         <collision> Left Wall
             <geometry>
-                <box size="3.0 2.14 0.1" />
+<!--                <box size="3.0 2.14 0.1" />-->
+                <box size="3.0 2.14 0.2" />
             </geometry>
             <origin rpy="0 0 0" xyz="-0.5 -1.1 -1.33" />
         </collision>
         <collision> Front Wall
             <geometry>
+<!--                <box size="0.1 2.14 3.0" />-->
                 <box size="0.1 2.14 3.0" />
             </geometry>
             <origin rpy="0 0 0" xyz="0.85 -1.1 0.0" />
         </collision>
         <collision> Back Wall bottom Half
             <geometry>
-                <box size="0.4 1.1 3.0" />
+<!--                <box size="0.4 1.1 3.0" />-->
+                <box size="0.6 3.1 3.0" />
             </geometry>
             <origin rpy="0 0 0" xyz="-2.06 -0.6 0.0" />
         </collision>
-        <collision> Back Wall top beam
+<!--           <collision> Back Wall top beam
             <geometry>
                 <box size="1.25 0.12 3.0" />
             </geometry>
             <origin rpy="0 0 0" xyz="0.38 -2.135 0.0" />
-        </collision>
+        </collision>-->
         <collision> Back Wall Half right
             <geometry>
                 <box size="0.1 0.3 0.7" />
@@ -365,12 +374,29 @@
             </geometry>
             <origin rpy="0.786 0 0" xyz="-2.06 -1.9 -1.15" />
         </collision>
-        <collision> <!-- Top back beam-->
+        <collision> Top back beam
             <geometry>
                 <box size="0.34 0.15 3.0" />
             </geometry>
             <origin rpy="0 0 0" xyz="-1.0 -2.135 0.0" />
         </collision>
+
+        <!--added by Bharath/Joe on 9/23 to avoid collision-->
+        <collision> Temp block
+            <geometry>
+                <box size="1 1.1 0.1" />
+            </geometry>
+            <origin rpy="0 0.42 0" xyz="-0.0 -0.55 0.7" />
+        </collision>
+        <collision> Temp block2
+            <geometry>
+                <box size="1.5 1.2 0.1" />
+            </geometry>
+            <origin rpy="0 0.42 0" xyz="-0.17 -0.75 -0.9" />
+        </collision>
+        <!--added by Bharath/Joe on 9/23 to avoid collision-->
+
+
         <collision> Corner Bracket 1
             <geometry>
                 <box size="1.25 0.12 1.25" />
@@ -383,6 +409,20 @@
             </geometry>
             <origin rpy="0 0.785 0" xyz="-2.06 -2.135 1.38" />
         </collision>
+
+        <collision> Corner Bracket 3
+            <geometry>
+                <box size="1.25 0.12 1.25" />
+            </geometry>
+            <origin rpy="0 0.785 0" xyz="0.85 -2.135 -1.33" />
+        </collision>
+        <collision> Corner Bracket 4
+            <geometry>
+                <box size="1.25 0.12 1.25" />
+            </geometry>
+            <origin rpy="0 0.785 0" xyz="0.85 -2.135 1.38" />
+        </collision>
+
         <!--<collision>  fake floor
             <geometry>
                 <box size="3.0 0.12 2.5" />
@@ -396,6 +436,7 @@
         </inertial>
 
     </link>
+
     <joint name="${prefix}robot_base_joint" type="fixed">
         <parent link="${prefix}robot_stand" />
         <child link="${prefix}base" />
@@ -467,6 +508,13 @@
               <cylinder length="0.0254" radius="0.0125" />
           </geometry>
           <origin rpy="0 1.57 0" xyz="0.0 -0.2 -.0375" />
+      </collision>
+<!--Adding collision geom for camera cable-->
+      <collision>
+          <geometry>
+              <cylinder length="0.05" radius="0.0125" />
+          </geometry>
+          <origin rpy="0 1.57 0" xyz="0.075 0.10 -.25" />
       </collision>
     </link>
 
