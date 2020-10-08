@@ -59,7 +59,7 @@ trajopt_surface:
       cost: 10.0
 ompl:
   collision_safety_margin: 0.01
-  planning_time: 120.0
+  planning_time: 240.0
   simplify: true
   range: 0.15
   num_threads: 8
