@@ -15,7 +15,7 @@ general:
   max_rotation_rate: 3.0
   max_joint_acc: 0.8
   add_approach_and_retreat: true
-  minimum_raster_length: 5
+  minimum_raster_length: 4
   reachable_radius: 1.35
   trajopt_verbose_output: false
   combine_strips: true
