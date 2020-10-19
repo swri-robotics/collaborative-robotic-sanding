@@ -76,7 +76,6 @@ StateMachineInterfaceWidget::StateMachineInterfaceWidget(rclcpp::Node::SharedPtr
 
   // TODO: Make state machine interaction a standalone widget
   connect(ui_->push_button_sm_apply, &QPushButton::clicked, this, &StateMachineInterfaceWidget::onSMApply);
-  connect(ui_->push_button_sm_query, &QPushButton::clicked, this, &StateMachineInterfaceWidget::onSMQuery);
   connect(ui_->push_button_sm_cancel, &QPushButton::clicked, this, &StateMachineInterfaceWidget::onSMCancel);
   connect(ui_->push_button_sm_approve, &QPushButton::clicked, this, &StateMachineInterfaceWidget::onSMApprove);
   connect(this, &StateMachineInterfaceWidget::show_msg, [](bool b, std::string msg) { showMsgBox(b, msg); });

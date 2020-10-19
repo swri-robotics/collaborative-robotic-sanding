@@ -59,6 +59,7 @@ static const std::string WAIT_USER_CMD = "Wait_User_Cmd";
 // scan acquisition
 namespace scan
 {
+static const std::string PARENT = "Scan_Acquisition";
 static const std::string MOVE_ROBOT = "SC_Move_Robot";
 static const std::string VERIFICATION = "SC_Verification";
 static const std::string CAPTURE = "SC_Capture";
@@ -72,12 +73,12 @@ namespace part_reg
 static const std::string COMPUTE_TRANSFORM = "Compute_Transform";
 static const std::string PREVIEW = "RG_Preview";
 static const std::string APPLY_TRANSFORM = "Apply_transform";
-static const std::string SAVE_RESULTS = "RG_Save_Results";
 }  // namespace part_reg
 
 // motion planning
 namespace motion_planning
 {
+static const std::string SET_INPUT_DATA = "MP_Set_Input_Data";
 static const std::string SPLIT_TOOLPATHS = "Split_ToolPaths";
 static const std::string PREVIEW = "MP_Preview";
 static const std::string PLAN_PROCESS_PATHS = "Plan_Process_Paths";
@@ -88,6 +89,7 @@ static const std::string SAVE_RESULTS = "MP_Save_Results";
 // part rework
 namespace part_rework
 {
+static const std::string PARENT = "Part_Rework";
 static const std::string RESET = "PR_Reset";
 static const std::string MOVE_ROBOT = "PR_Move_Robot";
 static const std::string ACQUIRE_SCAN = "PR_Acquire_Scan";
@@ -385,6 +387,14 @@ bool CRSExecutive::setupMotionPlanningStates()
 
   std::map<std::string, StateCallbackInfo> st_callbacks_map;
 
+  st_callbacks_map[motion_planning::SET_INPUT_DATA] = StateCallbackInfo{
+    entry_cb : [this]() {
+      part_rework_mngr_->hideToolPathsPreview();
+      return motion_planning_mngr_->setInput({ part_regt_mngr_->getResult() });
+    },
+    async : false
+  };
+
   st_callbacks_map[motion_planning::SPLIT_TOOLPATHS] = StateCallbackInfo{
     entry_cb : std::bind(&task_managers::MotionPlanningManager::splitToolpaths, motion_planning_mngr_.get()),
     async : false
@@ -439,23 +449,6 @@ bool CRSExecutive::setupPartRegistrationStates()
     async : false,
     exit_cb : nullptr,
     on_done_action : ""
-  };
-
-  st_callbacks_map[part_reg::SAVE_RESULTS] = StateCallbackInfo{
-    entry_cb : [this]() -> common::ActionResult {
-      common::ActionResult res = motion_planning_mngr_->setInput({ part_regt_mngr_->getResult() });
-      if (!res)
-      {
-        return res;
-      }
-      res = part_rework_mngr_->setInput(part_regt_mngr_->getResult());
-      if (!res)
-      {
-        return res;
-      }
-      return true;
-    },
-    async : false
   };
 
   // now adding functions to SM
@@ -542,6 +535,14 @@ bool CRSExecutive::setupScanAcquisitionStates()
 
   std::map<std::string, StateCallbackInfo> st_callbacks_map;
 
+  st_callbacks_map[scan::PARENT] = StateCallbackInfo{
+    entry_cb : [this]() -> common::ActionResult { return part_rework_mngr_->hideToolPathsPreview(); },
+    async : false,
+    exit_cb : nullptr,
+    on_done_action : "",
+    on_failed_action : ""
+  };
+
   st_callbacks_map[scan::CAPTURE] = StateCallbackInfo{
     entry_cb : std::bind(&task_managers::ScanAcquisitionManager::capture, scan_acqt_mngr_.get()),
     async : false
@@ -549,7 +550,7 @@ bool CRSExecutive::setupScanAcquisitionStates()
 
   st_callbacks_map[scan::MOVE_ROBOT] = StateCallbackInfo{
     entry_cb : std::bind(&task_managers::ScanAcquisitionManager::moveRobot, scan_acqt_mngr_.get()),
-    async : true
+    async : false
   };
 
   st_callbacks_map[scan::VERIFICATION] = StateCallbackInfo{
@@ -580,6 +581,17 @@ bool CRSExecutive::setupPartReworkStates()
   using namespace scxml_core;
 
   std::map<std::string, StateCallbackInfo> st_callbacks_map;
+
+  st_callbacks_map[part_rework::PARENT] = StateCallbackInfo{
+    entry_cb : [this]() {
+      part_rework_mngr_->hideRegions();
+      part_rework_mngr_->hideToolPathsPreview();
+      return part_rework_mngr_->setInput(part_regt_mngr_->getResult());
+    },
+    async : true,
+    exit_cb : std::bind(&task_managers::PartReworkManager::hideRegions, part_rework_mngr_.get()),
+    on_done_action : "",
+  };
 
   st_callbacks_map[part_rework::RESET] = StateCallbackInfo{
     entry_cb : std::bind(&task_managers::PartReworkManager::reset, part_rework_mngr_.get()),

@@ -42,6 +42,8 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include <tf2_ros/transform_broadcaster.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_ros/buffer.h>
 
 #include <visualization_msgs/msg/marker_array.hpp>
 
@@ -103,6 +105,8 @@ protected:
 
   // tf
   tf2_ros::TransformBroadcaster tf_broadcaster_;
+  tf2_ros::Buffer tf_buffer_;
+  tf2_ros::TransformListener tf_listener_;
 };
 
 } /* namespace task_managers */

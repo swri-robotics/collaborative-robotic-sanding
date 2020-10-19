@@ -61,7 +61,10 @@ namespace crs_application
 namespace task_managers
 {
 PartRegistrationManager::PartRegistrationManager(std::shared_ptr<rclcpp::Node> node)
-  : node_(node), tf_broadcaster_(node)
+  : node_(node)
+  , tf_broadcaster_(node)
+  , tf_buffer_(std::make_shared<rclcpp::Clock>(RCL_ROS_TIME))
+  , tf_listener_(tf_buffer_)
 {
 }
 
@@ -225,6 +228,7 @@ common::ActionResult PartRegistrationManager::computeTransform()
 {
   auto remove_part_request = std::make_shared<std_srvs::srv::Trigger::Request>();
   auto remove_result_future = remove_part_tesseract_client_->async_send_request(remove_part_request);
+  RCLCPP_INFO(node_->get_logger(), "REMOVED PART");
 
   common::ActionResult res;
   if (!config_)
@@ -266,7 +270,6 @@ common::ActionResult PartRegistrationManager::applyTransform()
 {
   std::vector<geometry_msgs::msg::PoseArray> original_rasters, cropped_raster_strips;
   crs_motion_planning::parsePathFromFile(config_->toolpath_file, config_->target_frame_id, original_rasters);
-  cropped_raster_strips = crs_motion_planning::removeEdgeWaypoints(original_rasters, config_->waypoint_edge_buffer);
 
   auto apply_transform = [](const geometry_msgs::msg::Pose& p,
                             const geometry_msgs::msg::Transform& t) -> geometry_msgs::msg::Pose {
@@ -276,14 +279,43 @@ common::ActionResult PartRegistrationManager::applyTransform()
     tf2::fromMsg(p, p_eig);
     return tf2::toMsg(t_eig * p_eig);
   };
-  for (auto& poses : cropped_raster_strips)
+  for (auto& poses : original_rasters)
   {
     for (std::size_t i = 0; i < poses.poses.size(); i++)
     {
       poses.poses[i] = apply_transform(poses.poses[i], part_transform_.transform);
     }
   }
-  result_.rasters = cropped_raster_strips;
+
+  geometry_msgs::msg::TransformStamped transform;
+  try
+  {
+    transform = tf_buffer_.lookupTransform(
+        original_rasters[0].header.frame_id, "base_link", tf2::TimePointZero, tf2::Duration(5));
+  }
+  catch (tf2::TransformException ex)
+  {
+    std::string error_msg =
+        "Failed to get transform from '" + original_rasters[0].header.frame_id + "' to '" + "base_link" + "' frame";
+
+    RCLCPP_ERROR(node_->get_logger(), "Raster Frame error: %s: ", ex.what(), error_msg.c_str());
+    return false;
+  }
+
+  cropped_raster_strips = crs_motion_planning::removeEdgeWaypoints(original_rasters, config_->waypoint_edge_buffer);
+  std::vector<geometry_msgs::msg::PoseArray> transformed_waypoints =
+      crs_motion_planning::transformWaypoints(cropped_raster_strips, transform);
+  std::vector<geometry_msgs::msg::PoseArray> singularity_filtered =
+      crs_motion_planning::filterSingularityCylinder(transformed_waypoints, config_->singularity_radius);
+  std::vector<geometry_msgs::msg::PoseArray> organized_rasters =
+      crs_motion_planning::organizeRasters(singularity_filtered);
+  std::vector<geometry_msgs::msg::PoseArray> reachable_transformed_waypoints;
+  crs_motion_planning::filterReachabilitySphere(
+      organized_rasters, config_->reachable_radius, reachable_transformed_waypoints);
+  std::vector<geometry_msgs::msg::PoseArray> reachable_waypoints =
+      crs_motion_planning::transformWaypoints(reachable_transformed_waypoints, transform, true);
+
+  result_.rasters = reachable_waypoints;
   RCLCPP_INFO_STREAM(node_->get_logger(), MANAGER_NAME << " Transformed raster strips and saved them");
 
   auto load_part_request = std::make_shared<crs_msgs::srv::LoadPart::Request>();
@@ -297,7 +329,7 @@ common::ActionResult PartRegistrationManager::applyTransform()
 
   // calling load part service
   auto result_future = load_part_tesseract_client_->async_send_request(load_part_request);
-
+  RCLCPP_INFO(node_->get_logger(), "ADDED PART");
   return true;
 }
 

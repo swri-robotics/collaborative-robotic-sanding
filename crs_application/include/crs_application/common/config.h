@@ -105,6 +105,8 @@ struct PartRegistrationConfig
   std::array<double, 6> seed_pose;
   std::array<double, 6> simulation_pose;
   double waypoint_edge_buffer;
+  double reachable_radius;
+  double singularity_radius;
 };
 
 struct PartReworkConfig

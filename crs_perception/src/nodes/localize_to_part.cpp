@@ -223,6 +223,7 @@ private:
     // general parameters
     mesh_num_samples_ = this->get_parameter("general.mesh_num_samples").as_int();
     leaf_size_ = this->get_parameter("general.leaf_size").as_double();
+    part_leaf_size_ = this->get_parameter("general.part_leaf_size").as_double();
     part_frame_ = this->get_parameter("general.part_frame").as_string();
     enable_debug_visualizations_ = this->get_parameter("general.enable_debug_visualizations").as_bool();
 
@@ -318,7 +319,7 @@ private:
     RCLCPP_INFO(this->get_logger(), "Loading part from %s", request->path_to_part.c_str());
 
     // converting mesh into cloud
-    ModelToPointCloud mtpc(mesh_num_samples_, leaf_size_);
+    ModelToPointCloud mtpc(mesh_num_samples_, part_leaf_size_);
     if (!mtpc.convertToPCL(request->path_to_part, part_point_cloud_, response->error))
     {
       RCLCPP_ERROR_STREAM(this->get_logger(), response->error);
@@ -691,7 +692,7 @@ private:
     // downsampling
     pcl::PointCloud<pcl::PointXYZ>::Ptr src_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
     pcl::PointCloud<pcl::PointXYZ>::Ptr target_cloud = boost::make_shared<pcl::PointCloud<pcl::PointXYZ>>();
-    *src_cloud = downsampleCloud(part_point_cloud_, leaf_size_);
+    *src_cloud = downsampleCloud(part_point_cloud_, part_leaf_size_);
     *target_cloud = downsampleCloud(combined_point_cloud, leaf_size_);
     RCLCPP_INFO(this->get_logger(), "Combined point cloud has %lu points after downsampling", target_cloud->size());
 
@@ -722,7 +723,7 @@ private:
       publish_timer_.reset();
 
       sensor_msgs::msg::PointCloud2 scanned_cloud;
-      pcl::toROSMsg(*combined_point_cloud, scanned_cloud);
+      pcl::toROSMsg(*target_cloud, scanned_cloud);
       scanned_cloud.header.stamp = this->now();
       scanned_cloud.header.frame_id = world_frame_;
 
@@ -741,7 +742,7 @@ private:
 
   // parameters
   int mesh_num_samples_;
-  double leaf_size_;
+  double leaf_size_, part_leaf_size_;
   bool enable_debug_visualizations_;
   std::string part_frame_;
   IcpConfig icp_config_;

@@ -183,7 +183,7 @@ private:
     tesseract_rosutils::fromMsg(motion_planner_config->tool_offset, request->tool_offset);
 
     std::vector<crs_msgs::msg::ProcessMotionPlan> returned_plans;
-    bool success;
+    bool success = false;
     std::vector<trajectory_msgs::msg::JointTrajectory> trajopt_trajectories;
 
     // Clear old visualizations
@@ -195,41 +195,31 @@ private:
     corrected_path_publisher_->publish(marker_eraser_array);
     failed_vertex_publisher_->publish(marker_eraser);
 
+    std::vector<bool> successes;
+
     for (size_t i = 0; i < request->process_paths.size(); ++i)
     {
       std::cout << "Planning " << i + 1 << " process of " << request->process_paths.size() << std::endl;
-
-      geometry_msgs::msg::TransformStamped transform;
-      try
+      if (i != 0 && success)
       {
-        transform = tf_buffer_.lookupTransform(request->process_paths[i].rasters[0].header.frame_id,
-                                               motion_planner_config->robot_base_frame,
-                                               tf2::TimePointZero,
-                                               tf2::Duration(5));
+        size_t last_success_i = 0;
+        for (size_t j = 0; j < successes.size(); ++j)
+        {
+          if (successes[j])
+            last_success_i = j;
+        }
+        std::vector<double> last_pose = returned_plans[last_success_i].process_motions.back().points.back().positions;
+        std::vector<std::string> last_joint_names = returned_plans[last_success_i].process_motions.back().joint_names;
+        motion_planner_config->use_start = true;
+        motion_planner_config->start_pose =
+            std::make_shared<tesseract_motion_planners::JointWaypoint>(last_pose, last_joint_names);
+        returned_plans[last_success_i].end.points.clear();
+        returned_plans[last_success_i].end.joint_names.clear();
       }
-      catch (tf2::TransformException ex)
-      {
-        std::string error_msg = "Failed to get transform from '" +
-                                request->process_paths[i].rasters[0].header.frame_id + "' to '" +
-                                motion_planner_config->robot_base_frame + "' frame";
-
-        RCLCPP_ERROR(this->get_logger(), "Raster Frame error: %s: ", ex.what(), error_msg.c_str());
-        return;
-      }
-
-      std::vector<geometry_msgs::msg::PoseArray> organized_rasters =
-          crs_motion_planning::organizeRasters(request->process_paths[i].rasters);
-      std::vector<geometry_msgs::msg::PoseArray> transformed_waypoints =
-          crs_motion_planning::transformWaypoints(organized_rasters, transform);
-      std::vector<geometry_msgs::msg::PoseArray> reachable_transformed_waypoints;
-      crs_motion_planning::filterReachabilitySphere(
-          transformed_waypoints, motion_planner_config->reachable_radius, reachable_transformed_waypoints);
-      std::vector<geometry_msgs::msg::PoseArray> reachable_waypoints =
-          crs_motion_planning::transformWaypoints(reachable_transformed_waypoints, transform, true);
 
       // Load in current rasters
       motion_planner_config->rasters.clear();
-      motion_planner_config->rasters = reachable_waypoints;
+      motion_planner_config->rasters = request->process_paths[i].rasters;
 
       // Create marker array for original raster visualization
       visualization_msgs::msg::MarkerArray mark_array_msg;
@@ -245,7 +235,11 @@ private:
 
       // Run process planner
       auto path_plan_results = std::make_unique<crs_motion_planning::pathPlanningResults>();
-      success = crs_motion_planner.generateProcessPlan(path_plan_results) || success;
+
+      bool curr_success =
+          crs_motion_planner.generateProcessPlan(path_plan_results);  // Check if current plan was successful
+      successes.push_back(curr_success);                              // Update list of successes
+      success = curr_success || success;                              // Update whether any has been successful
 
       // Create marker array for processed raster visualization
       visualization_msgs::msg::MarkerArray temp_mark_array_msg, pub_mark_array_msg;
@@ -280,13 +274,13 @@ private:
       // Store trajectories for service response
       trajopt_trajectories = path_plan_results->final_trajectories;
       crs_msgs::msg::ProcessMotionPlan resulting_process;
-      if (path_plan_results->final_start_end_trajectories.size() > 0)
+      if (path_plan_results->final_start_trajectory.points.size() > 0)
       {
-        resulting_process.start = path_plan_results->final_start_end_trajectories[0];
+        resulting_process.start = path_plan_results->final_start_trajectory;
       }
-      if (path_plan_results->final_start_end_trajectories.size() > 1)
+      if (path_plan_results->final_end_trajectory.points.size() > 0)
       {
-        resulting_process.end = path_plan_results->final_start_end_trajectories[1];
+        resulting_process.end = path_plan_results->final_end_trajectory;
       }
       resulting_process.free_motions = path_plan_results->final_freespace_trajectories;
       resulting_process.process_motions = path_plan_results->final_raster_trajectories;
@@ -542,28 +536,28 @@ private:
                   std::shared_ptr<crs_msgs::srv::RobotPositioner::Response> response)
   {
     Eigen::Isometry3d ur_base_pose = Eigen::Isometry3d::Identity();
-    ur_base_pose.rotate(Eigen::Quaterniond(0.7071, 0, 0.7071, 0));
+    ur_base_pose.rotate(Eigen::Quaterniond(0.5, -0.5, -0.5, -0.5));
     if (request->robot_rail == crs_msgs::srv::RobotPositioner::Request::RAIL1)
     {
       ur_base_pose.translation().x() = -0.148896;
     }
     else
     {
-      ur_base_pose.translation().x() = -1.050659;
+      ur_base_pose.translation().x() = -1.030659;
     }
     if (request->robot_position == crs_msgs::srv::RobotPositioner::Request::POSITION1)
     {
-      ur_base_pose.translation().z() = 0.6277;
+      ur_base_pose.translation().z() = 0.7977;
     }
     else if (request->robot_position == crs_msgs::srv::RobotPositioner::Request::POSITION2)
     {
-      ur_base_pose.translation().z() = -0.0277;
+      ur_base_pose.translation().z() = 0.1532;
     }
     else
     {
       ur_base_pose.translation().z() = -0.6677;
     }
-    ur_base_pose.translation().y() = -2.047406;
+    ur_base_pose.translation().y() = -2.037406;
 
     std::vector<tesseract_msgs::msg::EnvironmentCommand> env_command_vector;
     tesseract_msgs::msg::EnvironmentCommand move_ur_joint_command;

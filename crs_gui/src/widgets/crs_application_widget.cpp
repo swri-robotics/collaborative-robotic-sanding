@@ -137,7 +137,6 @@ CRSApplicationWidget::CRSApplicationWidget(rclcpp::Node::SharedPtr node, QWidget
 
   //  // Add the widgets to the UI
   ui_->vertical_layout_part_selector->addWidget(part_selector_widget_.get());
-  ui_->vertical_layout_area_selection->addWidget(area_selection_widget_.get());
   ui_->vertical_layout_sm_interface->addWidget(state_machine_interface_widget_.get());
 
   // disable sm gui at startup

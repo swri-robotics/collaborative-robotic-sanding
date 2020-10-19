@@ -44,6 +44,7 @@
 #include <crs_motion_planning/path_processing_utils.h>
 #include <std_srvs/srv/set_bool.hpp>
 #include <crs_msgs/srv/run_robot_script.hpp>
+#include <crs_msgs/srv/call_freespace_motion.hpp>
 #include "crs_application/common/common.h"
 #include "crs_application/common/datatypes.h"
 #include "crs_application/common/config.h"
@@ -93,10 +94,14 @@ protected:
   void resetIndexes();
   bool changeActiveController(const bool turn_on_cart);
   bool toggleSander(const bool turn_on_sander);
+  common::ActionResult moveRobotIfNotAtStart(const trajectory_msgs::msg::JointTrajectory& traj);
   common::ActionResult execTrajectory(const trajectory_msgs::msg::JointTrajectory& traj);
   common::ActionResult execSurfaceTrajectory(const cartesian_trajectory_msgs::msg::CartesianTrajectory& traj,
-                                             const crs_motion_planning::cartesianTrajectoryConfig& traj_config);
+                                             const crs_motion_planning::cartesianTrajectoryConfig& traj_config,
+                                             const trajectory_msgs::msg::JointTrajectory& joint_traj);
   common::ActionResult checkPreReq();
+
+  void jointCallback(const sensor_msgs::msg::JointState::SharedPtr joint_msg);
 
   // roscpp
   using GoalHandleT = rclcpp_action::Client<control_msgs::action::FollowJointTrajectory>::GoalHandle;
@@ -109,6 +114,7 @@ protected:
   rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr controller_changer_client_;
   rclcpp::Client<std_srvs::srv::SetBool>::SharedPtr toggle_sander_client_;
   rclcpp::Client<crs_msgs::srv::RunRobotScript>::SharedPtr run_robot_script_client_;
+  rclcpp::Client<crs_msgs::srv::CallFreespaceMotion>::SharedPtr call_freespace_client_;
 
   // process data
   std::shared_ptr<config::ProcessExecutionConfig> config_ = nullptr;

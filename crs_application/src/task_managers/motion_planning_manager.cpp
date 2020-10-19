@@ -201,6 +201,7 @@ common::ActionResult MotionPlanningManager::splitToolpaths()
         new_raster.poses.clear();
         std::copy(
             raster.poses.begin() + start_idx, raster.poses.begin() + end_idx, std::back_inserter(new_raster.poses));
+        new_raster.header = raster.header;
         toolpaths_processes.back().rasters.push_back(new_raster);
 
         // create new toolpath
@@ -333,13 +334,6 @@ common::ActionResult MotionPlanningManager::planProcessPaths()
       continue;
     }
 
-    if (plan.start.points.empty() || plan.end.points.empty())
-    {
-      RCLCPP_ERROR(node_->get_logger(), "Start or End move for process %i are empty, invalidating plan", i);
-      plan.process_motions.clear();
-      continue;
-    }
-
     found_valid_plan = true;
   }
   return found_valid_plan;
@@ -393,17 +387,16 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
     return true;
   }
 
-  CallFreespaceMotion::Request::SharedPtr req = std::make_shared<CallFreespaceMotion::Request>();
-  req->target_link = config_->tool_frame;
-  req->goal_position.position = config_->joint_media_position;
-  req->goal_position.name = config_->media_joint_names;
-  req->execute = false;
-  req->num_steps = 0;  // planner should use default
-
   // Create media change plans
   std::vector<int> empty_process_indices;
   for (std::size_t i = 0; i < result_.process_plans.size() - 1; i++)
   {
+    CallFreespaceMotion::Request::SharedPtr req = std::make_shared<CallFreespaceMotion::Request>();
+    req->target_link = config_->tool_frame;
+    req->goal_position.position = config_->joint_media_position;
+    req->goal_position.name = config_->media_joint_names;
+    req->execute = false;
+    req->num_steps = 0;  // planner should use default
     datatypes::MediaChangeMotionPlan media_change_plan;
 
     // check if current motion plan is empty
@@ -421,7 +414,7 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
     }
 
     // creating the media change plan now
-    const trajectory_msgs::msg::JointTrajectory& traj = result_.process_plans[i].end;
+    const trajectory_msgs::msg::JointTrajectory& traj = result_.process_plans[i].process_motions.back();
 
     // check trajectory
     if (traj.points.empty())
@@ -442,10 +435,25 @@ common::ActionResult MotionPlanningManager::planMediaChanges()
     }
     media_change_plan.start_traj = opt.get();
 
+    const trajectory_msgs::msg::JointTrajectory& next_traj = result_.process_plans[i + 1].process_motions.front();
+    if (!next_traj.points.empty())
+    {
+      if (!result_.process_plans[i + 1].start.points.empty())
+      {
+        result_.process_plans[i + 1].start.points.clear();
+        result_.process_plans[i + 1].start.joint_names.clear();
+      }
+      req->goal_position.position = next_traj.points.front().positions;
+      req->goal_position.name = next_traj.joint_names;
+    }
+    else
+    {
+      req->goal_position.position = media_change_plan.start_traj.points.front().positions;
+      req->goal_position.name = media_change_plan.start_traj.joint_names;
+    }
+
     // free space motion planning for return move
     req->start_position.position = media_change_plan.start_traj.points.back().positions;
-    req->goal_position.position = media_change_plan.start_traj.points.front().positions;
-    req->goal_position.name = media_change_plan.start_traj.joint_names;
     opt = planFreeSpace("RETURN TO PROCESS", req);
     if (!opt.is_initialized())
     {

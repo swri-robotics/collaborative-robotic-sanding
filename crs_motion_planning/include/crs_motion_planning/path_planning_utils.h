@@ -133,6 +133,7 @@ struct pathPlanningConfig
   bool use_trajopt_freespace = true;
   bool use_trajopt_surface = true;
   bool default_to_descartes = false;
+  bool default_to_ompl = true;
 
   tesseract::Tesseract::Ptr tesseract_local;
 
@@ -194,8 +195,10 @@ struct pathPlanningResults
   std::vector<trajectory_msgs::msg::JointTrajectory> ompl_trajectories;
   std::vector<trajectory_msgs::msg::JointTrajectory> final_freespace_trajectories;
 
-  std::vector<trajectory_msgs::msg::JointTrajectory> ompl_start_end_trajectories;
-  std::vector<trajectory_msgs::msg::JointTrajectory> final_start_end_trajectories;
+  trajectory_msgs::msg::JointTrajectory ompl_start_trajectory;
+  trajectory_msgs::msg::JointTrajectory ompl_end_trajectory;
+  trajectory_msgs::msg::JointTrajectory final_start_trajectory;
+  trajectory_msgs::msg::JointTrajectory final_end_trajectory;
 
   std::vector<trajectory_msgs::msg::JointTrajectory> final_trajectories;
   std::string msg_out;
