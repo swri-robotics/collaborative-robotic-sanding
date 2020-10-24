@@ -4,34 +4,47 @@
 ---
 ## System Startup
 ### On Hardware
-- Open terminal and navigate to ROS1 workspace
-    and run the following lines in the terminal
+Prior to running you must've build the ROS1 driver and ROS bridge as described in ../ROS1_BRIDGE_BUILD_INSTRUCTIONS.md
+
+1. #### Run ROS1 driver
     ```
     source /opt/ros/melodic/setup.bash
+    cd ~/crs_ros1_ws/
     source devel/setup.bash
     roslaunch crs_support_ros1 crs_startup.launch
     ```
-    You should see the UR teach pendant showing "Running" under the program tab
+    
+   **You should see the UR teach pendant showing "Running" under the program tab**
+   
+2. #### Run ROS Bridge workspace
 - Open another terminal window and navigate to ROS Bridge workspace
     and run the following lines in  the terminal
     ```
     source /opt/ros/melodic/setup.bash
     source /opt/ros/eloquent/setup.bash
+    cd ~/crs_ros_bridge_ws/ 
     source install/local_setup.bash
     ros2 launch crs_bridge_support combined_bridge.launch.py
     ```
-- Open a third terminal window and navigate to ROS2 workspace
-    and run the following lines in the terminal
+3. #### Run ROS2 Application
+- Open a third terminal window and navigate to ROS2 workspace  and run the following lines in the terminal
     ```
     source /opt/ros/eloquent/setup.bash
+    cd ~/crs_ws
     source install/local_setup.bash
     ros2 launch crs_application crs.launch.xml sim:=false
     ```
     This last command will launch the RVIZ application where you should be able to see the robot in the mockup cell along with the user interface to control the application.
 
 ### In Simulation
+- Source the workspace
+    ```
+    source /opt/ros/eloquent/setup.bash
+    cd ~/crs_ws
+    source install/local_setup.bash
+    ```
 - Start
-    Use the *crs.launch.xml* launch file 
+    Run the *crs.launch.xml* launch file 
     ```
     ros2 launch crs_application crs.launch.xml
     ```

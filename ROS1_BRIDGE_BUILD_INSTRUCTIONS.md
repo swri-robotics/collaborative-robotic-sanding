@@ -54,7 +54,7 @@ This workspace contains the bridge implementation, it allows the ROS1 and ROS2 a
     ```
 - Clone the bridge repository
     ```
-    cd ~/crs_ros_bridge_ws/                   
+    cd ~/crs_ros_bridge_ws/src                   
     git clone https://github.com/swri-robotics/crs_ros_bridge_ws.git
     ```
 - Download source dependencies
