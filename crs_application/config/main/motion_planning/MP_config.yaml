@@ -1,5 +1,5 @@
 general:
-  use_trajopt_freespace: true
+  use_trajopt_freespace: false
   use_trajopt_surface: true
   default_to_descartes: false
   default_to_ompl: true
